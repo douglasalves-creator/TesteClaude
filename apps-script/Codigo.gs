@@ -29,6 +29,9 @@ const CONFIG = {
   // Para usar outro texto de status, troque os valores abaixo (mantenha as aspas).
   STATUS_PENDENTE: ['Ag Aprovação', 'Aguardando Aprovação'],
 
+  // Texto gravado em "Status da SC" quando o gestor aprova a cotação.
+  STATUS_APROVADO: 'Em programação',
+
   // Some o item da lista quando "Data da Aprovação" já estiver preenchida,
   // mesmo que o status ainda não tenha sido atualizado.
   ESCONDER_JA_APROVADO: true,
@@ -181,10 +184,9 @@ function mapSheet_(sheet) {
     destino: find('Destino', ['Destino']),
 
     aprovador: find('Aprovador', ['Aprovador']),
-    dataAprovacao: find('Data da Aprovação', ['Data da Aprovação', 'Data da Aprovacao']),
-    decisao: find('Decisão da Aprovação', ['Decisão da Aprovação', 'Decisao da Aprovacao']),
-    transportadorAprovado: find('Transportador Aprovado', ['Transportador Aprovado']),
-    valorAprovado: find('Valor Aprovado', ['Valor Aprovado']),
+    dataAprovacao: find('Aprovação da Cotação', ['Aprovação da Cotação', 'Aprovacao da Cotacao']),
+    transportadorAprovado: find('Transportadora Aprovada', ['Transportadora Aprovada', 'TransportadorA Escolhida', 'Transportador Aprovado']),
+    valorAprovado: find('Valor (All In)', ['Valor (All In)']),
 
     rotaQuote: {
       nome: find('Rota - Transportador', ['Rota - Transportador']),
@@ -414,7 +416,8 @@ function buildDecision_(group) {
     const melhor = cotados.length ? cotados.reduce(function (a, b) { return b.valor < a.valor ? b : a; }) : null;
     return {
       rowIndex: r.rowIndex, rfq: r.rfq, rotaTexto: r.rotaTexto, material: r.material,
-      carriers: r.carriers, melhorChave: melhor ? melhor.chave : null, completo: melhor !== null
+      carriers: r.carriers, melhorChave: melhor ? melhor.chave : null, completo: melhor !== null,
+      rotaValor: r.rotaQuote.valor
     };
   });
 
@@ -471,8 +474,8 @@ function buildDecision_(group) {
  *   rota: 'ROTA-010',
  *   linhas: [{ rowIndex, rfq, transportadora, valor }]
  * }
- * Em ROTEIRIZADO, "valor" vem null: o valor da rota já está nas colunas
- * "Rota - Valor (All In)" e não é duplicado por RFQ.
+ * "valor" é o que vai na coluna "Valor (All In)": em ROTEIRIZADO, é a parte
+ * proporcional daquela linha na cotação da rota (coluna "Rota - Valor (All In)").
  */
 function approveDecision(payload) {
   const lock = LockService.getScriptLock();
@@ -487,15 +490,12 @@ function approveDecision(payload) {
     if (mapped.headerRow === -1) throw new Error('Não consegui identificar o cabeçalho da aba.');
 
     if (col.aprovador === -1 && col.transportadorAprovado === -1 && col.valorAprovado === -1 && col.dataAprovacao === -1) {
-      throw new Error('Não encontrei as colunas de aprovação. Crie na aba: Aprovador, Data da Aprovação, ' +
-        'Decisão da Aprovação, Transportador Aprovado, Valor Aprovado.');
+      throw new Error('Não encontrei as colunas de aprovação. Crie na aba: Aprovador, Transportadora Aprovada, ' +
+        'Valor (All In), Aprovação da Cotação.');
     }
 
     const email = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || 'não identificado';
-    const agora = new Date();
-    const cenarioTexto = payload.cenario === 'ROTEIRIZADO'
-      ? ('Roteirizado' + (payload.rota ? ' (' + payload.rota + ')' : ''))
-      : 'Separado';
+    const agoraTexto = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy');
 
     const ultimaLinha = sheet.getLastRow();
     payload.linhas.forEach(function (l) {
@@ -519,12 +519,12 @@ function approveDecision(payload) {
       if (col.valorAprovado !== -1 && l.valor !== null && l.valor !== undefined) {
         sheet.getRange(l.rowIndex, col.valorAprovado + 1).setValue(l.valor);
       }
-      if (col.dataAprovacao !== -1) sheet.getRange(l.rowIndex, col.dataAprovacao + 1).setValue(agora);
-      if (col.decisao !== -1) sheet.getRange(l.rowIndex, col.decisao + 1).setValue(cenarioTexto);
+      if (col.dataAprovacao !== -1) sheet.getRange(l.rowIndex, col.dataAprovacao + 1).setValue(agoraTexto);
+      if (col.status !== -1) sheet.getRange(l.rowIndex, col.status + 1).setValue(CONFIG.STATUS_APROVADO);
     });
 
     SpreadsheetApp.flush();
-    return { success: true, cenario: cenarioTexto, linhas: payload.linhas.length, aprovador: email };
+    return { success: true, linhas: payload.linhas.length, aprovador: email };
   } finally {
     lock.releaseLock();
   }

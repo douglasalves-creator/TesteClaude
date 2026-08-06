@@ -481,7 +481,7 @@ document.getElementById('mOk').addEventListener('click', function(){
   google.script.run
     .withSuccessHandler(function(res){
       closeModal();
-      toast(res.cenario + ' aprovado em ' + res.linhas + (res.linhas > 1 ? ' linhas.' : ' linha.'));
+      toast('Aprovação gravada em ' + res.linhas + (res.linhas > 1 ? ' linhas.' : ' linha.'));
       load();
     })
     .withFailureHandler(function(err){
@@ -496,7 +496,7 @@ function buildPayload(d, s){
   var linhas = [];
   if (d.roteirizado && s.cenario === 'ROTEIRIZADO'){
     d.separado.itens.forEach(function(i){
-      linhas.push({ rowIndex:i.rowIndex, rfq:i.rfq, transportadora:d.roteirizado.nome, valor:null });
+      linhas.push({ rowIndex:i.rowIndex, rfq:i.rfq, transportadora:d.roteirizado.nome, valor:i.rotaValor });
     });
     return { cenario:'ROTEIRIZADO', rota:d.rota, linhas:linhas };
   }
@@ -527,9 +527,9 @@ function DEMO(){
       {rfq:'002', material:'Inversor SG250HX Sungrow', qtde:'1', tipoVolume:'Caixa', valorUnit:48000, valorNF:48000, rotaTexto:'Rota: Sungrow (Osasco) x EDP SP'}
     ],
     separado:{ completo:true, total:16549.16, semCotacao:[], itens:[
-      {rowIndex:12, rfq:'001', rotaTexto:'Rota: Bougainville (SP) x EDP SP', material:'Lona', melhorChave:'raycargo', completo:true,
+      {rowIndex:12, rfq:'001', rotaTexto:'Rota: Bougainville (SP) x EDP SP', material:'Lona', melhorChave:'raycargo', completo:true, rotaValor:6500,
        carriers:[c('RAYCARGO',4993.15,'Truck','3'), c('KMOVE',8400,'Carreta','4'), c('TRANSPILOTO',7156.01,'Truck','3')]},
-      {rowIndex:13, rfq:'002', rotaTexto:'Rota: Sungrow (Osasco) x EDP SP', material:'Inversor', melhorChave:'kmove', completo:true,
+      {rowIndex:13, rfq:'002', rotaTexto:'Rota: Sungrow (Osasco) x EDP SP', material:'Inversor', melhorChave:'kmove', completo:true, rotaValor:3300,
        carriers:[c('RAYCARGO',null,'',''), c('KMOVE',3800,'Toco','2'), c('TRANSPILOTO',4200,'Toco','2')]}
     ]},
     roteirizado:{ nome:'KMOVE', valor:9800, adValorem:'0%', prazo:'28 dias', transit:'4', veiculo:'Carreta', completo:true, apenasUmaRfq:false }
