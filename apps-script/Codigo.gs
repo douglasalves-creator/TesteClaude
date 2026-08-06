@@ -581,9 +581,10 @@ function nomeDoEmail_(email) {
   }).join(' ');
 }
 
-function celulaTransportadora_(c, destacar) {
+/** nomeColuna: se o nome da transportadora já está no cabeçalho da coluna, não repete na célula. */
+function celulaTransportadora_(c, destacar, nomeColuna) {
   if (!c) return '<td class="dash">—</td>';
-  let corpo = '<div class="nm">' + esc_(c.nome) + '</div>';
+  let corpo = (nomeColuna && norm_(c.nome) === norm_(nomeColuna)) ? '' : ('<div class="nm">' + esc_(c.nome) + '</div>');
   corpo += c.cotou ? ('<div class="val">' + moeda_(c.valor) + '</div>') : ('<div class="dash">' + esc_(c.naoCotouTexto || 'Não cotou') + '</div>');
   const detalhes = [c.veiculo, c.transit ? c.transit + ' dias' : '', c.adValorem ? 'Ad valorem ' + c.adValorem : '', c.prazo ? 'Pgto ' + c.prazo : '']
     .filter(Boolean).join(' · ');
@@ -606,24 +607,41 @@ function gerarMapaHtml_(items, payload, email, agoraTexto) {
       '<td class="r">' + moeda_(i.valorUnit) + '</td><td class="r">' + moeda_(i.valorNF) + '</td></tr>';
   }).join('');
 
-  const maxCarriers = items.reduce(function (m, i) { return Math.max(m, i.carriers.length); }, 0);
+  // 3 slots fixos (Transportador 1/2/3) — usa o slot, não a posição na lista,
+  // porque uma RFQ sem cotação num slot não guarda espaço vazio na lista de carriers.
+  const NUM_SLOTS = 3;
+  const carrierNoSlot_ = function (item, slot) { return item.carriers.filter(function (c) { return c.slot === slot; })[0]; };
+  const nomesColuna = [];
+  for (let n = 1; n <= NUM_SLOTS; n++) {
+    const comNome = items.map(function (i) { return carrierNoSlot_(i, n); }).filter(function (c) { return c && c.nome; });
+    nomesColuna.push(comNome.length ? comNome[0].nome : ('Transportadora ' + n));
+  }
+
   const compHead = '<tr><th>RFQ</th><th>Trecho</th>' +
-    Array.from({ length: maxCarriers }, function (_, n) { return '<th>Transportadora ' + (n + 1) + '</th>'; }).join('') +
+    nomesColuna.map(function (nm) { return '<th>' + esc_(nm) + '</th>'; }).join('') +
     (isRota ? '<th>Rota (consolidada)</th>' : '') + '</tr>';
 
   const compLinhas = items.map(function (i) {
     const aprovadoNome = valorPorLinha[i.rowIndex];
     let cels = '';
-    for (let n = 0; n < maxCarriers; n++) {
-      const c = i.carriers[n];
-      cels += celulaTransportadora_(c, !isRota && c && norm_(c.nome) === norm_(aprovadoNome));
+    for (let n = 1; n <= NUM_SLOTS; n++) {
+      const c = carrierNoSlot_(i, n);
+      cels += celulaTransportadora_(c, !isRota && c && norm_(c.nome) === norm_(aprovadoNome), nomesColuna[n - 1]);
     }
-    const celRota = isRota
-      ? '<td class="ok"><div class="nm">' + esc_(i.rotaQuote.nome) + '</div><div class="val">' + moeda_(i.rotaQuote.valor) + '</div></td>'
-      : '';
+    const rotaComoCarrier = { nome: i.rotaQuote.nome, valor: i.rotaQuote.valor, cotou: i.rotaQuote.valor !== null,
+      veiculo: i.rotaQuote.veiculo, transit: i.rotaQuote.transit, adValorem: i.rotaQuote.adValorem, prazo: i.rotaQuote.prazo };
+    const celRota = isRota ? celulaTransportadora_(rotaComoCarrier, true, null) : '';
     return '<tr><td class="code">' + esc_(i.rfq) + '</td><td>' + esc_(i.rotaTexto) + '</td>' + cels + celRota + '</tr>';
   }).join('');
 
+  const cenarioTexto = isRota ? ('Roteirizado — Rota ' + payload.rota) : 'Separado';
+  const totalAprovado = payload.linhas.reduce(function (s, l) { return s + (l.valor || 0); }, 0);
+  const resultadoLinhas = isRota
+    ? '<div class="res-linha"><b>Transportadora aprovada:</b> ' + esc_(payload.linhas[0].transportadora) + '</div>'
+    : '<table class="mini"><tr><th>RFQ</th><th>Transportadora aprovada</th><th class="r">Valor</th></tr>' +
+      payload.linhas.map(function (l) {
+        return '<tr><td class="code">' + esc_(l.rfq) + '</td><td>' + esc_(l.transportadora) + '</td><td class="r">' + moeda_(l.valor) + '</td></tr>';
+      }).join('') + '</table>';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
     '*{box-sizing:border-box}' +
@@ -642,8 +660,14 @@ function gerarMapaHtml_(items, payload, email, agoraTexto) {
     '.nm{font-weight:bold} .val{font-family:monospace} .det{font-size:9px; color:#666; margin-top:2px}' +
     'td.ok .val{color:#c1621f; font-weight:bold}' +
     '.total td{font-weight:bold; background:#f7f7f7}' +
+    '.resultado{background:#fff4ec; border:1.5px solid #e8732a; border-radius:6px; padding:12px 16px; margin-bottom:20px}' +
+    '.resultado .titulo{font-weight:bold; text-transform:uppercase; font-size:11px; letter-spacing:.04em; color:#e8732a; margin-bottom:8px}' +
+    '.res-linha{margin-bottom:4px; font-size:12px}' +
+    '.resultado table.mini{margin:4px 0 8px}' +
+    '.resultado table.mini th{background:#fff; border:none; border-bottom:1px solid #e8732a; padding:3px 6px}' +
+    '.resultado table.mini td{border:none; border-bottom:1px solid #f0d9c8; padding:3px 6px}' +
     '.assinatura{margin-top:40px; text-align:center}' +
-    '.assinatura .linha{display:inline-block; border-top:1px solid #16191c; padding-top:8px; min-width:320px}' +
+    '.assinatura .linha{display:inline-block; border-bottom:1px solid #16191c; padding-bottom:8px; min-width:320px}' +
     '.assinatura b{display:block; font-size:12px}' +
     '.assinatura span{font-size:10.5px; color:#4a5158}' +
     '</style></head><body>' +
@@ -657,6 +681,11 @@ function gerarMapaHtml_(items, payload, email, agoraTexto) {
     '<tr class="total"><td colspan="5">Total</td><td class="r">' + moeda_(totalMateriais) + '</td></tr></table>' +
     '<div class="bar sub">Análise Comparativa de Fornecedores</div>' +
     '<table>' + compHead + compLinhas + '</table>' +
+    '<div class="resultado"><div class="titulo">Resultado da aprovação</div>' +
+    '<div class="res-linha"><b>Cenário:</b> ' + esc_(cenarioTexto) + '</div>' +
+    resultadoLinhas +
+    '<div class="res-linha"><b>Valor total aprovado:</b> ' + moeda_(totalAprovado) + '</div>' +
+    '</div>' +
     '<div class="assinatura"><div class="linha">' +
     '<b>' + esc_(email) + '</b><span>Aprovado em ' + esc_(agoraTexto) + '</span>' +
     '</div></div>' +
