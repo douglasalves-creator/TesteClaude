@@ -27,7 +27,7 @@ const CONFIG = {
   // Um status é "pendente de aprovação" se, depois de normalizado
   // (minúsculas, sem acento e sem espaço), contiver um destes trechos.
   // Para usar outro texto de status, troque os valores abaixo (mantenha as aspas).
-  STATUS_PENDENTE: ['Aguardando Aprovação'],
+  STATUS_PENDENTE: ['Ag Aprovação', 'Aguardando Aprovação'],
 
   // Some o item da lista quando "Data da Aprovação" já estiver preenchida,
   // mesmo que o status ainda não tenha sido atualizado.
