@@ -22,7 +22,7 @@ const CONFIG = {
   SHEET_NAME: 'Controle de Frete 2024_2025_2026',
 
   // Nomes possíveis do arquivo HTML dentro do projeto (com e sem acento).
-  HTML_FILES: ['Aprovacao', 'Aprovação'],
+  HTML_FILES: ['Aprovação2', 'Aprovacao', 'Aprovação'],
 
   // Um status é "pendente de aprovação" se, depois de normalizado
   // (minúsculas, sem acento e sem espaço), contiver um destes trechos.
