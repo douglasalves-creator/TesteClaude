@@ -513,6 +513,7 @@ function approveDecision(payload) {
       }
     });
 
+    const tipoTexto = payload.cenario === 'ROTEIRIZADO' ? 'Roteirizado' : 'Único';
     payload.linhas.forEach(function (l) {
       if (col.aprovador !== -1) sheet.getRange(l.rowIndex, col.aprovador + 1).setValue(email);
       if (col.transportadorAprovado !== -1) sheet.getRange(l.rowIndex, col.transportadorAprovado + 1).setValue(l.transportadora);
@@ -521,6 +522,8 @@ function approveDecision(payload) {
       }
       if (col.dataAprovacao !== -1) sheet.getRange(l.rowIndex, col.dataAprovacao + 1).setValue(agoraTexto);
       if (col.status !== -1) sheet.getRange(l.rowIndex, col.status + 1).setValue(CONFIG.STATUS_APROVADO);
+      if (col.tipo !== -1) sheet.getRange(l.rowIndex, col.tipo + 1).setValue(tipoTexto);
+      if (col.rota !== -1 && payload.cenario === 'SEPARADO') sheet.getRange(l.rowIndex, col.rota + 1).setValue('');
     });
 
     SpreadsheetApp.flush();
