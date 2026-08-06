@@ -472,7 +472,12 @@ document.getElementById('mOk').addEventListener('click', function(){
   google.script.run
     .withSuccessHandler(function(res){
       closeModal();
-      toast('Aprovação gravada em ' + res.linhas + (res.linhas > 1 ? ' linhas.' : ' linha.'));
+      var msg = 'Aprovação gravada em ' + res.linhas + (res.linhas > 1 ? ' linhas.' : ' linha.');
+      if (res.mapaEnviado === false){
+        toast(msg + ' O mapa de cotação NÃO foi enviado por e-mail (' + (res.mapaErro || 'motivo desconhecido') + ').', true);
+      } else {
+        toast(msg);
+      }
       load();
     })
     .withFailureHandler(function(err){

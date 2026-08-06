@@ -548,7 +548,7 @@ function approveDecision(payload) {
     const items = payload.linhas.map(function (l) { return buildRow_(mapped.data[l.rowIndex - 1], l.rowIndex, col); });
     const envio = enviarMapaAprovacao_(items, payload, email, agoraTexto);
 
-    return { success: true, linhas: payload.linhas.length, aprovador: email, mapaEnviado: envio.enviado };
+    return { success: true, linhas: payload.linhas.length, aprovador: email, mapaEnviado: envio.enviado, mapaErro: envio.motivo || null };
   } finally {
     lock.releaseLock();
   }
@@ -628,35 +628,48 @@ function gerarMapaHtml_(items, payload, email, agoraTexto) {
   const totalAprovado = payload.linhas.reduce(function (s, l) { return s + (l.valor || 0); }, 0);
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
-    'body{font-family:Arial,Helvetica,sans-serif; font-size:12px; color:#16191c; margin:24px}' +
-    'h1{font-size:20px; margin:0; color:#12513c}' +
-    '.head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px}' +
-    '.head .info{text-align:right; font-size:11px; line-height:1.5}' +
-    '.bar{background:#16191c; color:#fff; padding:6px 10px; font-size:12px; font-weight:bold; text-transform:uppercase}' +
-    'table{width:100%; border-collapse:collapse; margin-bottom:18px}' +
-    'th{background:#f2f2f2; border:1px solid #ccc; padding:5px 7px; font-size:10.5px; text-align:left}' +
-    'td{border:1px solid #ccc; padding:5px 7px; vertical-align:top}' +
-    'td.code{font-weight:bold; white-space:nowrap}' +
-    'td.c{text-align:center} td.r{text-align:right} td.dash{color:#888; text-align:center}' +
-    'td.ok{background:#e6efea; border:1px solid #12513c}' +
-    '.nm{font-weight:bold} .val{font-family:monospace} .det{font-size:9.5px; color:#666; margin-top:2px}' +
-    '.total td{font-weight:bold; background:#f7f7f7}' +
-    '.assinatura{margin-top:36px; padding-top:8px; border-top:1px solid #16191c; font-size:12px}' +
+    '*{box-sizing:border-box}' +
+    'body{font-family:Helvetica,Arial,sans-serif; font-size:11.5px; color:#16191c; margin:0; padding:28px; background:#fff}' +
+    '.head{display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:16px; border-bottom:2px solid #12513c; margin-bottom:20px}' +
+    '.brand{font-size:22px; font-weight:bold; color:#12513c; margin:0}' +
+    '.brand small{display:block; font-size:11px; font-weight:normal; color:#7d858c; margin-top:2px; letter-spacing:.03em}' +
+    '.meta{text-align:right; font-size:10.5px; color:#4a5158; line-height:1.7}' +
+    '.meta b{color:#16191c}' +
+    '.pill{display:inline-block; background:#e6efea; color:#12513c; font-size:10px; font-weight:bold; letter-spacing:.06em; ' +
+      'text-transform:uppercase; padding:3px 10px; border-radius:20px; margin-bottom:6px}' +
+    '.label{font-size:10px; font-weight:bold; letter-spacing:.08em; text-transform:uppercase; color:#7d858c; ' +
+      'border-bottom:1px solid #dfe2dc; padding-bottom:5px; margin:22px 0 8px}' +
+    'table{width:100%; border-collapse:collapse; font-size:11px}' +
+    'th{background:#f7f8f5; color:#4a5158; font-size:9.5px; font-weight:bold; text-transform:uppercase; letter-spacing:.03em; ' +
+      'text-align:left; padding:7px 8px; border-bottom:1px solid #dfe2dc}' +
+    'td{padding:7px 8px; border-bottom:1px solid #eef0ec; vertical-align:top}' +
+    'td.code{font-weight:bold; white-space:nowrap; color:#12513c}' +
+    'td.c{text-align:center} td.r{text-align:right} td.dash{color:#a8b0b6; text-align:center}' +
+    'td.ok{background:#f3f8f5; border-left:3px solid #12513c}' +
+    '.nm{font-weight:bold} .val{color:#12513c; font-weight:bold} .det{font-size:9px; color:#7d858c; margin-top:2px}' +
+    '.total td{font-weight:bold; background:#f7f8f5; border-bottom:none; border-top:1.5px solid #16191c}' +
+    '.assinatura{margin-top:26px; padding:16px 18px; background:#f7f8f5; border-left:3px solid #12513c; border-radius:0 6px 6px 0}' +
+    '.assinatura .linha{margin-bottom:5px} .assinatura .linha:last-child{margin-bottom:0}' +
+    '.assinatura .rot{color:#7d858c; font-size:10px; text-transform:uppercase; letter-spacing:.04em}' +
+    '.assinatura .quem{font-size:13px; font-weight:bold; color:#16191c; margin-top:2px}' +
     '</style></head><body>' +
-    '<div class="head"><h1>' + esc_(CONFIG.EMPRESA_NOME) + '</h1>' +
-    '<div class="info"><b>Data:</b> ' + esc_(agoraTexto) + '<br><b>Setor:</b> ' + esc_(setor) +
-    '<br><b>RFQ:</b> ' + esc_(rfqTexto) + '</div></div>' +
-    '<div class="bar">Mapa Comparativo de Cotação de Frete</div>' +
-    '<div class="bar" style="background:#4a5158">Materiais / Equipamentos</div>' +
+    '<div class="head"><div><p class="brand">' + esc_(CONFIG.EMPRESA_NOME) +
+      '<small>Mapa de Cotação de Frete</small></p></div>' +
+    '<div class="meta"><span class="pill">Aprovado</span><br>' +
+      '<b>Data:</b> ' + esc_(agoraTexto) + '<br><b>Setor:</b> ' + esc_(setor) +
+      '<br><b>RFQ:</b> ' + esc_(rfqTexto) + '</div></div>' +
+    '<p class="label">Materiais / Equipamentos</p>' +
     '<table><tr><th>RFQ</th><th>Descrição</th><th>Qtd</th><th>Volume</th><th>Valor Unitário</th><th>Valor Total</th></tr>' +
     materiaisLinhas +
     '<tr class="total"><td colspan="5">Total</td><td class="r">' + moeda_(totalMateriais) + '</td></tr></table>' +
-    '<div class="bar" style="background:#4a5158">Análise Comparativa de Fornecedores</div>' +
+    '<p class="label">Análise Comparativa de Fornecedores</p>' +
     '<table>' + compHead + compLinhas + '</table>' +
     '<div class="assinatura">' +
-    '<b>Cenário aprovado:</b> ' + esc_(cenarioTexto) + '<br>' +
-    '<b>Valor total aprovado:</b> ' + moeda_(totalAprovado) + '<br>' +
-    '<b>Aprovado por:</b> ' + esc_(nomeDoEmail_(email)) + ' (' + esc_(email) + ') em ' + esc_(agoraTexto) +
+    '<div class="linha"><span class="rot">Cenário aprovado</span><br>' + esc_(cenarioTexto) + '</div>' +
+    '<div class="linha"><span class="rot">Valor total aprovado</span><br>' + moeda_(totalAprovado) + '</div>' +
+    '<div class="linha"><span class="rot">Aprovado por</span>' +
+    '<div class="quem">' + esc_(nomeDoEmail_(email)) + '</div>' +
+    esc_(email) + ' · ' + esc_(agoraTexto) + '</div>' +
     '</div></body></html>';
 }
 
@@ -678,6 +691,7 @@ function enviarMapaAprovacao_(items, payload, email, agoraTexto) {
     });
     return { enviado: true };
   } catch (e) {
+    Logger.log('Falha ao enviar o Mapa de Cotação: ' + e.message);
     return { enviado: false, motivo: e.message };
   }
 }
@@ -698,4 +712,17 @@ function diagnosticar() {
   });
   Logger.log('Linhas pendentes: %s | decisões montadas: %s', r.diag.pendentes, r.decisoes.length);
   return r.diag;
+}
+
+/**
+ * Rode esta função UMA VEZ direto no editor (escolha "autorizarEnvioDeEmail"
+ * no menu de funções, no topo, e clique em Executar ▷) para autorizar o envio
+ * de e-mail. Um pedido de permissão do Google deve aparecer na hora — aceite.
+ * Se der certo, chega um e-mail de teste em CONFIG.EMAIL_MAPA.
+ */
+function autorizarEnvioDeEmail() {
+  if (!CONFIG.EMAIL_MAPA) throw new Error('CONFIG.EMAIL_MAPA está vazio — preencha antes de testar.');
+  MailApp.sendEmail(CONFIG.EMAIL_MAPA, 'Teste — Painel de Aprovação de Fretes',
+    'Se você recebeu este e-mail, o envio automático do Mapa de Cotação está autorizado e funcionando.');
+  Logger.log('E-mail de teste enviado para ' + CONFIG.EMAIL_MAPA);
 }
