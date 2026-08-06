@@ -108,9 +108,12 @@
   .opt .pr small{display:block; font-family:var(--sans); font-size:10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--save)}
   .opt .nq{font-size:11.5px; color:var(--ink-3); text-align:right}
   .grp{border:1px solid var(--line-2); border-radius:8px; padding:8px 12px; margin-top:10px; background:#fcfdfb}
+  .grp.excl{opacity:.5}
   .grp > .hd2{display:flex; justify-content:space-between; gap:10px; align-items:baseline}
   .grp > .hd2 .code{font-family:var(--mono); font-size:12.5px; font-weight:600}
   .grp > .hd2 .tr{font-size:11.5px; color:var(--ink-3); text-align:right}
+  .grp > .hd2 label.incl{display:flex; align-items:center; gap:6px; cursor:pointer}
+  .grp > .hd2 label.incl input{width:14px; height:14px; cursor:pointer}
 
   /* opção A: cotação única da rota, sem lista de escolha */
   .quote{padding:4px 0}
@@ -219,11 +222,11 @@ function onData(p){
   DECISIONS = p.decisoes || []; ROWS = p.linhas || []; DIAG = p.diag || {};
   SEL = {};
   DECISIONS.forEach(function(d){
-    var sep = {};
-    d.separado.itens.forEach(function(i){ sep[i.rowIndex] = i.melhorChave; });
+    var sep = {}, incl = {};
+    d.separado.itens.forEach(function(i){ sep[i.rowIndex] = i.melhorChave; incl[i.rowIndex] = true; });
     var rotOK = d.roteirizado && d.roteirizado.completo;
     var cen = (rotOK && (!d.separado.completo || d.roteirizado.valor <= d.separado.total)) ? 'ROTEIRIZADO' : 'SEPARADO';
-    SEL[d.key] = { cenario:cen, sep:sep };
+    SEL[d.key] = { cenario:cen, sep:sep, incl:incl };
   });
   document.getElementById('cnt').textContent = ROWS.length;
   document.getElementById('loading').style.display = 'none';
@@ -262,9 +265,13 @@ function renderTable(){
 }
 
 /* ---------------- totais ---------------- */
+function incluidos(d){
+  var sel = SEL[d.key];
+  return d.separado.itens.filter(function(i){ return sel.incl[i.rowIndex] !== false; });
+}
 function sepTotal(d){
-  var s = SEL[d.key].sep, t = 0, ok = d.separado.itens.length > 0;
-  d.separado.itens.forEach(function(i){
+  var s = SEL[d.key].sep, itens = incluidos(d), t = 0, ok = itens.length > 0;
+  itens.forEach(function(i){
     var c = pick(i.carriers, s[i.rowIndex]);
     if (c && c.cotou) t += c.valor; else ok = false;
   });
@@ -320,7 +327,6 @@ function paint(){
       (diff === 0 ? '<span class="save-pill">Mesmo custo nos dois caminhos</span>' : '') +
       (rT === null ? '<span class="flag">Faltam dados nas colunas "Rota - ..."</span>' : '') +
       (sT === null ? '<span class="flag">Falta cotação em alguma RFQ do grupo</span>' : '') +
-      (d.roteirizado.divergente ? '<span class="flag">Valores da rota diferem entre as linhas do grupo</span>' : '') +
       (d.roteirizado.apenasUmaRfq ? '<span class="flag">Rota com só 1 RFQ vinculada — confira o código</span>' : '') +
     '</div>';
   }
@@ -331,7 +337,8 @@ function paint(){
     var rot = d.roteirizado, rotOk = rot.completo;
     A = '<div class="path' + (s.cenario === 'ROTEIRIZADO' ? ' on' : '') + '">' +
       '<div class="hd" data-cen="ROTEIRIZADO"><span class="radio"></span>' +
-        '<div><h4>Opção A · Roteirizado</h4><div class="hint">' +
+        '<div><h4>Opção A · Roteirizado ' +
+          '<span class="rota-pill" style="margin-left:4px">' + esc(d.rota) + '</span></h4><div class="hint">' +
           'Uma transportadora leva as ' + d.rfqs.length + ' RFQs da rota.</div></div>' +
         '<div class="tot"><small>Total</small>' + (rotOk ? money(rot.valor) : '—') + '</div>' +
       '</div>' +
@@ -353,13 +360,18 @@ function paint(){
     '<div class="hd"' + (d.roteirizado ? ' data-cen="SEPARADO"' : '') + '>' +
       (d.roteirizado ? '<span class="radio"></span>' : '') +
       '<div><h4>' + (d.roteirizado ? 'Opção B · Separado' : 'Transportadoras cotadas') + '</h4>' +
-        '<div class="hint">' + (d.roteirizado ? 'Cada RFQ com a transportadora escolhida abaixo.' : 'Escolha a transportadora.') + '</div></div>' +
+        '<div class="hint">' + (d.roteirizado || d.separado.itens.length > 1
+          ? 'Cada RFQ com a transportadora escolhida abaixo. Desmarque as que não quer aprovar agora.'
+          : 'Escolha a transportadora.') + '</div></div>' +
       '<div class="tot"><small>Total</small>' + (sep.ok ? money(sep.total) : '—') + '</div>' +
     '</div>' +
     '<div class="bd">' +
       d.separado.itens.map(function(i){
+        var incluido = s.incl[i.rowIndex] !== false;
         var head = d.roteirizado || d.separado.itens.length > 1
-          ? '<div class="hd2"><span class="code">RFQ ' + esc(i.rfq) + '</span><span class="tr">' + esc(i.rotaTexto) + '</span></div>'
+          ? '<div class="hd2"><label class="incl"><input type="checkbox" data-incl="' + i.rowIndex + '"' +
+              (incluido ? ' checked' : '') + '> <span class="code">RFQ ' + esc(i.rfq) + '</span></label>' +
+              '<span class="tr">' + esc(i.rotaTexto) + '</span></div>'
           : '';
         var body = i.carriers.length
           ? i.carriers.map(function(c){
@@ -372,7 +384,7 @@ function paint(){
             }).join('')
           : '<div class="src" style="border:0">Nenhuma cotação lançada para esta RFQ.</div>';
         return (d.roteirizado || d.separado.itens.length > 1)
-          ? '<div class="grp">' + head + body + '</div>'
+          ? '<div class="grp' + (incluido ? '' : ' excl') + '">' + head + body + '</div>'
           : body;
       }).join('') +
     '</div></div>';
@@ -387,10 +399,13 @@ function paint(){
     ready = d.roteirizado.completo; total = ready ? d.roteirizado.valor : null;
     txt = ready ? 'Aprovar rota com ' + d.roteirizado.nome : 'Cotação da rota incompleta';
   } else {
+    var itensInc = incluidos(d);
     ready = sep.ok; total = ready ? sep.total : null;
-    txt = ready
-      ? (d.separado.itens.length > 1 ? 'Aprovar ' + d.separado.itens.length + ' fretes separados' : 'Aprovar cotação')
-      : 'Selecione uma transportadora';
+    txt = itensInc.length === 0
+      ? 'Selecione ao menos 1 RFQ'
+      : (ready
+        ? (itensInc.length > 1 ? 'Aprovar ' + itensInc.length + ' fretes separados' : 'Aprovar RFQ ' + itensInc[0].rfq)
+        : 'Selecione uma transportadora');
   }
   document.getElementById('mSum').innerHTML =
     (d.roteirizado ? 'Escolhido: <b>' + (s.cenario === 'ROTEIRIZADO' ? 'Roteirizado' : 'Separado') + '</b> · ' : '') +
@@ -424,6 +439,8 @@ document.addEventListener('click', function(ev){
 
   var cen = t.closest('[data-cen]');
   if (cen){ SEL[OPEN].cenario = cen.getAttribute('data-cen'); paint(); return; }
+  var incl = t.closest('[data-incl]');
+  if (incl){ SEL[OPEN].incl[incl.getAttribute('data-incl')] = incl.checked; paint(); return; }
   var sp = t.closest('[data-sep]');
   if (sp){
     SEL[OPEN].sep[sp.getAttribute('data-row')] = sp.getAttribute('data-sep');
@@ -484,7 +501,9 @@ function buildPayload(d, s){
     return { cenario:'ROTEIRIZADO', rota:d.rota, linhas:linhas };
   }
   d.separado.itens.forEach(function(i){
+    if (s.incl[i.rowIndex] === false) return;
     var c = pick(i.carriers, s.sep[i.rowIndex]);
+    if (!c || !c.cotou) return;
     linhas.push({ rowIndex:i.rowIndex, rfq:i.rfq, transportadora:c.nome, valor:c.valor });
   });
   return { cenario:'SEPARADO', rota:d.rota, linhas:linhas };
@@ -504,30 +523,30 @@ function DEMO(){
   var rota = { key:'ROTA::rota010', tipoDecisao:'ROTA', rota:'ROTA-010', titulo:'ROTA-010',
     rfqs:['001','002'], setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado',
     materiais:[
-      {rfq:'001', material:'Lona plástica dupla face 200 micra', qtde:'900', tipoVolume:'Caixa', valorUnit:3319.9, valorNF:2987910, rotaTexto:'Bougainville (SP) → EDP SP — Santa Cecília II'},
-      {rfq:'002', material:'Inversor SG250HX Sungrow', qtde:'1', tipoVolume:'Caixa', valorUnit:48000, valorNF:48000, rotaTexto:'Sungrow (Osasco) → EDP SP'}
+      {rfq:'001', material:'Lona plástica dupla face 200 micra', qtde:'900', tipoVolume:'Caixa', valorUnit:3319.9, valorNF:2987910, rotaTexto:'Rota: Bougainville (SP) x EDP SP'},
+      {rfq:'002', material:'Inversor SG250HX Sungrow', qtde:'1', tipoVolume:'Caixa', valorUnit:48000, valorNF:48000, rotaTexto:'Rota: Sungrow (Osasco) x EDP SP'}
     ],
     separado:{ completo:true, total:16549.16, semCotacao:[], itens:[
-      {rowIndex:12, rfq:'001', rotaTexto:'Bougainville (SP) → EDP SP', material:'Lona', melhorChave:'raycargo', completo:true,
+      {rowIndex:12, rfq:'001', rotaTexto:'Rota: Bougainville (SP) x EDP SP', material:'Lona', melhorChave:'raycargo', completo:true,
        carriers:[c('RAYCARGO',4993.15,'Truck','3'), c('KMOVE',8400,'Carreta','4'), c('TRANSPILOTO',7156.01,'Truck','3')]},
-      {rowIndex:13, rfq:'002', rotaTexto:'Sungrow (Osasco) → EDP SP', material:'Inversor', melhorChave:'kmove', completo:true,
+      {rowIndex:13, rfq:'002', rotaTexto:'Rota: Sungrow (Osasco) x EDP SP', material:'Inversor', melhorChave:'kmove', completo:true,
        carriers:[c('RAYCARGO',null,'',''), c('KMOVE',3800,'Toco','2'), c('TRANSPILOTO',4200,'Toco','2')]}
     ]},
-    roteirizado:{ nome:'KMOVE', valor:14200, adValorem:'0%', prazo:'28 dias', transit:'4', veiculo:'Carreta', completo:true, divergente:false, apenasUmaRfq:false }
+    roteirizado:{ nome:'KMOVE', valor:9800, adValorem:'0%', prazo:'28 dias', transit:'4', veiculo:'Carreta', completo:true, apenasUmaRfq:false }
   };
   var solo = { key:'RFQ::41', tipoDecisao:'RFQ', rota:'', titulo:'RFQ 041', rfqs:['041'], setor:'Manutenção',
     motivo:'Corretiva', modalidade:'FOB', tipo:'Urgente',
-    materiais:[{rfq:'041', material:'Módulo fotovoltaico 550W', qtde:'12', tipoVolume:'Caixa', valorUnit:1533.33, valorNF:18400, rotaTexto:'Campinas (SP) → Icém I'}],
+    materiais:[{rfq:'041', material:'Módulo fotovoltaico 550W', qtde:'12', tipoVolume:'Caixa', valorUnit:1533.33, valorNF:18400, rotaTexto:'Rota: Campinas (SP) x Icém I'}],
     separado:{ completo:true, total:2380, semCotacao:[], itens:[
-      {rowIndex:22, rfq:'041', rotaTexto:'Campinas (SP) → Icém I', material:'Módulo', melhorChave:'kmove', completo:true,
+      {rowIndex:22, rfq:'041', rotaTexto:'Rota: Campinas (SP) x Icém I', material:'Módulo', melhorChave:'kmove', completo:true,
        carriers:[c('RAYCARGO',2650,'Toco','2'), c('KMOVE',2380,'Toco','3'), c('TRANSPILOTO',null,'','')]}
     ]},
     roteirizado:null };
 
   var linhas = [
-    {rowIndex:12, decisionKey:rota.key, rfq:'001', rota:'ROTA-010', status:'Aguardando Aprovação', setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado', material:'Lona plástica dupla face 200 micra', qtde:'900', tipoVolume:'Caixa', valorUnit:3319.9, valorNF:2987910, rotaTexto:'Bougainville (SP) → EDP SP'},
-    {rowIndex:13, decisionKey:rota.key, rfq:'002', rota:'ROTA-010', status:'Aguardando Aprovação', setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado', material:'Inversor SG250HX Sungrow', qtde:'1', tipoVolume:'Caixa', valorUnit:48000, valorNF:48000, rotaTexto:'Sungrow (Osasco) → EDP SP'},
-    {rowIndex:22, decisionKey:solo.key, rfq:'041', rota:'', status:'Aguardando Aprovação', setor:'Manutenção', motivo:'Corretiva', modalidade:'FOB', tipo:'Urgente', material:'Módulo fotovoltaico 550W', qtde:'12', tipoVolume:'Caixa', valorUnit:1533.33, valorNF:18400, rotaTexto:'Campinas (SP) → Icém I'}
+    {rowIndex:12, decisionKey:rota.key, rfq:'001', rota:'ROTA-010', status:'Aguardando Aprovação', setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado', material:'Lona plástica dupla face 200 micra', qtde:'900', tipoVolume:'Caixa', valorUnit:3319.9, valorNF:2987910, rotaTexto:'Rota: Bougainville (SP) x EDP SP'},
+    {rowIndex:13, decisionKey:rota.key, rfq:'002', rota:'ROTA-010', status:'Aguardando Aprovação', setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado', material:'Inversor SG250HX Sungrow', qtde:'1', tipoVolume:'Caixa', valorUnit:48000, valorNF:48000, rotaTexto:'Rota: Sungrow (Osasco) x EDP SP'},
+    {rowIndex:22, decisionKey:solo.key, rfq:'041', rota:'', status:'Aguardando Aprovação', setor:'Manutenção', motivo:'Corretiva', modalidade:'FOB', tipo:'Urgente', material:'Módulo fotovoltaico 550W', qtde:'12', tipoVolume:'Caixa', valorUnit:1533.33, valorNF:18400, rotaTexto:'Rota: Campinas (SP) x Icém I'}
   ];
   return { decisoes:[rota, solo], linhas:linhas,
     diag:{ statusPendenteConfig:'Aguardando Aprovação', statusEncontrados:[] } };

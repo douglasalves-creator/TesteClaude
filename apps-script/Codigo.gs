@@ -358,7 +358,7 @@ function buildRow_(row, rowIndex, col) {
     origem: origem,
     destino: destino,
     rotaTexto: (origem || destino)
-      ? ((origem || 'Origem não informada') + ' → ' + (destino || 'Destino não informado'))
+      ? ('Rota: ' + (origem || 'Origem não informada') + ' x ' + (destino || 'Destino não informado'))
       : 'Trecho não informado',
     carriers: carriers,
     rotaQuote: {
@@ -372,21 +372,31 @@ function buildRow_(row, rowIndex, col) {
   };
 }
 
-/** Junta a cotação da rota (colunas "Rota - ...") das linhas do grupo numa só. */
+/**
+ * Junta a cotação da rota (colunas "Rota - ...") das linhas do grupo.
+ * O valor é a SOMA dos valores de cada linha (cada linha traz sua parte
+ * proporcional); os outros dados (transportador, ad valorem, prazo, transit
+ * time, veículo) são os mesmos em todas as linhas, então usamos o primeiro
+ * que aparecer preenchido.
+ */
 function combineRotaQuote_(rows) {
-  const comDados = rows.filter(function (r) { return r.rotaQuote.nome !== '' || r.rotaQuote.valor !== null; });
-  if (!comDados.length) {
-    return { nome: '', valor: null, adValorem: '', prazo: '', transit: '', veiculo: '', completo: false, divergente: false, rowIndex: null };
-  }
-  const ref = comDados[0];
-  const divergente = comDados.some(function (r) {
-    return norm_(r.rotaQuote.nome) !== norm_(ref.rotaQuote.nome) || r.rotaQuote.valor !== ref.rotaQuote.valor;
-  });
+  const comNome = rows.map(function (r) { return r.rotaQuote.nome; }).filter(function (n) { return n !== ''; });
+  const comAdValorem = rows.map(function (r) { return r.rotaQuote.adValorem; }).filter(Boolean);
+  const comPrazo = rows.map(function (r) { return r.rotaQuote.prazo; }).filter(Boolean);
+  const comTransit = rows.map(function (r) { return r.rotaQuote.transit; }).filter(Boolean);
+  const comVeiculo = rows.map(function (r) { return r.rotaQuote.veiculo; }).filter(Boolean);
+  const todasComValor = rows.every(function (r) { return r.rotaQuote.valor !== null; });
+
+  const nome = comNome.length ? comNome[0] : '';
+  const valor = todasComValor ? rows.reduce(function (s, r) { return s + r.rotaQuote.valor; }, 0) : null;
+
   return {
-    nome: ref.rotaQuote.nome, valor: ref.rotaQuote.valor, adValorem: ref.rotaQuote.adValorem,
-    prazo: ref.rotaQuote.prazo, transit: ref.rotaQuote.transit, veiculo: ref.rotaQuote.veiculo,
-    completo: ref.rotaQuote.nome !== '' && ref.rotaQuote.valor !== null,
-    divergente: divergente, rowIndex: ref.rowIndex
+    nome: nome, valor: valor,
+    adValorem: comAdValorem.length ? comAdValorem[0] : '',
+    prazo: comPrazo.length ? comPrazo[0] : '',
+    transit: comTransit.length ? comTransit[0] : '',
+    veiculo: comVeiculo.length ? comVeiculo[0] : '',
+    completo: nome !== '' && valor !== null
   };
 }
 
@@ -424,7 +434,7 @@ function buildDecision_(group) {
     roteirizado = {
       nome: rq.nome, valor: rq.valor, adValorem: rq.adValorem, prazo: rq.prazo,
       transit: rq.transit, veiculo: rq.veiculo, completo: rq.completo,
-      divergente: rq.divergente, apenasUmaRfq: rows.length < 2
+      apenasUmaRfq: rows.length < 2
     };
   }
 
