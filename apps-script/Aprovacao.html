@@ -59,8 +59,6 @@
   .state{text-align:center; padding:60px 20px; color:var(--ink-2)}
   .state h3{margin:0 0 8px; font-size:16px; color:var(--ink)}
   .state p{margin:0 auto; font-size:13px; max-width:560px}
-  .state table{min-width:0; width:auto; margin:14px auto 0; text-align:left}
-  .state td{font-family:var(--mono); font-size:12px; padding:4px 10px 4px 0; border-bottom:1px solid var(--line-2)}
   .spinner{width:26px; height:26px; border:2.5px solid var(--line); border-top-color:var(--ink); border-radius:50%; margin:0 auto 14px; animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -237,12 +235,7 @@ function renderTable(){
   var panel = document.getElementById('panel'), empty = document.getElementById('empty');
   if (ROWS.length === 0){
     panel.hidden = true; empty.hidden = false;
-    empty.innerHTML = '<h3>Nada pendente de aprovação</h3>' +
-      '<p>O painel lista as linhas cujo Status da SC contém: ' + esc(DIAG.statusPendenteConfig || '') + '.</p>' +
-      (DIAG.statusEncontrados && DIAG.statusEncontrados.length
-        ? '<table><tbody>' + DIAG.statusEncontrados.map(function(s){
-            return '<tr><td>' + esc(s.status) + '</td><td>' + s.total + ' linha(s)</td></tr>'; }).join('') + '</tbody></table>'
-        : '');
+    empty.innerHTML = '<h3>Nenhuma Aprovação Pendente</h3>';
     return;
   }
   empty.hidden = true; panel.hidden = false;

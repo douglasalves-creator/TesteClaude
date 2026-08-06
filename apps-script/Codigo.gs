@@ -644,6 +644,7 @@ function gerarMapaHtml_(items, payload, email, agoraTexto) {
       }).join('') + '</table>';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
+    '@page{size:A4 landscape; margin:14mm}' +
     '*{box-sizing:border-box}' +
     'body{font-family:Helvetica,Arial,sans-serif; font-size:11.5px; color:#16191c; margin:0; padding:28px; background:#fff}' +
     '.head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px}' +
