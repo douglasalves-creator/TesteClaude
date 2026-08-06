@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aprovação de fretes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Cores da empresa: troque os valores abaixo. */
+  :root{
+    --ink:#16191c; --ink-2:#4a5158; --ink-3:#7d858c;
+    --paper:#fff; --canvas:#f1f2ef; --line:#dfe2dc; --line-2:#eef0ec;
+    --pick:#12513c; --pick-soft:#e6efea;
+    --save:#7a5300; --save-soft:#fdf3dd; --alert:#8c2f22; --alert-soft:#fdeeec;
+    --sans:"IBM Plex Sans",-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--canvas); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px; margin:0 auto; padding:0 20px 60px}
+
+  header.top{background:var(--ink); color:#fff; padding:18px 0 16px; margin-bottom:22px}
+  .top-in{max-width:1240px; margin:0 auto; padding:0 20px; display:flex; gap:16px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap}
+  .top h1{margin:0; font-size:17px; font-weight:600}
+  .top p{margin:2px 0 0; font-size:12.5px; color:#a8b0b6}
+  .top-right{display:flex; align-items:center; gap:14px}
+  .count{font-family:var(--mono); font-size:12px; color:#a8b0b6}
+  .count b{color:#fff; font-size:15px}
+
+  button{font-family:inherit; font-size:inherit; cursor:pointer}
+  .btn{border:1px solid var(--line); background:var(--paper); color:var(--ink); padding:8px 14px; border-radius:8px; font-weight:500; transition:background .15s}
+  .btn:hover{background:var(--line-2)}
+  .btn-ghost{background:transparent; border-color:#3b4247; color:#fff}
+  .btn-ghost:hover{background:#252b30}
+  .btn-pick{background:var(--pick); border-color:var(--pick); color:#fff; font-weight:600}
+  .btn-pick:hover{background:#0d3f2e}
+  .btn-pick:disabled{background:#cfd4ce; border-color:#cfd4ce; color:#8c9490; cursor:not-allowed}
+  .btn-sm{padding:5px 11px; font-size:12.5px}
+  :focus-visible{outline:2px solid var(--pick); outline-offset:2px}
+
+  .panel{background:var(--paper); border:1px solid var(--line); border-radius:10px; box-shadow:0 1px 2px rgba(20,24,28,.06); overflow:hidden}
+  .scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table{width:100%; border-collapse:collapse; min-width:960px}
+  th{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600; text-align:left; padding:10px 12px; background:#f7f8f5; border-bottom:1px solid var(--line); white-space:nowrap}
+  td{padding:11px 12px; border-bottom:1px solid var(--line-2); font-size:13px; vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#fbfcfa}
+  td.num, th.num{text-align:right; font-family:var(--mono); white-space:nowrap}
+  td.code{font-family:var(--mono); font-weight:500; white-space:nowrap}
+  td.act{text-align:right; white-space:nowrap}
+  .sub{font-size:11.5px; color:var(--ink-3); margin-top:3px}
+  .desc{color:var(--ink-2); max-width:300px}
+  .rota-pill{display:inline-block; font-family:var(--mono); font-size:11px; font-weight:600; padding:2px 6px; border-radius:5px; background:var(--ink); color:#fff; white-space:nowrap}
+  .dash{color:var(--ink-3)}
+
+  .state{text-align:center; padding:60px 20px; color:var(--ink-2)}
+  .state h3{margin:0 0 8px; font-size:16px; color:var(--ink)}
+  .state p{margin:0 auto; font-size:13px; max-width:560px}
+  .state table{min-width:0; width:auto; margin:14px auto 0; text-align:left}
+  .state td{font-family:var(--mono); font-size:12px; padding:4px 10px 4px 0; border-bottom:1px solid var(--line-2)}
+  .spinner{width:26px; height:26px; border:2.5px solid var(--line); border-top-color:var(--ink); border-radius:50%; margin:0 auto 14px; animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .scrim{position:fixed; inset:0; background:rgba(20,24,28,.5); display:none; z-index:50; padding:24px}
+  .scrim.on{display:flex; align-items:center; justify-content:center}
+  .modal{background:var(--canvas); border-radius:12px; max-width:1080px; width:100%; max-height:calc(100vh - 48px);
+         display:flex; flex-direction:column; box-shadow:0 24px 60px -20px rgba(0,0,0,.5); overflow:hidden}
+  .modal > header{flex:0 0 auto}
+  .modal > footer{flex:0 0 auto}
+  .modal > header{background:var(--ink); color:#fff; padding:14px 18px; display:flex; align-items:center; gap:14px}
+  .modal > header h2{margin:0; font-size:15px; font-weight:600}
+  .modal > header .who{font-size:12px; color:#a8b0b6; margin-top:2px}
+  .modal > header .x{margin-left:auto; background:transparent; border:0; color:#fff; font-size:20px; line-height:1; padding:4px 8px; border-radius:6px}
+  .modal > header .x:hover{background:#2b3237}
+  .modal .content{padding:18px; overflow-y:auto; flex:1 1 auto; -webkit-overflow-scrolling:touch}
+  .label{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); margin:0 0 8px}
+  .modal .panel{margin-bottom:20px}
+  .modal table{min-width:640px}
+
+  .paths{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start}
+  .path{background:var(--paper); border:1px solid var(--line); border-radius:9px; overflow:hidden}
+  .path.on{border-color:var(--pick); box-shadow:0 0 0 1px var(--pick)}
+  .path > .hd{padding:12px 14px; border-bottom:1px solid var(--line-2); display:flex; gap:10px; align-items:flex-start; cursor:pointer}
+  .path.on > .hd{background:var(--pick-soft)}
+  .radio{width:16px; height:16px; border-radius:50%; border:1.5px solid var(--ink-3); flex:0 0 auto; margin-top:2px; position:relative}
+  .path.on .radio{border-color:var(--pick)}
+  .path.on .radio::after{content:""; position:absolute; inset:3px; border-radius:50%; background:var(--pick)}
+  .path h4{margin:0; font-size:14px; font-weight:600}
+  .path .hint{font-size:12px; color:var(--ink-2); margin-top:2px}
+  .path .tot{margin-left:auto; text-align:right; font-family:var(--mono); font-size:15px; font-weight:600; white-space:nowrap}
+  .path .tot small{display:block; font-family:var(--sans); font-size:10px; font-weight:400; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3)}
+  .path > .bd{padding:4px 14px 12px}
+  .src{font-size:11.5px; color:var(--ink-3); padding:8px 0; border-bottom:1px dashed var(--line); margin-bottom:4px}
+
+  .opt{display:grid; grid-template-columns:15px 1fr auto; gap:10px; padding:10px 0; border-bottom:1px solid var(--line-2); align-items:center; cursor:pointer}
+  .opt:last-child{border-bottom:none}
+  .opt[data-off="1"]{opacity:.5; cursor:not-allowed}
+  .opt .dot{width:14px; height:14px; border-radius:50%; border:1.5px solid var(--ink-3); position:relative}
+  .opt.on .dot{border-color:var(--pick)}
+  .opt.on .dot::after{content:""; position:absolute; inset:2.5px; border-radius:50%; background:var(--pick)}
+  .opt .nm{font-weight:600; font-size:13px}
+  .opt .at{font-size:11.5px; color:var(--ink-3); margin-top:2px; display:flex; gap:10px; flex-wrap:wrap}
+  .opt .pr{font-family:var(--mono); font-size:14px; font-weight:600; text-align:right; white-space:nowrap}
+  .opt.on .pr{color:var(--pick)}
+  .opt .pr small{display:block; font-family:var(--sans); font-size:10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--save)}
+  .opt .nq{font-size:11.5px; color:var(--ink-3); text-align:right}
+  .grp{border:1px solid var(--line-2); border-radius:8px; padding:8px 12px; margin-top:10px; background:#fcfdfb}
+  .grp > .hd2{display:flex; justify-content:space-between; gap:10px; align-items:baseline}
+  .grp > .hd2 .code{font-family:var(--mono); font-size:12.5px; font-weight:600}
+  .grp > .hd2 .tr{font-size:11.5px; color:var(--ink-3); text-align:right}
+
+  /* opção A: cotação única da rota, sem lista de escolha */
+  .quote{padding:4px 0}
+  .quote .row{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin-top:6px}
+  .quote .row span{background:#fcfdfb; border:1px solid var(--line-2); border-radius:6px; padding:3px 8px}
+  .quote .nm{font-weight:600; font-size:14px}
+  .quote .pr{font-family:var(--mono); font-size:18px; font-weight:600; margin-top:6px}
+
+  .compare{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px}
+  .save-pill{background:var(--save-soft); color:var(--save); border:1px solid #f0dfb4; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600}
+  .flag{background:var(--alert-soft); color:var(--alert); border:1px solid #f2cfc9; padding:3px 9px; border-radius:999px; font-size:12px}
+
+  .modal > footer{background:var(--paper); border-top:1px solid var(--line); padding:14px 18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  .modal > footer .sum{margin-right:auto; font-size:13px; color:var(--ink-2)}
+  .modal > footer .sum b{font-family:var(--mono); color:var(--ink)}
+
+  .toast{position:fixed; left:50%; bottom:26px; transform:translate(-50%,20px); background:var(--ink); color:#fff; padding:11px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; z-index:60; max-width:90vw}
+  .toast.on{opacity:1; transform:translate(-50%,0)}
+  .toast.bad{background:var(--alert)}
+
+  @media (max-width:860px){ .paths{grid-template-columns:1fr} .scrim{padding:10px; align-items:flex-start}
+    .modal{max-height:calc(100vh - 20px)} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div>
+      <h1>Aprovação de fretes</h1>
+      <p>Cotações com status de aprovação pendente.</p>
+    </div>
+    <div class="top-right">
+      <div class="count"><b id="cnt">—</b> pendentes</div>
+      <button class="btn btn-ghost btn-sm" id="reload">Atualizar</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="loading" class="state"><div class="spinner"></div>Lendo a planilha…</div>
+  <div id="panel" class="panel" hidden>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>RFQ</th><th>Rota</th><th>Setor</th><th>Motivo</th><th>Modalidade</th><th>Tipo</th>
+          <th>Material</th><th class="num">Qtde</th><th class="num">Valor unit.</th>
+          <th class="num">Valor da NF</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="empty" class="state" hidden></div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header>
+      <div>
+        <h2 id="mTitle">Mapa comparativo</h2>
+        <div class="who" id="mWho"></div>
+      </div>
+      <button class="x" id="mClose" aria-label="Fechar">&times;</button>
+    </header>
+    <div class="content" id="mContent"></div>
+    <footer>
+      <div class="sum" id="mSum"></div>
+      <button class="btn" id="mCancel">Fechar</button>
+      <button class="btn btn-pick" id="mOk">Aprovar</button>
+    </footer>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+var DECISIONS = [], ROWS = [], DIAG = {};
+var OPEN = null;                 // decisão aberta no modal
+var SEL = {};                    // key -> { cenario, sep:{rowIndex:chave} }
+var CONFIRMING = false;
+
+var BRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+function money(n){ return (n===null||n===undefined||isNaN(n)) ? '—' : BRL.format(n); }
+function esc(s){ return String(s===null||s===undefined?'':s).replace(/[&<>"']/g, function(c){
+  return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+function pct(a,b){ return b ? Math.round(a/b*100) : 0; }
+function byKey(k){ return DECISIONS.filter(function(d){ return d.key===k; })[0]; }
+function pick(arr,ch){ for (var i=0;i<arr.length;i++) if (arr[i].chave===ch) return arr[i]; return null; }
+
+/* ---------------- carregamento ---------------- */
+function load(){
+  document.getElementById('loading').style.display = '';
+  document.getElementById('panel').hidden = true;
+  document.getElementById('empty').hidden = true;
+  if (typeof google === 'undefined' || !google.script) { onData(DEMO()); return; }
+  google.script.run.withSuccessHandler(onData).withFailureHandler(onFail).getPendingGroups();
+}
+function onFail(err){
+  document.getElementById('loading').innerHTML =
+    '<h3>Não consegui ler a planilha</h3><p>' + esc(err && err.message ? err.message : err) + '</p>';
+}
+function onData(p){
+  p = p || {};
+  DECISIONS = p.decisoes || []; ROWS = p.linhas || []; DIAG = p.diag || {};
+  SEL = {};
+  DECISIONS.forEach(function(d){
+    var sep = {};
+    d.separado.itens.forEach(function(i){ sep[i.rowIndex] = i.melhorChave; });
+    var rotOK = d.roteirizado && d.roteirizado.completo;
+    var cen = (rotOK && (!d.separado.completo || d.roteirizado.valor <= d.separado.total)) ? 'ROTEIRIZADO' : 'SEPARADO';
+    SEL[d.key] = { cenario:cen, sep:sep };
+  });
+  document.getElementById('cnt').textContent = ROWS.length;
+  document.getElementById('loading').style.display = 'none';
+  renderTable();
+}
+
+/* ---------------- tabela ---------------- */
+function renderTable(){
+  var panel = document.getElementById('panel'), empty = document.getElementById('empty');
+  if (ROWS.length === 0){
+    panel.hidden = true; empty.hidden = false;
+    empty.innerHTML = '<h3>Nada pendente de aprovação</h3>' +
+      '<p>O painel lista as linhas cujo Status da SC contém: ' + esc(DIAG.statusPendenteConfig || '') + '.</p>' +
+      (DIAG.statusEncontrados && DIAG.statusEncontrados.length
+        ? '<table><tbody>' + DIAG.statusEncontrados.map(function(s){
+            return '<tr><td>' + esc(s.status) + '</td><td>' + s.total + ' linha(s)</td></tr>'; }).join('') + '</tbody></table>'
+        : '');
+    return;
+  }
+  empty.hidden = true; panel.hidden = false;
+  document.getElementById('tbody').innerHTML = ROWS.map(function(r){
+    return '<tr>' +
+      '<td class="code">' + esc(r.rfq || '—') + '</td>' +
+      '<td>' + (r.rota ? '<span class="rota-pill">' + esc(r.rota) + '</span>' : '<span class="dash">—</span>') + '</td>' +
+      '<td>' + esc(r.setor || '—') + '</td>' +
+      '<td>' + esc(r.motivo || '—') + '</td>' +
+      '<td>' + esc(r.modalidade || '—') + '</td>' +
+      '<td>' + esc(r.tipo || '—') + '</td>' +
+      '<td><div class="desc">' + esc(r.material || '—') + '</div><div class="sub">' + esc(r.rotaTexto) + '</div></td>' +
+      '<td class="num">' + esc(r.qtde || '—') + (r.tipoVolume ? ' ' + esc(r.tipoVolume) : '') + '</td>' +
+      '<td class="num">' + money(r.valorUnit) + '</td>' +
+      '<td class="num">' + money(r.valorNF) + '</td>' +
+      '<td class="act"><button class="btn btn-sm" data-open="' + esc(r.decisionKey) + '">Analisar e aprovar</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* ---------------- totais ---------------- */
+function sepTotal(d){
+  var s = SEL[d.key].sep, t = 0, ok = d.separado.itens.length > 0;
+  d.separado.itens.forEach(function(i){
+    var c = pick(i.carriers, s[i.rowIndex]);
+    if (c && c.cotou) t += c.valor; else ok = false;
+  });
+  return { total:t, ok:ok };
+}
+
+/* ---------------- modal ---------------- */
+function openModal(key){
+  OPEN = key; CONFIRMING = false;
+  var d = byKey(key);
+  document.getElementById('mTitle').textContent = 'Mapa comparativo · ' + d.titulo;
+  document.getElementById('mWho').textContent =
+    [d.setor && ('Setor ' + d.setor), d.motivo, d.modalidade, d.tipo,
+     d.tipoDecisao === 'ROTA' ? ('RFQ ' + d.rfqs.join(' · ')) : null]
+    .filter(Boolean).join('  ·  ');
+  document.getElementById('scrim').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  paint();
+  document.getElementById('mClose').focus();
+}
+function closeModal(){
+  document.getElementById('scrim').classList.remove('on');
+  document.body.style.overflow = '';
+  OPEN = null; CONFIRMING = false;
+}
+
+function paint(){
+  var d = byKey(OPEN), s = SEL[OPEN];
+  var sep = sepTotal(d);
+
+  /* materiais */
+  var mats = '<p class="label">Materiais</p><div class="panel"><div class="scroll"><table>' +
+    '<thead><tr><th>RFQ</th><th>Descrição</th><th class="num">Qtde</th>' +
+    '<th class="num">Valor unit.</th><th class="num">Valor da NF</th></tr></thead><tbody>' +
+    d.materiais.map(function(m){
+      return '<tr><td class="code">' + esc(m.rfq) + '</td>' +
+        '<td><div class="desc">' + esc(m.material || '—') + '</div>' +
+        '<div class="sub">' + esc(m.rotaTexto) + '</div></td>' +
+        '<td class="num">' + esc(m.qtde || '—') + (m.tipoVolume ? ' ' + esc(m.tipoVolume) : '') + '</td>' +
+        '<td class="num">' + money(m.valorUnit) + '</td>' +
+        '<td class="num">' + money(m.valorNF) + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>';
+
+  /* comparação de custo, só quando há rota */
+  var cmp = '';
+  if (d.roteirizado){
+    var rT = d.roteirizado.completo ? d.roteirizado.valor : null;
+    var sT = d.separado.completo ? d.separado.total : null;
+    var diff = (rT !== null && sT !== null) ? Math.abs(rT - sT) : null;
+    cmp = '<div class="compare">' +
+      (diff > 0 ? '<span class="save-pill">' + (rT < sT ? 'Roteirizar economiza ' : 'Separar economiza ') +
+                  money(diff) + ' (' + pct(diff, Math.max(rT, sT)) + '%)</span>' : '') +
+      (diff === 0 ? '<span class="save-pill">Mesmo custo nos dois caminhos</span>' : '') +
+      (rT === null ? '<span class="flag">Faltam dados nas colunas "Rota - ..."</span>' : '') +
+      (sT === null ? '<span class="flag">Falta cotação em alguma RFQ do grupo</span>' : '') +
+      (d.roteirizado.divergente ? '<span class="flag">Valores da rota diferem entre as linhas do grupo</span>' : '') +
+      (d.roteirizado.apenasUmaRfq ? '<span class="flag">Rota com só 1 RFQ vinculada — confira o código</span>' : '') +
+    '</div>';
+  }
+
+  /* caminho A: roteirizado — cotação única, sem lista de escolha */
+  var A = '';
+  if (d.roteirizado){
+    var rot = d.roteirizado, rotOk = rot.completo;
+    A = '<div class="path' + (s.cenario === 'ROTEIRIZADO' ? ' on' : '') + '">' +
+      '<div class="hd" data-cen="ROTEIRIZADO"><span class="radio"></span>' +
+        '<div><h4>Opção A · Roteirizado</h4><div class="hint">' +
+          'Uma transportadora leva as ' + d.rfqs.length + ' RFQs da rota.</div></div>' +
+        '<div class="tot"><small>Total</small>' + (rotOk ? money(rot.valor) : '—') + '</div>' +
+      '</div>' +
+      '<div class="bd"><div class="quote">' +
+        (rotOk
+          ? '<div class="nm">' + esc(rot.nome) + '</div><div class="pr">' + money(rot.valor) + '</div>' +
+            '<div class="row">' +
+              (rot.veiculo ? '<span>' + esc(rot.veiculo) + '</span>' : '') +
+              (rot.transit ? '<span>' + esc(rot.transit) + ' dias</span>' : '') +
+              (rot.adValorem ? '<span>Ad valorem ' + esc(rot.adValorem) + '</span>' : '') +
+              (rot.prazo ? '<span>Pagto ' + esc(rot.prazo) + '</span>' : '') +
+            '</div>'
+          : '<div class="src" style="border:0">As colunas "Rota - Transportador" e "Rota - Valor (All In)" ainda não estão preenchidas para esta rota.</div>') +
+      '</div></div></div>';
+  }
+
+  /* caminho B: separado */
+  var B = '<div class="path' + (!d.roteirizado || s.cenario === 'SEPARADO' ? ' on' : '') + '">' +
+    '<div class="hd"' + (d.roteirizado ? ' data-cen="SEPARADO"' : '') + '>' +
+      (d.roteirizado ? '<span class="radio"></span>' : '') +
+      '<div><h4>' + (d.roteirizado ? 'Opção B · Separado' : 'Transportadoras cotadas') + '</h4>' +
+        '<div class="hint">' + (d.roteirizado ? 'Cada RFQ com a transportadora escolhida abaixo.' : 'Escolha a transportadora.') + '</div></div>' +
+      '<div class="tot"><small>Total</small>' + (sep.ok ? money(sep.total) : '—') + '</div>' +
+    '</div>' +
+    '<div class="bd">' +
+      d.separado.itens.map(function(i){
+        var head = d.roteirizado || d.separado.itens.length > 1
+          ? '<div class="hd2"><span class="code">RFQ ' + esc(i.rfq) + '</span><span class="tr">' + esc(i.rotaTexto) + '</span></div>'
+          : '';
+        var body = i.carriers.length
+          ? i.carriers.map(function(c){
+              return optHTML({
+                on: c.chave === s.sep[i.rowIndex], off: !c.cotou, nome:c.nome, valor:c.valor, cotou:c.cotou,
+                nq:c.naoCotouTexto, best:c.chave === i.melhorChave, veiculo:c.veiculo, transit:c.transit,
+                adValorem:c.adValorem, prazo:c.prazo,
+                attr: 'data-sep="' + esc(c.chave) + '" data-row="' + i.rowIndex + '"'
+              });
+            }).join('')
+          : '<div class="src" style="border:0">Nenhuma cotação lançada para esta RFQ.</div>';
+        return (d.roteirizado || d.separado.itens.length > 1)
+          ? '<div class="grp">' + head + body + '</div>'
+          : body;
+      }).join('') +
+    '</div></div>';
+
+  document.getElementById('mContent').innerHTML =
+    mats + cmp + '<p class="label">' + (d.roteirizado ? 'Caminhos possíveis' : 'Análise comparativa') + '</p>' +
+    '<div class="paths"' + (d.roteirizado ? '' : ' style="grid-template-columns:1fr"') + '>' + A + B + '</div>';
+
+  /* rodapé */
+  var ready, total, txt;
+  if (d.roteirizado && s.cenario === 'ROTEIRIZADO'){
+    ready = d.roteirizado.completo; total = ready ? d.roteirizado.valor : null;
+    txt = ready ? 'Aprovar rota com ' + d.roteirizado.nome : 'Cotação da rota incompleta';
+  } else {
+    ready = sep.ok; total = ready ? sep.total : null;
+    txt = ready
+      ? (d.separado.itens.length > 1 ? 'Aprovar ' + d.separado.itens.length + ' fretes separados' : 'Aprovar cotação')
+      : 'Selecione uma transportadora';
+  }
+  document.getElementById('mSum').innerHTML =
+    (d.roteirizado ? 'Escolhido: <b>' + (s.cenario === 'ROTEIRIZADO' ? 'Roteirizado' : 'Separado') + '</b> · ' : '') +
+    'Total a aprovar: <b>' + money(total) + '</b>';
+  var ok = document.getElementById('mOk');
+  ok.disabled = !ready; ok.textContent = txt; CONFIRMING = false;
+  document.getElementById('mCancel').textContent = 'Fechar';
+}
+
+function optHTML(o){
+  return '<div class="opt' + (o.on ? ' on' : '') + '" data-off="' + (o.off ? 1 : 0) + '"' +
+      (o.off ? '' : ' ' + o.attr) + '>' +
+    '<span class="dot"></span>' +
+    '<div><div class="nm">' + esc(o.nome) + '</div><div class="at">' +
+      (o.veiculo ? '<span>' + esc(o.veiculo) + '</span>' : '') +
+      (o.transit ? '<span>' + esc(o.transit) + ' dias</span>' : '') +
+      (o.adValorem ? '<span>Ad valorem ' + esc(o.adValorem) + '</span>' : '') +
+      (o.prazo ? '<span>Pagto ' + esc(o.prazo) + '</span>' : '') +
+    '</div></div>' +
+    (o.cotou ? '<div class="pr">' + money(o.valor) + (o.best ? '<small>menor</small>' : '') + '</div>'
+             : '<div class="nq">' + esc(o.nq) + '</div>') +
+  '</div>';
+}
+
+/* ---------------- eventos ---------------- */
+document.addEventListener('click', function(ev){
+  var t = ev.target;
+  var open = t.closest('[data-open]');
+  if (open){ openModal(open.getAttribute('data-open')); return; }
+  if (!OPEN) return;
+
+  var cen = t.closest('[data-cen]');
+  if (cen){ SEL[OPEN].cenario = cen.getAttribute('data-cen'); paint(); return; }
+  var sp = t.closest('[data-sep]');
+  if (sp){
+    SEL[OPEN].sep[sp.getAttribute('data-row')] = sp.getAttribute('data-sep');
+    if (byKey(OPEN).roteirizado) SEL[OPEN].cenario = 'SEPARADO';
+    paint(); return;
+  }
+});
+
+document.getElementById('reload').addEventListener('click', load);
+document.getElementById('mClose').addEventListener('click', closeModal);
+document.getElementById('mCancel').addEventListener('click', function(){
+  if (CONFIRMING) { paint(); return; }   // cancela a confirmação
+  closeModal();
+});
+document.getElementById('scrim').addEventListener('click', function(e){ if (e.target.id === 'scrim') closeModal(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && OPEN) closeModal(); });
+
+document.getElementById('mOk').addEventListener('click', function(){
+  var d = byKey(OPEN), s = SEL[OPEN], btn = this;
+
+  if (!CONFIRMING){
+    CONFIRMING = true;
+    var quem = s.cenario === 'ROTEIRIZADO' && d.roteirizado ? d.roteirizado.nome : 'as transportadoras escolhidas';
+    var tot = s.cenario === 'ROTEIRIZADO' && d.roteirizado ? d.roteirizado.valor : sepTotal(d).total;
+    document.getElementById('mSum').innerHTML = 'Confirma <b>' + esc(quem) + '</b> por <b>' + money(tot) + '</b>? ' +
+      'Isto grava nas colunas de aprovação da planilha.';
+    btn.textContent = 'Confirmar aprovação';
+    document.getElementById('mCancel').textContent = 'Cancelar';
+    return;
+  }
+
+  var payload = buildPayload(d, s);
+  btn.disabled = true; btn.textContent = 'Gravando…';
+
+  if (typeof google === 'undefined' || !google.script){
+    closeModal(); toast('Modo demonstração: nada foi gravado.'); return;
+  }
+  google.script.run
+    .withSuccessHandler(function(res){
+      closeModal();
+      toast(res.cenario + ' aprovado em ' + res.linhas + (res.linhas > 1 ? ' linhas.' : ' linha.'));
+      load();
+    })
+    .withFailureHandler(function(err){
+      closeModal();
+      toast(err && err.message ? err.message : 'Falha ao gravar.', true);
+      load();
+    })
+    .approveDecision(payload);
+});
+
+function buildPayload(d, s){
+  var linhas = [];
+  if (d.roteirizado && s.cenario === 'ROTEIRIZADO'){
+    d.separado.itens.forEach(function(i){
+      linhas.push({ rowIndex:i.rowIndex, rfq:i.rfq, transportadora:d.roteirizado.nome, valor:null });
+    });
+    return { cenario:'ROTEIRIZADO', rota:d.rota, linhas:linhas };
+  }
+  d.separado.itens.forEach(function(i){
+    var c = pick(i.carriers, s.sep[i.rowIndex]);
+    linhas.push({ rowIndex:i.rowIndex, rfq:i.rfq, transportadora:c.nome, valor:c.valor });
+  });
+  return { cenario:'SEPARADO', rota:d.rota, linhas:linhas };
+}
+
+var tt = null;
+function toast(msg, bad){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast on' + (bad ? ' bad' : '');
+  clearTimeout(tt); tt = setTimeout(function(){ t.className = 'toast'; }, bad ? 7000 : 4000);
+}
+
+/* ---------------- demonstração (só fora do Apps Script) ---------------- */
+function DEMO(){
+  function c(n,v,ve,tt){ return { chave:n.toLowerCase(), nome:n, valor:v, cotou:v!==null,
+    naoCotouTexto:v===null?'Não cotou':'', veiculo:ve, transit:tt, adValorem:'0%', prazo:'30 dias' }; }
+  var rota = { key:'ROTA::rota010', tipoDecisao:'ROTA', rota:'ROTA-010', titulo:'ROTA-010',
+    rfqs:['001','002'], setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado',
+    materiais:[
+      {rfq:'001', material:'Lona plástica dupla face 200 micra', qtde:'900', tipoVolume:'Caixa', valorUnit:3319.9, valorNF:2987910, rotaTexto:'Bougainville (SP) → EDP SP — Santa Cecília II'},
+      {rfq:'002', material:'Inversor SG250HX Sungrow', qtde:'1', tipoVolume:'Caixa', valorUnit:48000, valorNF:48000, rotaTexto:'Sungrow (Osasco) → EDP SP'}
+    ],
+    separado:{ completo:true, total:16549.16, semCotacao:[], itens:[
+      {rowIndex:12, rfq:'001', rotaTexto:'Bougainville (SP) → EDP SP', material:'Lona', melhorChave:'raycargo', completo:true,
+       carriers:[c('RAYCARGO',4993.15,'Truck','3'), c('KMOVE',8400,'Carreta','4'), c('TRANSPILOTO',7156.01,'Truck','3')]},
+      {rowIndex:13, rfq:'002', rotaTexto:'Sungrow (Osasco) → EDP SP', material:'Inversor', melhorChave:'kmove', completo:true,
+       carriers:[c('RAYCARGO',null,'',''), c('KMOVE',3800,'Toco','2'), c('TRANSPILOTO',4200,'Toco','2')]}
+    ]},
+    roteirizado:{ nome:'KMOVE', valor:14200, adValorem:'0%', prazo:'28 dias', transit:'4', veiculo:'Carreta', completo:true, divergente:false, apenasUmaRfq:false }
+  };
+  var solo = { key:'RFQ::41', tipoDecisao:'RFQ', rota:'', titulo:'RFQ 041', rfqs:['041'], setor:'Manutenção',
+    motivo:'Corretiva', modalidade:'FOB', tipo:'Urgente',
+    materiais:[{rfq:'041', material:'Módulo fotovoltaico 550W', qtde:'12', tipoVolume:'Caixa', valorUnit:1533.33, valorNF:18400, rotaTexto:'Campinas (SP) → Icém I'}],
+    separado:{ completo:true, total:2380, semCotacao:[], itens:[
+      {rowIndex:22, rfq:'041', rotaTexto:'Campinas (SP) → Icém I', material:'Módulo', melhorChave:'kmove', completo:true,
+       carriers:[c('RAYCARGO',2650,'Toco','2'), c('KMOVE',2380,'Toco','3'), c('TRANSPILOTO',null,'','')]}
+    ]},
+    roteirizado:null };
+
+  var linhas = [
+    {rowIndex:12, decisionKey:rota.key, rfq:'001', rota:'ROTA-010', status:'Aguardando Aprovação', setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado', material:'Lona plástica dupla face 200 micra', qtde:'900', tipoVolume:'Caixa', valorUnit:3319.9, valorNF:2987910, rotaTexto:'Bougainville (SP) → EDP SP'},
+    {rowIndex:13, decisionKey:rota.key, rfq:'002', rota:'ROTA-010', status:'Aguardando Aprovação', setor:'Supply', motivo:'Reposição', modalidade:'CIF', tipo:'Roteirizado', material:'Inversor SG250HX Sungrow', qtde:'1', tipoVolume:'Caixa', valorUnit:48000, valorNF:48000, rotaTexto:'Sungrow (Osasco) → EDP SP'},
+    {rowIndex:22, decisionKey:solo.key, rfq:'041', rota:'', status:'Aguardando Aprovação', setor:'Manutenção', motivo:'Corretiva', modalidade:'FOB', tipo:'Urgente', material:'Módulo fotovoltaico 550W', qtde:'12', tipoVolume:'Caixa', valorUnit:1533.33, valorNF:18400, rotaTexto:'Campinas (SP) → Icém I'}
+  ];
+  return { decisoes:[rota, solo], linhas:linhas,
+    diag:{ statusPendenteConfig:'Aguardando Aprovação', statusEncontrados:[] } };
+}
+
+load();
+</script>
+</body>
+</html>
