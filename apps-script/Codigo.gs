@@ -260,6 +260,7 @@ function getPendingGroups() {
   const groups = {};
   const order = [];
   const linhasPendentes = [];
+  const rotasQuebradas = {};
 
   for (let i = mapped.headerRow + 1; i < data.length; i++) {
     const row = data[i];
@@ -270,6 +271,13 @@ function getPendingGroups() {
     const statusTxt = txt_(cell_(row, col.status)) || '(vazio)';
     if (!contagemStatus[statusTxt]) contagemStatus[statusTxt] = { total: 0, pendente: statusPendente_(statusTxt) };
     contagemStatus[statusTxt].total++;
+
+    // Uma RFQ da rota já foi aprovada separadamente (fora da rota):
+    // a cotação da rota deixou de valer para o restante do grupo.
+    if (rota !== '' && norm_(cell_(row, col.tipo)) === norm_('Único') &&
+        col.dataAprovacao !== -1 && txt_(cell_(row, col.dataAprovacao)) !== '') {
+      rotasQuebradas[norm_(rota)] = true;
+    }
 
     if (!isPending_(row, col)) continue;
 
@@ -291,7 +299,7 @@ function getPendingGroups() {
     return { status: s, total: contagemStatus[s].total, pendente: contagemStatus[s].pendente };
   }).sort(function (a, b) { return b.total - a.total; });
 
-  const decisoes = order.map(function (key) { return buildDecision_(groups[key]); });
+  const decisoes = order.map(function (key) { return buildDecision_(groups[key], rotasQuebradas); });
 
   const linhas = linhasPendentes.map(function (r) {
     const cotados = r.carriers.filter(function (c) { return c.cotou; });
@@ -406,9 +414,10 @@ function combineRotaQuote_(rows) {
  * Monta uma decisão a partir das linhas de um grupo (uma RFQ isolada, ou
  * todas as RFQs de uma mesma Rota).
  */
-function buildDecision_(group) {
+function buildDecision_(group, rotasQuebradas) {
   const rows = group.rows;
   const isRota = group.rota !== '';
+  const quebrada = isRota && !!rotasQuebradas[norm_(group.rota)];
   const base = rows[0];
 
   const itens = rows.map(function (r) {
@@ -432,7 +441,7 @@ function buildDecision_(group) {
   };
 
   let roteirizado = null;
-  if (isRota) {
+  if (isRota && !quebrada) {
     const rq = combineRotaQuote_(rows);
     roteirizado = {
       nome: rq.nome, valor: rq.valor, adValorem: rq.adValorem, prazo: rq.prazo,
@@ -460,7 +469,8 @@ function buildDecision_(group) {
       };
     }),
     separado: separado,
-    roteirizado: roteirizado
+    roteirizado: roteirizado,
+    rotaQuebrada: quebrada
   };
 }
 
@@ -523,7 +533,6 @@ function approveDecision(payload) {
       if (col.dataAprovacao !== -1) sheet.getRange(l.rowIndex, col.dataAprovacao + 1).setValue(agoraTexto);
       if (col.status !== -1) sheet.getRange(l.rowIndex, col.status + 1).setValue(CONFIG.STATUS_APROVADO);
       if (col.tipo !== -1) sheet.getRange(l.rowIndex, col.tipo + 1).setValue(tipoTexto);
-      if (col.rota !== -1 && payload.cenario === 'SEPARADO') sheet.getRange(l.rowIndex, col.rota + 1).setValue('');
     });
 
     SpreadsheetApp.flush();

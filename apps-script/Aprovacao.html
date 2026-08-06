@@ -316,7 +316,10 @@ function paint(){
 
   /* comparação de custo, só quando há rota */
   var cmp = '';
-  if (d.roteirizado){
+  if (d.rotaQuebrada){
+    cmp = '<div class="compare"><span class="flag">Uma RFQ desta rota já foi aprovada separadamente — ' +
+      'a cotação da rota não vale mais para o restante e precisa ser recotada. Só é possível aprovar separado.</span></div>';
+  } else if (d.roteirizado){
     var rT = d.roteirizado.completo ? d.roteirizado.valor : null;
     var sT = d.separado.completo ? d.separado.total : null;
     var diff = (rT !== null && sT !== null) ? Math.abs(rT - sT) : null;
@@ -358,7 +361,7 @@ function paint(){
   var B = '<div class="path' + (!d.roteirizado || s.cenario === 'SEPARADO' ? ' on' : '') + '">' +
     '<div class="hd"' + (d.roteirizado ? ' data-cen="SEPARADO"' : '') + '>' +
       (d.roteirizado ? '<span class="radio"></span>' : '') +
-      '<div><h4>' + (d.roteirizado ? 'Opção B · Separado' : 'Transportadoras cotadas') + '</h4>' +
+      '<div><h4>' + ((d.roteirizado || d.rota) ? 'Opção B · Separado' : 'Transportadoras cotadas') + '</h4>' +
         '<div class="hint">' + (d.roteirizado || d.separado.itens.length > 1
           ? 'Cada RFQ com a transportadora escolhida abaixo. Desmarque as que não quer aprovar agora.'
           : 'Escolha a transportadora.') + '</div></div>' +
@@ -389,7 +392,8 @@ function paint(){
     '</div></div>';
 
   document.getElementById('mContent').innerHTML =
-    mats + cmp + '<p class="label">' + (d.roteirizado ? 'Caminhos possíveis' : 'Análise comparativa') + '</p>' +
+    mats + cmp + '<p class="label">' +
+      (d.rotaQuebrada ? 'Rota indisponível' : (d.roteirizado ? 'Caminhos possíveis' : 'Análise comparativa')) + '</p>' +
     '<div class="paths"' + (d.roteirizado ? '' : ' style="grid-template-columns:1fr"') + '>' + A + B + '</div>';
 
   /* rodapé */
