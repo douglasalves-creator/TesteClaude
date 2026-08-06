@@ -195,7 +195,6 @@
 var DECISIONS = [], ROWS = [], DIAG = {};
 var OPEN = null;                 // decisão aberta no modal
 var SEL = {};                    // key -> { cenario, sep:{rowIndex:chave} }
-var CONFIRMING = false;
 
 var BRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
 function money(n){ return (n===null||n===undefined||isNaN(n)) ? '—' : BRL.format(n); }
@@ -280,7 +279,7 @@ function sepTotal(d){
 
 /* ---------------- modal ---------------- */
 function openModal(key){
-  OPEN = key; CONFIRMING = false;
+  OPEN = key;
   var d = byKey(key);
   document.getElementById('mTitle').textContent = 'Mapa comparativo · ' + d.titulo;
   document.getElementById('mWho').textContent =
@@ -295,7 +294,7 @@ function openModal(key){
 function closeModal(){
   document.getElementById('scrim').classList.remove('on');
   document.body.style.overflow = '';
-  OPEN = null; CONFIRMING = false;
+  OPEN = null;
 }
 
 function paint(){
@@ -411,7 +410,7 @@ function paint(){
     (d.roteirizado ? 'Escolhido: <b>' + (s.cenario === 'ROTEIRIZADO' ? 'Roteirizado' : 'Separado') + '</b> · ' : '') +
     'Total a aprovar: <b>' + money(total) + '</b>';
   var ok = document.getElementById('mOk');
-  ok.disabled = !ready; ok.textContent = txt; CONFIRMING = false;
+  ok.disabled = !ready; ok.textContent = txt;
   document.getElementById('mCancel').textContent = 'Fechar';
 }
 
@@ -452,7 +451,6 @@ document.addEventListener('click', function(ev){
 document.getElementById('reload').addEventListener('click', load);
 document.getElementById('mClose').addEventListener('click', closeModal);
 document.getElementById('mCancel').addEventListener('click', function(){
-  if (CONFIRMING) { paint(); return; }   // cancela a confirmação
   closeModal();
 });
 document.getElementById('scrim').addEventListener('click', function(e){ if (e.target.id === 'scrim') closeModal(); });
@@ -460,17 +458,6 @@ document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && OPEN
 
 document.getElementById('mOk').addEventListener('click', function(){
   var d = byKey(OPEN), s = SEL[OPEN], btn = this;
-
-  if (!CONFIRMING){
-    CONFIRMING = true;
-    var quem = s.cenario === 'ROTEIRIZADO' && d.roteirizado ? d.roteirizado.nome : 'as transportadoras escolhidas';
-    var tot = s.cenario === 'ROTEIRIZADO' && d.roteirizado ? d.roteirizado.valor : sepTotal(d).total;
-    document.getElementById('mSum').innerHTML = 'Confirma <b>' + esc(quem) + '</b> por <b>' + money(tot) + '</b>? ' +
-      'Isto grava nas colunas de aprovação da planilha.';
-    btn.textContent = 'Confirmar aprovação';
-    document.getElementById('mCancel').textContent = 'Cancelar';
-    return;
-  }
 
   var payload = buildPayload(d, s);
   btn.disabled = true; btn.textContent = 'Gravando…';
