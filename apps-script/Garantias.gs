@@ -16,6 +16,11 @@
  * cadastrado na aba "Controle Acionamento" são copiadas automaticamente
  * para lá (ver transferirNovosParaControleAcionamento_).
  *
+ * A busca das tarefas usa a Search API do Asana (filtro created_on.after),
+ * que já devolve só as tarefas relevantes em vez de paginar o histórico
+ * inteiro do projeto — isso exige que o workspace do Asana esteja em um
+ * plano com Advanced Search habilitado (normalmente Starter ou superior).
+ *
  * O token de acesso do Asana não fica no código: configure-o uma vez em
  * Extensões > Apps Script > Configurações do projeto > Propriedades do script,
  * com a chave ASANA_ACCESS_TOKEN.
@@ -112,18 +117,37 @@ function rodarAutomaçãoCompleta() {
     });
   }
 
+  // Descobre o workspace do projeto, necessário para usar a Search API do Asana.
+  var urlProjeto = "https://app.asana.com/api/1.0/projects/" + PROJECT_ID + "?opt_fields=workspace.gid";
+  var responseProjeto = UrlFetchApp.fetch(urlProjeto, options);
+  if (responseProjeto.getResponseCode() !== 200) {
+    SpreadsheetApp.getUi().alert("Erro ao identificar o workspace do projeto: " + responseProjeto.getContentText());
+    return;
+  }
+  var WORKSPACE_ID = JSON.parse(responseProjeto.getContentText()).data.workspace.gid;
+
   var novasLinhas = [];
   var nextPageToken = "";
   var executarLoop = true;
 
   var optFields = [
-    "name", "created_at", "completed", "custom_fields", "permalink_url"
+    "created_at", "completed", "custom_fields", "permalink_url"
   ].join(",");
 
-  // Busca as tarefas do projeto, página por página
+  // A Search API filtra created_on direto no Asana, então cada execução só
+  // baixa as tarefas relevantes em vez de paginar o histórico inteiro do
+  // projeto. Usamos um dia antes da DATA_CORTE por segurança (o filtro é
+  // por dia, não por hora) — o filtro exato continua sendo aplicado abaixo
+  // com dataCriacao < DATA_CORTE.
+  var margemSeguranca = new Date(DATA_CORTE.getTime() - 24 * 60 * 60 * 1000);
+  var createdOnAfter = Utilities.formatDate(margemSeguranca, "UTC", "yyyy-MM-dd");
+
+  // Busca as tarefas do projeto criadas a partir da data de corte, página por página
   while (executarLoop) {
-    var url = "https://app.asana.com/api/1.0/projects/" + PROJECT_ID +
-              "/tasks?limit=100" +
+    var url = "https://app.asana.com/api/1.0/workspaces/" + WORKSPACE_ID + "/tasks/search" +
+              "?projects.any=" + PROJECT_ID +
+              "&created_on.after=" + createdOnAfter +
+              "&sort_by=created_at&sort_ascending=true&limit=100" +
               "&opt_fields=" + optFields;
 
     if (nextPageToken) {
