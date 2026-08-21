@@ -20,8 +20,8 @@ function rodarAutomaçãoCompleta() {
     return;
   }
   var PROJECT_ID = "1214318804635619";
-  // Data de corte: só entram tarefas criadas a partir de 10/08/2026.
-  var DATA_CORTE = new Date("2026-08-10T00:00:00Z");
+  // Data de corte: só entram tarefas criadas a partir de 21/08/2026.
+  var DATA_CORTE = new Date("2026-08-21T00:00:00Z");
 
   // Campos personalizados do Asana que não devem entrar na planilha.
   var CAMPOS_EXCLUIDOS = [
