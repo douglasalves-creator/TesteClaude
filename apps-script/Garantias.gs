@@ -1,9 +1,16 @@
 /**
  * IMPORTAÇÃO DE TAREFAS DO ASANA (projeto de Garantias) — backend
  *
- * Traz para a aba "Asana" as tarefas do projeto criadas a partir da
- * DATA_CORTE, com os campos nativos do Asana e os campos personalizados
- * do projeto — exceto os listados em CAMPOS_EXCLUIDOS.
+ * Modo INCREMENTAL: a planilha funciona como um registro congelado no
+ * tempo. A cada execução, o script busca as tarefas do Asana criadas a
+ * partir da DATA_CORTE e só ACRESCENTA no final da aba "Asana" as que
+ * ainda não têm uma linha lá (comparando pelo Task ID). Linhas já
+ * existentes nunca são apagadas, sobrescritas ou atualizadas — mesmo que
+ * o card correspondente tenha mudado no Asana.
+ *
+ * Isso é proposital: o fluxo futuro é o inverso (planilha -> Asana), então
+ * a planilha não pode ficar recebendo atualizações do card por cima do que
+ * já foi registrado.
  *
  * A função copiarNovosAcionamentos foi removida deste arquivo por ora —
  * será tratada em uma etapa separada.
@@ -23,7 +30,8 @@ function rodarAutomaçãoCompleta() {
   // Data de corte: só entram tarefas criadas a partir de 21/08/2026.
   var DATA_CORTE = new Date("2026-08-21T00:00:00Z");
 
-  // Campos personalizados do Asana que não devem entrar na planilha.
+  // Campos personalizados do Asana que não devem entrar na planilha
+  // (só é usado na primeira execução, quando os cabeçalhos ainda não existem).
   var CAMPOS_EXCLUIDOS = [
     "UFVs",
     "UFVs (CSC)",
@@ -35,14 +43,13 @@ function rodarAutomaçãoCompleta() {
     "NS (OBSOLETO)"
   ];
 
+  // Campos nativos do Asana que sempre trazemos, além dos personalizados
+  var CAMPOS_NATIVOS = ["Task ID", "Data de Criação", "Status", "Link"];
+
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Asana");
   if (!sheet) {
-    SpreadsheetApp.getActiveSpreadsheet().insertSheet("Asana");
-    sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Asana");
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Asana");
   }
-
-  // Limpa tudo para garantir que nenhuma tarefa suma ou fique de fora
-  sheet.clear();
 
   var options = {
     "method": "get",
@@ -50,38 +57,55 @@ function rodarAutomaçãoCompleta() {
     "muteHttpExceptions": true
   };
 
-  // 1. Mapeia dinamicamente os campos personalizados do projeto (menos os excluídos)
-  var urlCampos = "https://app.asana.com/api/1.0/projects/" + PROJECT_ID + "/custom_field_settings";
-  var responseCampos = UrlFetchApp.fetch(urlCampos, options);
-  if (responseCampos.getResponseCode() !== 200) {
-    SpreadsheetApp.getUi().alert("Erro ao buscar campos: " + responseCampos.getContentText());
-    return;
+  var idxTaskIdCabecalho = -1;
+  var cabecalhos;
+  var linhasExistentes = sheet.getLastRow();
+
+  if (linhasExistentes > 0) {
+    // Já existem cabeçalhos: respeita a ordem de colunas que já está na planilha
+    // (inclusive se você reorganizou manualmente).
+    cabecalhos = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    idxTaskIdCabecalho = cabecalhos.indexOf("Task ID");
+    if (idxTaskIdCabecalho === -1) {
+      SpreadsheetApp.getUi().alert("Erro: não encontrei a coluna 'Task ID' no cabeçalho da aba Asana.");
+      return;
+    }
+  } else {
+    // Primeira execução: mapeia dinamicamente os campos personalizados do
+    // projeto (menos os excluídos) e cria o cabeçalho do zero.
+    var urlCampos = "https://app.asana.com/api/1.0/projects/" + PROJECT_ID + "/custom_field_settings";
+    var responseCampos = UrlFetchApp.fetch(urlCampos, options);
+    if (responseCampos.getResponseCode() !== 200) {
+      SpreadsheetApp.getUi().alert("Erro ao buscar campos: " + responseCampos.getContentText());
+      return;
+    }
+
+    var configuracoesCampos = JSON.parse(responseCampos.getContentText()).data;
+    var camposCustomizadosProjeto = [];
+    configuracoesCampos.forEach(function(config) {
+      if (config.custom_field) {
+        var nomeCampo = config.custom_field.name.trim();
+        if (camposCustomizadosProjeto.indexOf(nomeCampo) === -1 && CAMPOS_EXCLUIDOS.indexOf(nomeCampo) === -1) {
+          camposCustomizadosProjeto.push(nomeCampo);
+        }
+      }
+    });
+
+    cabecalhos = CAMPOS_NATIVOS.concat(camposCustomizadosProjeto);
+    idxTaskIdCabecalho = cabecalhos.indexOf("Task ID");
+    sheet.getRange(1, 1, 1, cabecalhos.length).setValues([cabecalhos]).setFontWeight("bold");
+    linhasExistentes = 1;
   }
 
-  var configuracoesCampos = JSON.parse(responseCampos.getContentText()).data;
-  var camposCustomizadosProjeto = [];
-
-  configuracoesCampos.forEach(function(config) {
-    if (config.custom_field) {
-      var nomeCampo = config.custom_field.name.trim();
-      if (camposCustomizadosProjeto.indexOf(nomeCampo) === -1 && CAMPOS_EXCLUIDOS.indexOf(nomeCampo) === -1) {
-        camposCustomizadosProjeto.push(nomeCampo);
-      }
-    }
-  });
-
-  // Campos nativos do Asana que sempre trazemos, além dos personalizados
-  var camposNativos = [
-    "Task ID",
-    "Data de Criação",
-    "Status",
-    "Link"
-  ];
-
-  var cabecalhos = camposNativos.concat(camposCustomizadosProjeto);
-
-  // Cria os cabeçalhos na planilha limpa
-  sheet.getRange(1, 1, 1, cabecalhos.length).setValues([cabecalhos]).setFontWeight("bold");
+  // Guarda os Task IDs que já estão na planilha, para não duplicar nem tocar neles.
+  var taskIdsExistentes = {};
+  if (linhasExistentes > 1) {
+    var colunaTaskId = sheet.getRange(2, idxTaskIdCabecalho + 1, linhasExistentes - 1, 1).getValues();
+    colunaTaskId.forEach(function(row) {
+      var id = row[0].toString().replace(/^'/, "").trim();
+      if (id) taskIdsExistentes[id] = true;
+    });
+  }
 
   var novasLinhas = [];
   var nextPageToken = "";
@@ -91,7 +115,7 @@ function rodarAutomaçãoCompleta() {
     "name", "created_at", "completed", "custom_fields", "permalink_url"
   ].join(",");
 
-  // 2. Busca TODAS as tarefas do projeto
+  // Busca as tarefas do projeto, página por página
   while (executarLoop) {
     var url = "https://app.asana.com/api/1.0/projects/" + PROJECT_ID +
               "/tasks?limit=100" +
@@ -114,6 +138,9 @@ function rodarAutomaçãoCompleta() {
       var tarefa = tarefas[j];
       var taskId = tarefa.gid.toString().trim();
 
+      // Já está na planilha: pula, para não sobrescrever o que já foi registrado.
+      if (taskIdsExistentes[taskId]) continue;
+
       var dataCriacao = new Date(tarefa.created_at);
 
       // Filtro estrito: ignora tarefas anteriores à data de corte
@@ -122,7 +149,13 @@ function rodarAutomaçãoCompleta() {
       var status = tarefa.completed ? "Concluído" : "Em andamento";
       var linkAsana = tarefa.permalink_url || "";
 
-      var c = {};
+      var valoresPorNomeDeCampo = {
+        "Task ID": "'" + taskId,
+        "Data de Criação": dataCriacao,
+        "Status": status,
+        "Link": linkAsana
+      };
+
       if (tarefa.custom_fields) {
         tarefa.custom_fields.forEach(function(campo) {
           var valor = campo.display_value;
@@ -132,29 +165,20 @@ function rodarAutomaçãoCompleta() {
           var nomeFormatado = campo.name.toLowerCase();
           if (nomeFormatado.indexOf("data") !== -1 && valor && typeof valor === "string" && valor.indexOf("T") !== -1 && valor.indexOf("Z") !== -1) {
             valor = new Date(valor);
+          } else if (valor !== "" && valor !== undefined && nomeFormatado.indexOf("data") === -1) {
+            valor = "'" + valor;
           }
-          c[campo.name.trim()] = valor;
+          valoresPorNomeDeCampo[campo.name.trim()] = valor;
         });
       }
 
-      var linha = [
-        "'" + taskId,
-        dataCriacao,
-        status,
-        linkAsana
-      ];
-
-      camposCustomizadosProjeto.forEach(function(nomeCampo) {
-        var valorCampo = c[nomeCampo];
-
-        if (!(nomeCampo.toLowerCase().indexOf("data") !== -1) && valorCampo !== "" && valorCampo !== undefined) {
-          linha.push("'" + valorCampo);
-        } else {
-          linha.push(valorCampo || "");
-        }
+      var linha = cabecalhos.map(function(nomeColuna) {
+        var valor = valoresPorNomeDeCampo[nomeColuna];
+        return valor !== undefined ? valor : "";
       });
 
       novasLinhas.push(linha);
+      taskIdsExistentes[taskId] = true;
     }
 
     if (respostaJson.next_page && respostaJson.next_page.offset) {
@@ -164,19 +188,20 @@ function rodarAutomaçãoCompleta() {
     }
   }
 
-  // 3. Grava tudo do zero na planilha
+  // Só acrescenta as tarefas novas no final da planilha — nada é apagado ou reescrito.
   if (novasLinhas.length > 0) {
-    sheet.getRange(2, 1, novasLinhas.length, novasLinhas[0].length).setValues(novasLinhas);
+    var proximaLinha = sheet.getLastRow() + 1;
+    sheet.getRange(proximaLinha, 1, novasLinhas.length, cabecalhos.length).setValues(novasLinhas);
 
-    // Formatações de data brasileiras (dd/MM/yyyy) em todas as colunas de data
+    // Formatações de data brasileiras (dd/MM/yyyy) nas colunas de data das linhas novas
     cabecalhos.forEach(function(cabecalho, index) {
       if (cabecalho.toLowerCase().indexOf("data") !== -1) {
-        sheet.getRange(2, index + 1, sheet.getLastRow() - 1, 1).setNumberFormat("dd/MM/yyyy");
+        sheet.getRange(proximaLinha, index + 1, novasLinhas.length, 1).setNumberFormat("dd/MM/yyyy");
       }
     });
 
-    SpreadsheetApp.getUi().alert("Sucesso! " + novasLinhas.length + " tarefas importadas de forma completa.");
+    SpreadsheetApp.getUi().alert("Sucesso! " + novasLinhas.length + " tarefa(s) nova(s) adicionada(s).");
   } else {
-    SpreadsheetApp.getUi().alert("Nenhuma tarefa encontrada a partir de 10/08/2026.");
+    SpreadsheetApp.getUi().alert("Nenhuma tarefa nova encontrada a partir de 21/08/2026.");
   }
 }
