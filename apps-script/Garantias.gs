@@ -39,6 +39,10 @@ function rodarAutomaçãoCompleta() {
     "Data de Necessidade Obra (Prévia)",
     "UFV's ( CSC ) revisado",
     "Fornecedor",
+    "Severidade/Impacto",
+    "Prioridade",
+    "Setores da SolarGrid",
+    "Tipos SC Serviços",
     "MAC (OBSOLETO)",
     "NS (OBSOLETO)"
   ];
