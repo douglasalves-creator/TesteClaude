@@ -12,8 +12,9 @@
  * a planilha não pode ficar recebendo atualizações do card por cima do que
  * já foi registrado.
  *
- * A função copiarNovosAcionamentos foi removida deste arquivo por ora —
- * será tratada em uma etapa separada.
+ * Ao final, as tarefas novas que tiverem um código SCGAR ainda não
+ * cadastrado na aba "Controle Acionamento" são copiadas automaticamente
+ * para lá (ver transferirNovosParaControleAcionamento_).
  *
  * O token de acesso do Asana não fica no código: configure-o uma vez em
  * Extensões > Apps Script > Configurações do projeto > Propriedades do script,
@@ -205,7 +206,107 @@ function rodarAutomaçãoCompleta() {
     });
 
     SpreadsheetApp.getUi().alert("Sucesso! " + novasLinhas.length + " tarefa(s) nova(s) adicionada(s).");
+
+    transferirNovosParaControleAcionamento_(novasLinhas, cabecalhos);
   } else {
     SpreadsheetApp.getUi().alert("Nenhuma tarefa nova encontrada a partir de 21/08/2026.");
   }
+}
+
+/**
+ * Copia para a aba "Controle Acionamento" as tarefas recém-importadas da
+ * aba "Asana" cujo código SCGAR ainda não existe lá. O cabeçalho da aba
+ * Controle Acionamento fica na linha 6; nunca sobrescreve linhas
+ * existentes, só acrescenta no final.
+ */
+function transferirNovosParaControleAcionamento_(novasLinhasAsana, cabecalhosAsana) {
+  var LINHA_CABECALHO_CONTROLE = 6;
+
+  var abaControle = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Controle Acionamento");
+  if (!abaControle) {
+    SpreadsheetApp.getUi().alert("Aviso: a aba 'Controle Acionamento' não foi encontrada — as tarefas novas não foram copiadas para lá.");
+    return;
+  }
+
+  var cabecalhosControle = abaControle.getRange(LINHA_CABECALHO_CONTROLE, 1, 1, abaControle.getLastColumn())
+    .getValues()[0]
+    .map(function(c) { return c.toString().trim().toLowerCase(); });
+
+  function idxControle(nome) { return cabecalhosControle.indexOf(nome.trim().toLowerCase()); }
+  function idxAsana(nome) { return cabecalhosAsana.indexOf(nome); }
+
+  var idxScgarControle = idxControle("SCGAR");
+  var idxScgarAsana = idxAsana("SCGAR");
+  if (idxScgarControle === -1) {
+    SpreadsheetApp.getUi().alert("Erro: coluna 'SCGAR' não encontrada na linha " + LINHA_CABECALHO_CONTROLE + " da aba Controle Acionamento.");
+    return;
+  }
+  if (idxScgarAsana === -1) {
+    SpreadsheetApp.getUi().alert("Erro: coluna 'SCGAR' não encontrada na aba Asana.");
+    return;
+  }
+
+  // De-Para: coluna de origem na aba Asana -> coluna de destino na aba Controle Acionamento
+  var MAPEAMENTO = [
+    { de: "SCGAR", para: "SCGAR" },
+    { de: "Data de Criação", para: "Data de Solicitação" },
+    { de: "Tipo Acionamento Garantia", para: "Tipo de Acionamento" },
+    { de: "Link", para: "Link do Card" },
+    { de: "UFV (Supply)", para: "UFV de Origem" },
+    { de: "Fornecedor (Garantia)", para: "Fornecedor" },
+    { de: "Material Para Garantia", para: "Material/Equipamento" },
+    { de: "Quantidade", para: "Qtd" },
+    { de: "MAC", para: "MAC" },
+    { de: "NS", para: "NS" },
+    { de: "Relato do ocorrido / Falha do equipamento", para: "Motivo Inicial" }
+  ];
+
+  // Guarda os SCGAR que já existem no Controle Acionamento, para não duplicar.
+  var scgarExistentes = {};
+  var ultimaLinhaControle = abaControle.getLastRow();
+  if (ultimaLinhaControle > LINHA_CABECALHO_CONTROLE) {
+    var colunaScgarControle = abaControle
+      .getRange(LINHA_CABECALHO_CONTROLE + 1, idxScgarControle + 1, ultimaLinhaControle - LINHA_CABECALHO_CONTROLE, 1)
+      .getValues();
+    colunaScgarControle.forEach(function(row) {
+      var codigo = row[0].toString().replace(/^'/, "").trim();
+      if (codigo) scgarExistentes[codigo] = true;
+    });
+  }
+
+  var novasLinhasControle = [];
+  novasLinhasAsana.forEach(function(linhaAsana) {
+    var scgarBruto = linhaAsana[idxScgarAsana];
+    var scgar = scgarBruto ? scgarBruto.toString().replace(/^'/, "").trim() : "";
+    if (!scgar || scgarExistentes[scgar]) return;
+
+    var dadosMapeados = {};
+    MAPEAMENTO.forEach(function(vinculo) {
+      var indiceOrigem = idxAsana(vinculo.de);
+      dadosMapeados[vinculo.para] = indiceOrigem !== -1 ? linhaAsana[indiceOrigem] : "";
+    });
+
+    novasLinhasControle.push(dadosMapeados);
+    scgarExistentes[scgar] = true;
+  });
+
+  if (novasLinhasControle.length === 0) return;
+
+  var proximaLinha = abaControle.getLastRow() + 1;
+  var colunasParaGravar = MAPEAMENTO.map(function(m) { return m.para; });
+
+  colunasParaGravar.forEach(function(nomeColunaDestino) {
+    var indiceColunaDestino = idxControle(nomeColunaDestino);
+    if (indiceColunaDestino === -1) return;
+
+    var valoresColuna = novasLinhasControle.map(function(linha) { return [linha[nomeColunaDestino]]; });
+    var rangeDestino = abaControle.getRange(proximaLinha, indiceColunaDestino + 1, valoresColuna.length, 1);
+    rangeDestino.setValues(valoresColuna);
+
+    if (nomeColunaDestino.toLowerCase().indexOf("data") !== -1) {
+      rangeDestino.setNumberFormat("dd/MM/yyyy");
+    }
+  });
+
+  SpreadsheetApp.getUi().alert(novasLinhasControle.length + " tarefa(s) também adicionada(s) na aba Controle Acionamento.");
 }
