@@ -1,9 +1,9 @@
 /**
  * IMPORTAÇÃO DE TAREFAS DO ASANA (projeto de Garantias) — backend
  *
- * Traz para a aba "Asana" todas as tarefas do projeto criadas a partir da
- * DATA_CORTE, com todos os campos nativos do Asana e todos os campos
- * personalizados configurados no projeto.
+ * Traz para a aba "Asana" as tarefas do projeto criadas a partir da
+ * DATA_CORTE, com os campos nativos do Asana e os campos personalizados
+ * do projeto — exceto os listados em CAMPOS_EXCLUIDOS.
  *
  * A função copiarNovosAcionamentos foi removida deste arquivo por ora —
  * será tratada em uma etapa separada.
@@ -23,6 +23,18 @@ function rodarAutomaçãoCompleta() {
   // Data de corte: só entram tarefas criadas a partir de 10/08/2026.
   var DATA_CORTE = new Date("2026-08-10T00:00:00Z");
 
+  // Campos personalizados do Asana que não devem entrar na planilha.
+  var CAMPOS_EXCLUIDOS = [
+    "UFVs",
+    "UFVs (CSC)",
+    "Centro de Custo - Material/Despesas.",
+    "Data de Necessidade Obra (Prévia)",
+    "UFV's ( CSC ) revisado",
+    "Fornecedor",
+    "MAC (OBSOLETO)",
+    "NS (OBSOLETO)"
+  ];
+
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Asana");
   if (!sheet) {
     SpreadsheetApp.getActiveSpreadsheet().insertSheet("Asana");
@@ -38,7 +50,7 @@ function rodarAutomaçãoCompleta() {
     "muteHttpExceptions": true
   };
 
-  // 1. Mapeia dinamicamente todos os campos personalizados do projeto
+  // 1. Mapeia dinamicamente os campos personalizados do projeto (menos os excluídos)
   var urlCampos = "https://app.asana.com/api/1.0/projects/" + PROJECT_ID + "/custom_field_settings";
   var responseCampos = UrlFetchApp.fetch(urlCampos, options);
   if (responseCampos.getResponseCode() !== 200) {
@@ -52,7 +64,7 @@ function rodarAutomaçãoCompleta() {
   configuracoesCampos.forEach(function(config) {
     if (config.custom_field) {
       var nomeCampo = config.custom_field.name.trim();
-      if (camposCustomizadosProjeto.indexOf(nomeCampo) === -1) {
+      if (camposCustomizadosProjeto.indexOf(nomeCampo) === -1 && CAMPOS_EXCLUIDOS.indexOf(nomeCampo) === -1) {
         camposCustomizadosProjeto.push(nomeCampo);
       }
     }
@@ -61,19 +73,8 @@ function rodarAutomaçãoCompleta() {
   // Campos nativos do Asana que sempre trazemos, além dos personalizados
   var camposNativos = [
     "Task ID",
-    "Nome da Tarefa",
-    "Notas/Descrição",
     "Data de Criação",
-    "Última Modificação",
-    "Data de Início",
-    "Data de Vencimento",
-    "Data de Conclusão",
-    "Responsável",
-    "E-mail do Responsável",
     "Status",
-    "Seção/Etapa",
-    "Tags",
-    "Seguidores",
     "Link"
   ];
 
@@ -87,10 +88,7 @@ function rodarAutomaçãoCompleta() {
   var executarLoop = true;
 
   var optFields = [
-    "name", "notes", "created_at", "modified_at", "start_on", "due_on",
-    "completed_at", "completed", "assignee.name", "assignee.email",
-    "memberships.section.name", "tags.name", "followers.name",
-    "custom_fields", "permalink_url"
+    "name", "created_at", "completed", "custom_fields", "permalink_url"
   ].join(",");
 
   // 2. Busca TODAS as tarefas do projeto
@@ -121,28 +119,8 @@ function rodarAutomaçãoCompleta() {
       // Filtro estrito: ignora tarefas anteriores à data de corte
       if (dataCriacao < DATA_CORTE) continue;
 
-      var nome = tarefa.name || "Sem Nome";
-      var notas = tarefa.notes || "";
-      var dataModificacao = tarefa.modified_at ? new Date(tarefa.modified_at) : "";
-      var dataInicio = tarefa.start_on ? new Date(tarefa.start_on + "T00:00:00Z") : "";
-      var dataVencimento = tarefa.due_on ? new Date(tarefa.due_on + "T00:00:00Z") : "";
-      var dataConclusao = tarefa.completed_at ? new Date(tarefa.completed_at) : "";
-      var responsavel = tarefa.assignee ? tarefa.assignee.name : "Não atribuído";
-      var emailResponsavel = tarefa.assignee ? (tarefa.assignee.email || "") : "";
       var status = tarefa.completed ? "Concluído" : "Em andamento";
       var linkAsana = tarefa.permalink_url || "";
-      var tagsTexto = (tarefa.tags || []).map(function(t) { return t.name; }).join(", ");
-      var seguidoresTexto = (tarefa.followers || []).map(function(f) { return f.name; }).join(", ");
-
-      var secao = "Sem Seção";
-      if (tarefa.memberships && tarefa.memberships.length > 0) {
-        for (var m = 0; m < tarefa.memberships.length; m++) {
-          if (tarefa.memberships[m].project && tarefa.memberships[m].project.gid === PROJECT_ID) {
-            secao = tarefa.memberships[m].section ? tarefa.memberships[m].section.name : secao;
-            break;
-          }
-        }
-      }
 
       var c = {};
       if (tarefa.custom_fields) {
@@ -161,19 +139,8 @@ function rodarAutomaçãoCompleta() {
 
       var linha = [
         "'" + taskId,
-        nome,
-        notas,
         dataCriacao,
-        dataModificacao,
-        dataInicio,
-        dataVencimento,
-        dataConclusao,
-        responsavel,
-        emailResponsavel,
         status,
-        secao,
-        tagsTexto,
-        seguidoresTexto,
         linkAsana
       ];
 
