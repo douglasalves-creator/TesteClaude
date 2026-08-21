@@ -279,6 +279,7 @@ function transferirNovosParaControleAcionamento_(novasLinhasAsana, cabecalhosAsa
     { de: "UFV (Supply)", para: "UFV de Origem" },
     { de: "Fornecedor (Garantia)", para: "Fornecedor" },
     { de: "Material Para Garantia", para: "Material/Equipamento" },
+    { de: "Material/Equipamento", para: "Equipamento Principal" },
     { de: "Quantidade", para: "Qtd" },
     { de: "MAC", para: "MAC" },
     { de: "NS", para: "NS" },
@@ -331,6 +332,17 @@ function transferirNovosParaControleAcionamento_(novasLinhasAsana, cabecalhosAsa
       rangeDestino.setNumberFormat("dd/MM/yyyy");
     }
   });
+
+  // Reaplica a fórmula da coluna "CÓD MXM (FÓRMULA)" nas linhas novas, copiando
+  // o padrão da linha anterior (mesmo efeito de arrastar a fórmula para baixo:
+  // as referências relativas se ajustam para cada linha nova).
+  var idxColunaFormula = idxControle("CÓD MXM (FÓRMULA)");
+  if (idxColunaFormula !== -1 && (proximaLinha - 1) > LINHA_CABECALHO_CONTROLE) {
+    var formulaModelo = abaControle.getRange(proximaLinha - 1, idxColunaFormula + 1).getFormulaR1C1();
+    if (formulaModelo) {
+      abaControle.getRange(proximaLinha, idxColunaFormula + 1, novasLinhasControle.length, 1).setFormulaR1C1(formulaModelo);
+    }
+  }
 
   SpreadsheetApp.getUi().alert(novasLinhasControle.length + " tarefa(s) também adicionada(s) na aba Controle Acionamento.");
 }
