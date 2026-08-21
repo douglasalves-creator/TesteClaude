@@ -252,9 +252,10 @@ function transferirNovosParaControleAcionamento_(novasLinhasAsana, cabecalhosAsa
     return;
   }
 
-  var cabecalhosControle = abaControle.getRange(LINHA_CABECALHO_CONTROLE, 1, 1, abaControle.getLastColumn())
+  var cabecalhosControleOriginais = abaControle.getRange(LINHA_CABECALHO_CONTROLE, 1, 1, abaControle.getLastColumn())
     .getValues()[0]
-    .map(function(c) { return c.toString().trim().toLowerCase(); });
+    .map(function(c) { return c.toString().trim(); });
+  var cabecalhosControle = cabecalhosControleOriginais.map(function(c) { return c.toLowerCase(); });
 
   function idxControle(nome) { return cabecalhosControle.indexOf(nome.trim().toLowerCase()); }
   function idxAsana(nome) { return cabecalhosAsana.indexOf(nome); }
@@ -334,15 +335,30 @@ function transferirNovosParaControleAcionamento_(novasLinhasAsana, cabecalhosAsa
   });
 
   // Reaplica a fórmula da coluna "CÓD MXM (FÓRMULA)" nas linhas novas, copiando
-  // o padrão da linha anterior (mesmo efeito de arrastar a fórmula para baixo:
-  // as referências relativas se ajustam para cada linha nova).
+  // o padrão da linha mais próxima acima que já tiver essa fórmula (mesmo
+  // efeito de arrastar a fórmula para baixo: as referências relativas se
+  // ajustam para cada linha nova).
   var idxColunaFormula = idxControle("CÓD MXM (FÓRMULA)");
-  if (idxColunaFormula !== -1 && (proximaLinha - 1) > LINHA_CABECALHO_CONTROLE) {
-    var formulaModelo = abaControle.getRange(proximaLinha - 1, idxColunaFormula + 1).getFormulaR1C1();
-    if (formulaModelo) {
+  var avisoFormula = "";
+
+  if (idxColunaFormula === -1) {
+    avisoFormula = "Aviso: não encontrei a coluna 'CÓD MXM (FÓRMULA)' na linha " + LINHA_CABECALHO_CONTROLE +
+      " da aba Controle Acionamento — confira se o nome está exatamente igual (acentos e espaços inclusos). Cabeçalhos encontrados: " +
+      cabecalhosControleOriginais.join(" | ");
+  } else {
+    var formulaModelo = "";
+    for (var linhaBusca = proximaLinha - 1; linhaBusca > LINHA_CABECALHO_CONTROLE; linhaBusca--) {
+      formulaModelo = abaControle.getRange(linhaBusca, idxColunaFormula + 1).getFormulaR1C1();
+      if (formulaModelo) break;
+    }
+
+    if (!formulaModelo) {
+      avisoFormula = "Aviso: não encontrei nenhuma fórmula existente na coluna 'CÓD MXM (FÓRMULA)' para copiar — a fórmula não foi aplicada nas linhas novas.";
+    } else {
       abaControle.getRange(proximaLinha, idxColunaFormula + 1, novasLinhasControle.length, 1).setFormulaR1C1(formulaModelo);
     }
   }
 
-  SpreadsheetApp.getUi().alert(novasLinhasControle.length + " tarefa(s) também adicionada(s) na aba Controle Acionamento.");
+  SpreadsheetApp.getUi().alert(novasLinhasControle.length + " tarefa(s) também adicionada(s) na aba Controle Acionamento." +
+    (avisoFormula ? "\n\n" + avisoFormula : ""));
 }
