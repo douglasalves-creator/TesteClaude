@@ -26,7 +26,7 @@
  * com a chave ASANA_ACCESS_TOKEN.
  */
 
-function rodarAutomaçãoCompleta() {
+function rodarAutomacaoCompleta() {
   var ASANA_ACCESS_TOKEN = PropertiesService.getScriptProperties().getProperty("ASANA_ACCESS_TOKEN");
   if (!ASANA_ACCESS_TOKEN) {
     SpreadsheetApp.getUi().alert("Configure a propriedade do script ASANA_ACCESS_TOKEN antes de rodar (Extensões > Apps Script > Configurações do projeto > Propriedades do script).");
