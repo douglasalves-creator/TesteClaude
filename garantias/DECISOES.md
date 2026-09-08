@@ -41,24 +41,41 @@ Consequências práticas:
 
 Todos os usuários do domínio enxergam os três módulos (sem perfis/permissões por enquanto).
 
-## Módulo Solicitação — campos preenchidos pelo solicitante
+## Módulo Solicitação — campos do formulário
 
-| Campo | Observação |
+Ordem e comportamento definidos em 08/09/2026. Nenhum outro campo aparece.
+
+| Campo | Comportamento |
 |---|---|
-| SCGAR | **Gerado automaticamente**, o usuário não digita |
-| Data de Solicitação | preenchida automaticamente com a data do envio |
-| RMA / OS (Nº) | |
-| Tipo de Acionamento | |
-| UFV de Origem | |
-| Fornecedor | |
-| Material/Equipamento | |
-| Qtd | |
-| Motivo Inicial | |
-| Equipamento Principal | |
-| MAC | |
-| NS | |
+| SCGAR | Gerado automaticamente. **Não aparece** na tela; vai para a planilha. |
+| Data de Solicitação | Preenchida com a data de hoje e **travada** para o usuário. |
+| RMA / OS (Nº) | Texto livre. **Obrigatório.** |
+| Tipo de Acionamento | Lista suspensa. **Obrigatório.** |
+| UFV de Origem | Lista suspensa vinda da validação da planilha. |
+| Fornecedor | Lista suspensa vinda da validação da planilha. |
+| Material/Equipamento | Lista suspensa vinda da validação da planilha. |
+| Qtd | **Somente números inteiros.** Vírgula, ponto e letra são bloqueados na digitação e recusados na gravação. |
+| Motivo Inicial | Texto livre, campo largo. |
+| Equipamento Principal | Lista suspensa vinda da validação da planilha. |
+| MAC | Código livre (letras e números), gravado como texto. |
+| NS | Código livre (letras e números), gravado como texto. |
 
 Ao salvar, `Status Geral do Acionamento` entra como **Pendente**.
+
+### Como as listas suspensas funcionam
+
+O sistema lê a **regra de validação de dados** da própria coluna na aba
+`Controle Acionamento` — inclusive quando ela aponta para outra aba. São
+exatamente as mesmas opções que aparecem ao preencher a planilha à mão, e elas
+se atualizam sozinhas quando a lista de origem muda (o cache dura 6 horas).
+
+Quando a coluna **não tem** regra de validação, o campo vira sugestão livre com
+os valores já digitados naquela coluna.
+
+### Códigos como texto
+
+`MAC` e `NS` recebem formato de texto puro (`@`) na célula antes da gravação,
+para não perder zero à esquerda nem virar notação científica.
 
 ## Notificação
 
@@ -98,7 +115,13 @@ endereço da imagem oficial; enquanto vazio, usa o nome escrito em Montserrat.
 
 Formato `SCGAR-0001`. Gerado a partir do maior número já existente na coluna
 `SCGAR` + 1, dentro de uma trava para dois usuários não pegarem o mesmo número.
-Configurável em `CONFIG.SCGAR_PREFIXO` e `CONFIG.SCGAR_DIGITOS`.
+
+O último código real da planilha é **SCGAR-5211**, então `CONFIG.SCGAR_MINIMO`
+está em `5211`: nenhum código novo sai abaixo disso, mesmo que a cópia da
+planilha não tenha o histórico completo. O próximo será `SCGAR-5212`.
+
+Configurável em `CONFIG.SCGAR_PREFIXO`, `CONFIG.SCGAR_DIGITOS` e
+`CONFIG.SCGAR_MINIMO`.
 
 ## Colunas duplicadas
 

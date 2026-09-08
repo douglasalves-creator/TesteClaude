@@ -389,11 +389,17 @@ function irPara(mod){
 /* ==================================================================
    Formulário de nova solicitação
    ================================================================== */
+function hojeISO(){
+  var d = new Date();
+  return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+}
+
 function montarFormulario(){
   var alvo = el('form-solicitacao');
   alvo.innerHTML = '';
   INICIO.campos.filter(function(c){ return c.sol; }).forEach(function(c){
-    alvo.appendChild(criarCampo(c, '', 'sol-'));
+    var inicial = (c.tipo === 'data' && c.auto) ? hojeISO() : '';
+    alvo.appendChild(criarCampo(c, inicial, 'sol-'));
   });
 }
 
@@ -433,6 +439,18 @@ function criarCampo(campo, valor, prefixo){
   } else {
     ent = document.createElement('input');
     if (campo.tipo === 'data') ent.type = 'date';
+    else if (campo.tipo === 'inteiro') {
+      // Só número. Nada de vírgula, ponto, letra ou sinal.
+      ent.type = 'text';
+      ent.setAttribute('inputmode', 'numeric');
+      ent.autocomplete = 'off';
+      ent.placeholder = 'somente números';
+      ent.addEventListener('input', function () {
+        var limpo = this.value.replace(/[^0-9]/g, '');
+        if (this.value !== limpo) this.value = limpo;
+      });
+    }
+    else if (campo.tipo === 'codigo') { ent.type = 'text'; ent.autocomplete = 'off'; ent.spellcheck = false; }
     else if (campo.tipo === 'numero') { ent.type = 'number'; ent.min = '0'; ent.step = '1'; }
     else if (campo.tipo === 'moeda') { ent.type = 'number'; ent.step = '0.01'; }
     else if (campo.tipo === 'link') ent.type = 'url';
@@ -448,9 +466,14 @@ function criarCampo(campo, valor, prefixo){
   return caixa;
 }
 
+function limparFormulario(){
+  montarFormulario();
+}
+
 el('btn-limpar').addEventListener('click', function(){
-  el('form-solicitacao').querySelectorAll('.entrada').forEach(function(e){ e.value = ''; });
-  el('form-solicitacao').querySelector('.entrada').focus();
+  limparFormulario();
+  var primeiro = el('form-solicitacao').querySelector('.entrada:not([readonly])');
+  if (primeiro) primeiro.focus();
 });
 
 el('btn-enviar').addEventListener('click', function(){
@@ -458,7 +481,7 @@ el('btn-enviar').addEventListener('click', function(){
   var dados = {};
   var faltou = [];
 
-  INICIO.campos.filter(function(c){ return c.sol; }).forEach(function(c){
+  INICIO.campos.filter(function(c){ return c.sol && !c.auto; }).forEach(function(c){
     var ent = el('sol-' + slug(c.id));
     var v = ent ? String(ent.value).trim() : '';
     dados[c.id] = v;
@@ -476,7 +499,7 @@ el('btn-enviar').addEventListener('click', function(){
     .withSuccessHandler(function(r){
       botao.disabled = false;
       botao.textContent = 'Enviar solicitação';
-      el('form-solicitacao').querySelectorAll('.entrada').forEach(function(e){ e.value = ''; });
+      limparFormulario();
       recado('Solicitação ' + r.scgar + ' criada.');
       LISTA = null;
     })

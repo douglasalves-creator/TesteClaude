@@ -45,6 +45,10 @@ const CONFIG = {
   SCGAR_PREFIXO: 'SCGAR-',
   SCGAR_DIGITOS: 4,
 
+  // Nenhum código novo sai abaixo deste número. Serve de piso de segurança
+  // para o caso de a cópia da planilha não ter o histórico completo.
+  SCGAR_MINIMO: 5211,
+
   // Segundos que a lista fica guardada em memória (deixa a tela rápida).
   CACHE_LISTA_SEG: 180,
   CACHE_OPCOES_SEG: 21600,
@@ -82,18 +86,19 @@ const APROVACAO = ['Aprovado', 'Reprovado', 'Pendente'];
  */
 const CAMPOS = [
   // --- Identificação -------------------------------------------------
-  { cab: 'SCGAR',                 tipo: 'texto',  grupo: 'Identificação', lista: true,  auto: true },
-  { cab: 'Data de Solicitação',   tipo: 'data',   grupo: 'Identificação', lista: true,  auto: true },
-  { cab: 'RMA / OS (Nº)',         tipo: 'texto',  grupo: 'Identificação', lista: true,  sol: true },
-  { cab: 'Tipo de Acionamento',   tipo: 'select', grupo: 'Identificação', lista: true,  sol: true, opcoesDaColuna: true, obrig: true },
-  { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true,  sol: true, opcoesDaColuna: true, obrig: true },
-  { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true,  sol: true, opcoesDaColuna: true, obrig: true },
-  { cab: 'Material/Equipamento',  tipo: 'texto',  grupo: 'Identificação', lista: true,  sol: true, obrig: true },
-  { cab: 'Qtd',                   tipo: 'numero', grupo: 'Identificação', lista: true,  sol: true, obrig: true },
-  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaColuna: true },
-  { cab: 'MAC',                   tipo: 'texto',  grupo: 'Identificação', sol: true },
-  { cab: 'NS',                    tipo: 'texto',  grupo: 'Identificação', lista: true, sol: true },
-  { cab: 'Motivo Inicial',        tipo: 'area',   grupo: 'Identificação', sol: true, obrig: true },
+  // Ordem aqui = ordem em que os campos aparecem na tela.
+  { cab: 'SCGAR',                 tipo: 'texto',  grupo: 'Identificação', lista: true, auto: true },
+  { cab: 'Data de Solicitação',   tipo: 'data',   grupo: 'Identificação', lista: true, auto: true, sol: true },
+  { cab: 'RMA / OS (Nº)',         tipo: 'texto',  grupo: 'Identificação', lista: true, sol: true, obrig: true },
+  { cab: 'Tipo de Acionamento',   tipo: 'select', grupo: 'Identificação', lista: true, sol: true, obrig: true, opcoesDaValidacao: true },
+  { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true },
+  { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true },
+  { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true },
+  { cab: 'Qtd',                   tipo: 'inteiro', grupo: 'Identificação', lista: true, sol: true },
+  { cab: 'Motivo Inicial',        tipo: 'area',   grupo: 'Identificação', sol: true },
+  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true },
+  { cab: 'MAC',                   tipo: 'codigo', grupo: 'Identificação', sol: true },
+  { cab: 'NS',                    tipo: 'codigo', grupo: 'Identificação', lista: true, sol: true },
   { cab: 'CÓD MXM (FÓRMULA)',     tipo: 'formula', grupo: 'Identificação' },
 
   // --- Triagem -------------------------------------------------------
@@ -302,7 +307,7 @@ function carregarInicio() {
     return !encontrados[_idCampo(campo)];
   }).map(function (campo) { return campo.cab; });
 
-  const opcoes = _opcoesDeColunas(aba, mapa);
+  const opcoes = _opcoesDeCampos(aba, mapa);
 
   const campos = ativos.map(function (item) {
     const c = item.campo;
@@ -316,8 +321,8 @@ function carregarInicio() {
       lista: !!c.lista,
       auto: !!c.auto,
       obrig: !!c.obrig,
-      fixo: !!c.opcoes,
-      opcoes: c.opcoes || (c.opcoesDaColuna ? (opcoes[_idCampo(c)] || []) : null)
+      fixo: c.opcoes ? true : ((opcoes[_idCampo(c)] || {}).fixo || false),
+      opcoes: c.opcoes || ((opcoes[_idCampo(c)] || {}).vals || null)
     };
   });
 
@@ -331,9 +336,16 @@ function carregarInicio() {
   };
 }
 
-/** Valores já usados nas colunas marcadas com opcoesDaColuna, para sugestão. */
-function _opcoesDeColunas(aba, mapa) {
-  const chave = 'gar_opcoes_v1';
+/**
+ * Monta as listas suspensas de cada campo.
+ *
+ * Para os campos marcados com opcoesDaValidacao, lê a REGRA DE VALIDAÇÃO DE
+ * DADOS da própria coluna — é assim que as mesmas opções que você vê ao
+ * preencher a planilha (inclusive as que vêm de outra aba) chegam à tela.
+ * Se a coluna não tiver regra, cai para os valores já digitados nela.
+ */
+function _opcoesDeCampos(aba, mapa) {
+  const chave = 'gar_opcoes_v2';
   const guardado = _cacheLer(chave);
   if (guardado) {
     try { return JSON.parse(guardado); } catch (e) { /* segue e recalcula */ }
@@ -343,24 +355,82 @@ function _opcoesDeColunas(aba, mapa) {
   const ultima = aba.getLastRow();
   const resultado = {};
 
-  if (ultima >= primeira) {
-    CAMPOS.filter(function (c) { return c.opcoesDaColuna; }).forEach(function (c) {
-      const col = _coluna(mapa, c);
-      if (!col) return;
-      const valores = aba.getRange(primeira, col, ultima - primeira + 1, 1).getDisplayValues();
-      const vistos = {};
-      valores.forEach(function (linha) {
-        const v = String(linha[0] || '').trim();
-        if (v) vistos[v] = true;
-      });
-      resultado[_idCampo(c)] = Object.keys(vistos).sort(function (a, b) {
-        return a.localeCompare(b, 'pt-BR');
-      });
-    });
-  }
+  CAMPOS.filter(function (c) { return c.opcoesDaValidacao || c.opcoesDaColuna; }).forEach(function (c) {
+    const col = _coluna(mapa, c);
+    if (!col) return;
+
+    let vals = null;
+    if (c.opcoesDaValidacao) vals = _opcoesDaValidacao(aba, col, primeira, ultima);
+
+    if (vals && vals.length) {
+      resultado[_idCampo(c)] = { vals: vals, fixo: true };
+    } else {
+      resultado[_idCampo(c)] = { vals: _valoresJaUsados(aba, col, primeira, ultima), fixo: false };
+    }
+  });
 
   _cacheGravar(chave, JSON.stringify(resultado), CONFIG.CACHE_OPCOES_SEG);
   return resultado;
+}
+
+/** Lê a lista suspensa configurada na coluna, seja fixa ou vinda de outra aba. */
+function _opcoesDaValidacao(aba, col, primeira, ultima) {
+  // A regra costuma estar aplicada nas linhas de dados. Testa algumas.
+  const candidatas = [];
+  if (ultima >= primeira) {
+    candidatas.push(ultima, ultima - 1, Math.floor((primeira + ultima) / 2), primeira);
+  }
+  candidatas.push(CONFIG.HEADER_ROW + 1);
+
+  for (let i = 0; i < candidatas.length; i++) {
+    const linha = candidatas[i];
+    if (linha <= CONFIG.HEADER_ROW) continue;
+
+    let regra = null;
+    try { regra = aba.getRange(linha, col).getDataValidation(); } catch (e) { regra = null; }
+    if (!regra) continue;
+
+    const criterio = regra.getCriteriaType();
+    const args = regra.getCriteriaValues();
+
+    if (criterio === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+      return _limparLista(args[0] || []);
+    }
+    if (criterio === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+      try {
+        const planos = args[0].getDisplayValues().map(function (l) { return l[0]; });
+        return _limparLista(planos);
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+/** Tira vazios e repetidos, preservando a ordem original da lista. */
+function _limparLista(bruta) {
+  const vistos = {};
+  const saida = [];
+  (bruta || []).forEach(function (v) {
+    const t = String(v == null ? '' : v).trim();
+    if (!t || vistos[t]) return;
+    vistos[t] = true;
+    saida.push(t);
+  });
+  return saida;
+}
+
+/** Valores já digitados na coluna, em ordem alfabética. Usado como reserva. */
+function _valoresJaUsados(aba, col, primeira, ultima) {
+  if (ultima < primeira) return [];
+  const valores = aba.getRange(primeira, col, ultima - primeira + 1, 1).getDisplayValues();
+  const vistos = {};
+  valores.forEach(function (l) {
+    const v = String(l[0] || '').trim();
+    if (v) vistos[v] = true;
+  });
+  return Object.keys(vistos).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); });
 }
 
 /* ================================================================== */
@@ -460,6 +530,11 @@ function _paraTela(campo, bruto, mostrado, fuso) {
     if (bruto instanceof Date) return Utilities.formatDate(bruto, fuso, 'yyyy-MM-dd');
     return _textoParaISO(String(mostrado || ''));
   }
+  if (campo.tipo === 'codigo') return String(mostrado == null ? '' : mostrado);
+  if (campo.tipo === 'inteiro') {
+    if (typeof bruto === 'number') return String(Math.round(bruto));
+    return String(mostrado || '').replace(/[^0-9]/g, '');
+  }
   if (campo.tipo === 'numero' || campo.tipo === 'moeda') {
     if (typeof bruto === 'number') return String(bruto);
     const limpo = String(mostrado || '').replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
@@ -530,6 +605,7 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       if (valor === null) {
         celula.clearContent();
       } else {
+        if (item.campo.tipo === 'codigo') celula.setNumberFormat('@');
         celula.setValue(valor);
       }
       gravados++;
@@ -550,6 +626,13 @@ function _paraPlanilha(campo, valor) {
   if (campo.tipo === 'data') {
     const d = _isoParaData(txt);
     return d || txt;
+  }
+  if (campo.tipo === 'inteiro') {
+    if (!/^[0-9]+$/.test(txt)) {
+      throw new Error('O campo "' + (campo.rotulo || campo.cab) +
+        '" aceita apenas números inteiros — sem vírgula, ponto, letra ou espaço.');
+    }
+    return Number(txt);
   }
   if (campo.tipo === 'numero' || campo.tipo === 'moeda') {
     const n = Number(txt.replace(/\s/g, '').replace(',', '.'));
@@ -617,6 +700,11 @@ function criarSolicitacao(dados) {
       linhaValores[item.col - 1] = valor;
     });
 
+    // MAC e NS entram como texto puro, para não perder zero à esquerda
+    ativos.forEach(function (item) {
+      if (item.campo.tipo === 'codigo') aba.getRange(linhaNova, item.col).setNumberFormat('@');
+    });
+
     aba.getRange(linhaNova, 1, 1, largura).setValues([linhaValores]);
 
     // Puxa as fórmulas da linha de cima (ex.: CÓD MXM)
@@ -630,7 +718,7 @@ function criarSolicitacao(dados) {
 
     SpreadsheetApp.flush();
     _cacheLimpar('gar_lista_v1');
-    _cacheLimpar('gar_opcoes_v1');
+    _cacheLimpar('gar_opcoes_v2');
 
     _avisarPorEmail(scgar, dados, ativos, linhaNova);
 
@@ -659,6 +747,8 @@ function _proximoScgar(aba, mapa) {
       });
     }
   }
+
+  if (maior < CONFIG.SCGAR_MINIMO) maior = CONFIG.SCGAR_MINIMO;
 
   const numero = String(maior + 1);
   const zeros = Math.max(0, CONFIG.SCGAR_DIGITOS - numero.length);
