@@ -73,6 +73,17 @@ const CONFIG = {
   // SCGAR (ex.: SCGAR-5212). É o trecho depois de /folders/ no endereço.
   PASTA_DRIVE_ID: '1IUG089u2h0i3VEHRADwY_HuZTT9pRIVc',
 
+  // ---------------- Nome de quem entra ----------------
+  // O Google só entrega o e-mail, não o nome. O sistema tenta adivinhar o
+  // primeiro nome pelo e-mail e, quando não dá (m.souza@, financeiro@...),
+  // simplesmente não usa nome nenhum.
+  //
+  // Para corrigir casos assim, escreva o nome aqui. É só copiar a linha,
+  // trocar o e-mail e o nome, e manter a vírgula no fim:
+  NOMES: {
+    // 'm.souza@solargrid.com.br': 'Marcos',
+  },
+
   // Anexar arquivo é obrigatório para abrir a solicitação.
   ANEXO_OBRIGATORIO: true,
 
@@ -478,8 +489,11 @@ function carregarInicio() {
     };
   });
 
+  const email = Session.getActiveUser().getEmail();
+
   return {
-    usuario: Session.getActiveUser().getEmail(),
+    usuario: email,
+    primeiroNome: _primeiroNome(email),
     campos: campos,
     grupos: GRUPOS,
     status: STATUS_GERAL,
@@ -1186,6 +1200,40 @@ function criarSolicitacao(dados, arquivos) {
   } finally {
     trava.releaseLock();
   }
+}
+
+/**
+ * Primeiro nome de quem está usando, para a saudação da tela de início.
+ *
+ * Ordem: 1) a lista CONFIG.NOMES; 2) o trecho do e-mail antes do @, quando ele
+ * parece um nome mesmo. Devolve '' quando não dá para saber — e aí a tela nem
+ * mostra saudação, em vez de chamar a pessoa de "M".
+ */
+function _primeiroNome(email) {
+  const limpo = String(email || '').trim().toLowerCase();
+  if (!limpo) return '';
+
+  if (CONFIG.NOMES && CONFIG.NOMES[limpo]) return CONFIG.NOMES[limpo];
+
+  const antes = limpo.split('@')[0];
+  const pedacos = antes.split(/[._\-0-9]+/).filter(function (p) { return p.length > 0; });
+  if (!pedacos.length) return '';
+
+  const primeiro = pedacos[0];
+
+  // Inicial em vez de nome (m.souza, jp.silva): melhor não chamar de nada
+  // do que chamar a pessoa pelo sobrenome ou por uma letra.
+  if (primeiro.length < 3) return '';
+
+  // Caixas de setor não são pessoas
+  const setores = ['procurement', 'supplychain', 'suprimentos', 'compras',
+                   'financeiro', 'contato', 'engenharia', 'eng', 'admin',
+                   'atendimento', 'ti', 'sti', 'rh', 'juridico', 'qualidade',
+                   'logistica', 'comercial', 'diretoria', 'obras', 'om',
+                   'manutencao', 'seguranca', 'fiscal', 'contabil'];
+  if (setores.indexOf(primeiro) >= 0) return '';
+
+  return primeiro.charAt(0).toUpperCase() + primeiro.slice(1);
 }
 
 /** Barra o envio quando a soma dos anexos passa do limite. */

@@ -35,8 +35,29 @@ Consequências práticas:
 ## Módulos
 
 O link abre numa **tela de início** com três cartões — Solicitação, Processos e
-Painel — sobre fundo Eclipse, com o nome do usuário e o selo de acesso
-restrito. O logo no topo e o botão **Início** voltam para lá.
+Painel — sobre fundo Eclipse. Título **Controle de Acionamentos** com
+**SolarGrid** em Aurora na linha de baixo, saudação, e o aviso de acesso
+restrito centralizado no pé. O logo no topo e o botão **Início** voltam para lá.
+
+### Saudação e o nome de quem entra
+
+O Google entrega apenas o **e-mail**, nunca o nome da pessoa. O primeiro nome é
+deduzido do trecho antes do `@`, e a saudação sai **sem nome** quando essa
+dedução não é confiável:
+
+| E-mail | Saudação |
+|---|---|
+| `douglas.alves@` | Olá, **Douglas** |
+| `marcella@` | Olá, **Marcella** |
+| `ana.paula.costa@` | Olá, **Ana** |
+| `m.souza@` | *sem nome* — a primeira parte é inicial, não nome |
+| `jp.silva@` | *sem nome* — mesmo caso |
+| `procurement.eng@` | *sem nome* — caixa de setor |
+| `financeiro@` | *sem nome* — caixa de setor |
+
+A regra é conservadora de propósito: melhor não saudar do que chamar a pessoa de
+"M" ou pelo sobrenome. Para acertar um caso específico, basta escrever o nome em
+`CONFIG.NOMES`, por exemplo `'m.souza@solargrid.com.br': 'Marcos'`.
 
 1. **Solicitação** — formulário de abertura de um novo acionamento (cria a linha na aba).
 2. **Processos** — lista todos os acionamentos, independente do status, com edição dos

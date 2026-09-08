@@ -60,10 +60,6 @@ body.no-inicio{background:var(--eclipse)}
 .inicio::after{content:'';position:absolute;bottom:-260px;left:-180px;width:560px;height:560px;border-radius:50%;
   background:radial-gradient(circle,rgba(13,52,89,.42) 0%,rgba(13,52,89,0) 70%);pointer-events:none}
 .inicio-in{position:relative;z-index:2;max-width:1180px;margin:0 auto;width:100%}
-.selo-ini{display:inline-flex;align-items:center;gap:9px;font-size:10.5px;font-weight:700;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--aurora);border:1px solid rgba(236,110,45,.4);background:rgba(236,110,45,.08);
-  border-radius:999px;padding:6px 14px;margin-bottom:24px}
-.selo-ini i{width:6px;height:6px;border-radius:50%;background:var(--aurora);font-style:normal}
 .inicio h1{margin:0;font-size:clamp(30px,4.6vw,50px);font-weight:800;letter-spacing:-.03em;line-height:1.06}
 .inicio h1 em{font-style:normal;color:var(--aurora)}
 .inicio .ola{margin:16px 0 0;font-size:15px;color:#9aa3ab;max-width:560px;line-height:1.6}
@@ -95,9 +91,8 @@ body.no-inicio{background:var(--eclipse)}
 .cartao .marca-breve{position:absolute;top:22px;right:22px;font-size:9.5px;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;color:#6e7780;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:4px 9px}
 
-.rodape-ini{position:relative;z-index:2;max-width:1180px;margin:44px auto 0;width:100%;
-  display:flex;align-items:center;gap:10px;font-size:11.5px;color:#5f686f;flex-wrap:wrap}
-.rodape-ini .ponto{width:5px;height:5px;border-radius:50%;background:#3b4247}
+.rodape-ini{position:relative;z-index:2;width:100%;margin:48px auto 0;
+  text-align:center;font-size:11.5px;color:#5f686f}
 .rodape-ini b{color:#9aa3ab;font-weight:600}
 
 .btn-voltar{background:transparent;border:1px solid #2f373f;color:#9aa3ab;border-radius:8px;
@@ -360,8 +355,7 @@ td.cel{text-align:center}
 
 <section class="inicio" id="mod-inicio">
   <div class="inicio-in">
-    <div class="selo-ini"><i></i> Acionamento de Garantias</div>
-    <h1>Controle de garantias<br>da <em>SolarGrid</em></h1>
+    <h1>Controle de Acionamentos<br><em>SolarGrid</em></h1>
     <p class="ola" id="ola-inicio">Escolha por onde começar.</p>
 
     <div class="cartoes">
@@ -405,8 +399,6 @@ td.cel{text-align:center}
   </div>
 
   <div class="rodape-ini">
-    <span id="rodape-usuario"></span>
-    <span class="ponto"></span>
     <span>Acesso restrito a <b>@solargrid.com.br</b></span>
   </div>
 </section>
@@ -626,12 +618,11 @@ function iniciarDeVerdade(dados){
 
   if (dados.porPagina) POR_PAGINA = dados.porPagina;
 
-  var nome = String(dados.usuario || '').split('@')[0].replace(/[._-]+/g, ' ').trim();
-  if (nome) {
-    nome = nome.split(' ').map(function(p){ return p.charAt(0).toUpperCase() + p.slice(1); }).join(' ');
-    el('ola-inicio').innerHTML = 'Olá, <b>' + esc(nome.split(' ')[0]) + '</b>. Escolha por onde começar.';
-  }
-  el('rodape-usuario').textContent = dados.usuario || '';
+  // O nome vem pronto do servidor. Quando o e-mail não deixa claro qual é o
+  // primeiro nome, a saudação sai sem nome, em vez de chutar.
+  el('ola-inicio').innerHTML = dados.primeiroNome
+    ? 'Olá, <b>' + esc(dados.primeiroNome) + '</b>. Escolha por onde começar.'
+    : 'Escolha por onde começar.';
 
   irPara('inicio');
 
