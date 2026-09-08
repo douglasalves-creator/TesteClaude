@@ -159,7 +159,7 @@ function doGet() {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
 
-  return HtmlService.createTemplateFromFile('App')
+  return HtmlService.createTemplateFromFile('AppGarantia2')
     .evaluate()
     .setTitle('Acionamento de Garantias — SolarGrid')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');

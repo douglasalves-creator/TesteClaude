@@ -7,8 +7,8 @@ Sistema de abertura e tratamento dos acionamentos de garantia, com a planilha
 
 | Arquivo | O que é |
 |---|---|
-| `Codigo.gs` | O motor. Lê e grava na planilha, gera o SCGAR, envia o aviso por e-mail. |
-| `App.html` | A tela do sistema (os três módulos). |
+| `AppGarantia1.gs` | O motor. Lê e grava na planilha, gera o SCGAR, envia o aviso por e-mail. |
+| `AppGarantia2.html` | A tela do sistema (os três módulos). |
 | `SemAcesso.html` | Tela mostrada para quem não é do domínio SolarGrid. |
 | `DECISOES.md` | Registro das regras combinadas do projeto. |
 
@@ -17,9 +17,9 @@ Sistema de abertura e tratamento dos acionamentos de garantia, com a planilha
 1. Abra a **cópia** da planilha de garantias.
 2. Menu **Extensões → Apps Script**. Abre o editor de código.
 3. Apague o conteúdo do arquivo `Código.gs` que vem em branco e cole o conteúdo
-   de `Codigo.gs` deste repositório.
-4. No editor, clique no **+** ao lado de "Arquivos" → **HTML**. Nomeie **`App`**
-   (sem `.html`) e cole o conteúdo de `App.html`.
+   de `AppGarantia1.gs` deste repositório.
+4. No editor, clique no **+** ao lado de "Arquivos" → **HTML**. Nomeie **`AppGarantia2`**
+   (sem `.html`) e cole o conteúdo de `AppGarantia2.html`.
 5. Repita para um HTML chamado **`SemAcesso`**, colando `SemAcesso.html`.
 6. Clique no disquete para salvar tudo.
 7. Botão azul **Implantar → Nova implantação**.
@@ -35,7 +35,7 @@ lápis → Versão: Nova versão → Implantar**. O link continua o mesmo.
 
 ## Para trocar da cópia para a planilha original
 
-No `Codigo.gs`, no bloco `CONFIG` do início, preencha:
+No `AppGarantia1.gs`, no bloco `CONFIG` do início, preencha:
 
 ```js
 SPREADSHEET_ID: 'cole-aqui-o-id-da-planilha-original',
@@ -64,7 +64,7 @@ repetidos. Consequências práticas:
 
 ## Ajustes que você mesmo pode fazer
 
-Tudo no bloco `CONFIG`, nas primeiras linhas do `Codigo.gs`:
+Tudo no bloco `CONFIG`, nas primeiras linhas do `AppGarantia1.gs`:
 
 | Item | O que faz |
 |---|---|
