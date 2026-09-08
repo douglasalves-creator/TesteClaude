@@ -147,6 +147,27 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .multi-lista input{width:15px;height:15px;accent-color:var(--aurora);flex-shrink:0}
 .multi-lista .nada{padding:14px 12px;font-size:12.5px;color:var(--tinta-3);text-align:center}
 
+/* ================= Seletor de uma opção ================= */
+.sel-env{position:relative}
+.sel-btn{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:1px solid var(--nevoa);border-radius:8px;background:var(--branco);font-weight:500;text-align:left;transition:border-color .15s,box-shadow .15s}
+.sel-btn:hover{border-color:#bfc5ca}
+.sel-btn.aberto{border-color:var(--aurora);box-shadow:0 0 0 3px var(--aurora-fraco)}
+.sel-btn .val{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-btn .val.vazio{color:var(--tinta-3)}
+.sel-btn .seta-sel{flex-shrink:0;opacity:.55}
+.sel-pop{position:absolute;top:calc(100% + 5px);left:0;right:0;min-width:260px;z-index:35;background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);box-shadow:0 14px 36px rgba(10,15,20,.18);display:none;overflow:hidden}
+.sel-pop.abre{display:block}
+.sel-pop .topo-pop{padding:9px 10px;border-bottom:1px solid var(--nevoa)}
+.sel-pop .topo-pop input{width:100%;padding:7px 10px;border:1px solid var(--nevoa);border-radius:6px;font-size:13px}
+.sel-lista{max-height:260px;overflow-y:auto;padding:4px 0}
+.sel-op{display:block;width:100%;text-align:left;background:transparent;border:none;padding:8px 13px;font-size:13px;font-weight:500;line-height:1.35}
+.sel-op:hover,.sel-op.foco{background:var(--sirius)}
+.sel-op.escolhida{background:var(--aurora-fraco);color:#a44a14;font-weight:600}
+.sel-op.limpa{color:var(--tinta-3);border-bottom:1px solid var(--nevoa);font-style:italic}
+.sel-lista .nada{padding:16px 13px;font-size:12.5px;color:var(--tinta-3);text-align:center}
+.sel-cont{padding:7px 13px;border-top:1px solid var(--nevoa);font-size:11px;color:var(--tinta-3)}
+input.escondido{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
 /* ================= Tabela grande ================= */
 .tabela-caixa{overflow:auto;max-height:calc(100vh - 300px);border-radius:var(--raio)}
 .tabela-caixa table{min-width:100%;width:max-content}
@@ -472,6 +493,127 @@ function irPara(mod){
 /* ==================================================================
    Formulário de nova solicitação
    ================================================================== */
+/* ---------- seletor de uma opção, com busca ----------
+   Usado em TODOS os campos de lista suspensa, para que tenham a mesma
+   aparência e o mesmo comportamento, inclusive quando a lista é enorme.
+   Guarda o valor num campo escondido, então o resto do sistema continua
+   lendo o campo como se fosse uma caixa comum.                          */
+function criarSeletor(campo, valor, idCampo){
+  var env = document.createElement('div');
+  env.className = 'sel-env';
+
+  var oculto = document.createElement('input');
+  oculto.type = 'text';
+  oculto.className = 'entrada escondido';
+  oculto.id = idCampo;
+  oculto.dataset.campo = campo.id;
+  oculto.value = valor || '';
+  oculto.tabIndex = -1;
+  oculto.setAttribute('aria-hidden','true');
+  env.appendChild(oculto);
+
+  var botao = document.createElement('button');
+  botao.type = 'button';
+  botao.className = 'sel-btn';
+  botao.innerHTML = '<span class="val"></span>' +
+    '<svg class="seta-sel" width="12" height="8" viewBox="0 0 12 8" fill="none">' +
+    '<path d="M1 1l5 5 5-5" stroke="#5b6670" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  env.appendChild(botao);
+
+  var pop = document.createElement('div');
+  pop.className = 'sel-pop';
+  pop.innerHTML = '<div class="topo-pop"><input type="text" placeholder="Digite para filtrar…" autocomplete="off"></div>' +
+                  '<div class="sel-lista"></div><div class="sel-cont"></div>';
+  env.appendChild(pop);
+
+  var procura = pop.querySelector('.topo-pop input');
+  var lista = pop.querySelector('.sel-lista');
+  var contador = pop.querySelector('.sel-cont');
+  var opcoes = campo.opcoes || [];
+
+  function mostrar(){
+    var v = oculto.value;
+    var alvo = botao.querySelector('.val');
+    alvo.textContent = v || '—';
+    alvo.classList.toggle('vazio', !v);
+  }
+
+  function escolher(v){
+    oculto.value = v;
+    mostrar();
+    fechar();
+    oculto.dispatchEvent(new Event('input', {bubbles:true}));
+    oculto.dispatchEvent(new Event('change', {bubbles:true}));
+  }
+
+  function desenhar(){
+    var termo = procura.value.trim().toLowerCase();
+    var vis = termo ? opcoes.filter(function(o){ return o.toLowerCase().indexOf(termo) >= 0; }) : opcoes;
+    lista.innerHTML = '';
+
+    if (!campo.obrig || oculto.value){
+      var limpa = document.createElement('button');
+      limpa.type = 'button';
+      limpa.className = 'sel-op limpa';
+      limpa.textContent = 'Deixar em branco';
+      limpa.addEventListener('click', function(){ escolher(''); });
+      lista.appendChild(limpa);
+    }
+
+    if (!vis.length){
+      var nada = document.createElement('div');
+      nada.className = 'nada';
+      nada.textContent = 'Nenhuma opção encontrada';
+      lista.appendChild(nada);
+    }
+
+    // No máximo 300 por vez, para a lista abrir instantaneamente
+    vis.slice(0, 300).forEach(function(o){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sel-op' + (o === oculto.value ? ' escolhida' : '');
+      b.textContent = o;
+      b.addEventListener('click', function(){ escolher(o); });
+      lista.appendChild(b);
+    });
+
+    contador.textContent = vis.length > 300
+      ? ('mostrando 300 de ' + vis.length + ' — digite para filtrar')
+      : (vis.length + (vis.length === 1 ? ' opção' : ' opções'));
+  }
+
+  function abrir(){
+    fecharTodosPops();
+    pop.classList.add('abre');
+    botao.classList.add('aberto');
+    procura.value = '';
+    desenhar();
+    procura.focus();
+  }
+  function fechar(){
+    pop.classList.remove('abre');
+    botao.classList.remove('aberto');
+  }
+
+  botao.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    if (pop.classList.contains('abre')) fechar(); else abrir();
+  });
+  pop.addEventListener('click', function(ev){ ev.stopPropagation(); });
+  procura.addEventListener('input', desenhar);
+  procura.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter'){
+      ev.preventDefault();
+      var primeira = lista.querySelector('.sel-op:not(.limpa)');
+      if (primeira) primeira.click();
+    }
+    if (ev.key === 'Escape'){ ev.preventDefault(); fechar(); botao.focus(); }
+  });
+
+  mostrar();
+  return { env: env, oculto: oculto, fechar: fechar };
+}
+
 /* ---------- dinheiro em reais ---------- */
 function centavosParaTexto(centavos){
   var neg = centavos < 0;
@@ -558,6 +700,13 @@ function criarCampo(campo, valor, prefixo){
   rot.setAttribute('for', id);
   rot.innerHTML = esc(campo.rotulo) + (campo.obrig && prefixo === 'sol-' ? ' <b>*</b>' : '');
   caixa.appendChild(rot);
+
+  // Lista suspensa: usa o seletor próprio, igual para todos os campos
+  if (campo.tipo === 'select' && campo.opcoes && campo.opcoes.length){
+    var sel = criarSeletor(campo, valor, id);
+    caixa.appendChild(sel.env);
+    return caixa;
+  }
 
   var ent;
   if (campo.tipo === 'area'){
@@ -767,6 +916,8 @@ function criarMulti(id, rotulo, opcoes){
 
 function fecharTodosPops(){
   document.querySelectorAll('.multi-pop').forEach(function(p){ p.classList.remove('abre'); });
+  document.querySelectorAll('.sel-pop').forEach(function(p){ p.classList.remove('abre'); });
+  document.querySelectorAll('.sel-btn.aberto').forEach(function(b){ b.classList.remove('aberto'); });
 }
 document.addEventListener('click', fecharTodosPops);
 
@@ -1026,12 +1177,24 @@ function pintarTabela(fatia, total, paginas){
   // paginação
   var ini = (PAGINA-1)*POR_PAGINA + 1;
   var fim = Math.min(PAGINA*POR_PAGINA, total);
+  var noComeco = PAGINA <= 1, noFim = PAGINA >= paginas;
   el('paginacao').innerHTML =
-    '<button class="btn" id="pg-ant"' + (PAGINA <= 1 ? ' disabled' : '') + '>&larr; Anterior</button>' +
-    '<button class="btn" id="pg-prox"' + (PAGINA >= paginas ? ' disabled' : '') + '>Próxima &rarr;</button>' +
+    '<button class="btn" id="pg-inicio"' + (noComeco ? ' disabled' : '') + ' title="Primeira página">&#8676; Início</button>' +
+    '<button class="btn" id="pg-ant"'    + (noComeco ? ' disabled' : '') + '>&larr; Anterior</button>' +
+    '<button class="btn" id="pg-prox"'   + (noFim ? ' disabled' : '') + '>Próxima &rarr;</button>' +
+    '<button class="btn" id="pg-fim"'    + (noFim ? ' disabled' : '') + ' title="Última página">Fim &#8677;</button>' +
     '<span>Mostrando <b>' + ini + '–' + fim + '</b> de <b>' + total + '</b> · página <b>' + PAGINA + '</b> de <b>' + paginas + '</b></span>';
-  if (el('pg-ant')) el('pg-ant').addEventListener('click', function(){ if (PAGINA > 1){ PAGINA--; desenharPagina(); rolarTopoTabela(); } });
-  if (el('pg-prox')) el('pg-prox').addEventListener('click', function(){ if (PAGINA < paginas){ PAGINA++; desenharPagina(); rolarTopoTabela(); } });
+
+  function irParaPagina(n){
+    if (n < 1 || n > paginas || n === PAGINA) return;
+    PAGINA = n;
+    desenharPagina();
+    rolarTopoTabela();
+  }
+  if (el('pg-inicio')) el('pg-inicio').addEventListener('click', function(){ irParaPagina(1); });
+  if (el('pg-ant'))    el('pg-ant').addEventListener('click',    function(){ irParaPagina(PAGINA - 1); });
+  if (el('pg-prox'))   el('pg-prox').addEventListener('click',   function(){ irParaPagina(PAGINA + 1); });
+  if (el('pg-fim'))    el('pg-fim').addEventListener('click',    function(){ irParaPagina(paginas); });
 }
 
 function rolarTopoTabela(){

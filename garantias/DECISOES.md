@@ -193,6 +193,21 @@ selecionadas.
 
 As regras de preenchimento são as mesmas da edição individual.
 
+### Paginação
+Botões **Início · Anterior · Próxima · Fim**, com desligamento automático nas
+pontas.
+
+### Listas suspensas — seletor próprio
+Todos os campos de lista usam um seletor construído por nós, não o `<select>` do
+navegador. Motivo: colunas sem regra de validação (como `Equipamento Principal`)
+caem para os valores já digitados, o que pode passar de cem itens — o navegador
+desenhava esse caso como um painel gigante fora do lugar, diferente dos demais
+campos.
+
+O seletor tem campo de busca, mostra no máximo 300 itens por vez (com contagem
+do total), tem a opção "Deixar em branco" e fica com a mesma largura e a mesma
+aparência em todos os campos, no formulário, na edição individual e no lote.
+
 ### Regras de preenchimento
 
 | Campos | Regra |
