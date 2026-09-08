@@ -60,6 +60,9 @@ const CONFIG = {
 
   // Segundos que a lista fica guardada em memória (deixa a tela rápida).
   CACHE_LISTA_SEG: 180,
+
+  // Quantos acionamentos por página no módulo Processos.
+  POR_PAGINA: 100,
   CACHE_OPCOES_SEG: 21600,
 
   // Endereço de uma imagem do logo (PNG/SVG público). Vazio = usa o nome escrito.
@@ -482,6 +485,7 @@ function carregarInicio() {
     status: STATUS_GERAL,
     faltando: faltando,
     logoUrl: CONFIG.LOGO_URL,
+    porPagina: CONFIG.POR_PAGINA,
     anexoObrigatorio: !!CONFIG.ANEXO_OBRIGATORIO,
     anexoMaxMb: CONFIG.ANEXO_MAX_MB
   };
@@ -695,6 +699,24 @@ function listarProcessos(forcar) {
   saida.contagemStatus = contagem;
 
   // Mesma ordem das linhas da planilha (sem inverter)
+
+  // A PRIMEIRA PÁGINA JÁ VAI JUNTO. Assim, entrar no módulo Processos não
+  // precisa de uma segunda ida ao servidor — que é o que mais custa tempo.
+  saida.pagina = {};
+  const naPrimeira = saida.itens.slice(0, CONFIG.POR_PAGINA);
+  if (naPrimeira.length) {
+    const de = naPrimeira[0].linha;
+    const ate = naPrimeira[naPrimeira.length - 1].linha;
+    const recorte = bloco.slice(de - primeira, ate - primeira + 1);
+    naPrimeira.forEach(function (item) {
+      const linha = recorte[item.linha - de];
+      if (!linha) return;
+      const o = {};
+      ativos.forEach(function (i) { o[_idCampo(i.campo)] = String(linha[i.col - 1] || ''); });
+      saida.pagina[item.linha] = o;
+    });
+  }
+
   _cacheGravar(chave, JSON.stringify(saida), CONFIG.CACHE_LISTA_SEG);
   return saida;
 }
@@ -822,7 +844,25 @@ function salvarLote(linhas, alteracoes) {
     if (celulas) _cacheLimpar('gar_lista_v4');
     SpreadsheetApp.flush();
     _registrarAuditoria('Edição em lote', registro);
-    return { ok: true, campos: campos, celulas: celulas, linhas: Object.keys(alvo).length };
+
+    // Como cada linha atingida ficou, para a tela se atualizar sozinha
+    const porLinha = {};
+    registro.forEach(function (e) {
+      if (!porLinha[e.linha]) porLinha[e.linha] = {};
+    });
+    const idsPorColuna = {};
+    _camposAtivos(mapa).forEach(function (i) { idsPorColuna[i.col] = _idCampo(i.campo); });
+    Object.keys(porLinha).forEach(function (l) {
+      const valores = aba.getRange(Number(l), 1, 1, aba.getLastColumn()).getDisplayValues()[0];
+      Object.keys(idsPorColuna).forEach(function (col) {
+        porLinha[l][idsPorColuna[col]] = String(valores[Number(col) - 1] || '');
+      });
+    });
+
+    return {
+      ok: true, campos: campos, celulas: celulas,
+      linhas: Object.keys(alvo).length, valores: porLinha
+    };
   } finally {
     trava.releaseLock();
   }
@@ -936,12 +976,17 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       porId[_idCampo(item.campo)] = item;
     });
 
+    // Uma leitura da linha inteira, em vez de duas por campo alterado.
+    const largura = aba.getLastColumn();
+    const faixaLinha = aba.getRange(linha, 1, 1, largura);
+    const antesDaLinha = faixaLinha.getDisplayValues()[0];
+
     const scgarLinha = colScgar
-      ? String(aba.getRange(linha, colScgar).getDisplayValue() || '').trim()
+      ? String(antesDaLinha[colScgar - 1] || '').trim()
       : String(scgarEsperado || '');
 
     let gravados = 0;
-    const registro = [];
+    const pendentes = [];
 
     Object.keys(alteracoes || {}).forEach(function (id) {
       const item = porId[id];
@@ -950,8 +995,6 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       if (item.campo.auto) return;               // SCGAR e data de abertura: não toca
 
       const celula = aba.getRange(linha, item.col);
-      const antes = String(celula.getDisplayValue() || '');
-
       const valor = _paraPlanilha(item.campo, alteracoes[id]);
       if (valor === null) {
         celula.clearContent();
@@ -960,20 +1003,34 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
         celula.setValue(valor);
       }
       gravados++;
+      pendentes.push(item);
+    });
 
-      registro.push({
+    // E uma leitura depois, também da linha inteira.
+    const depoisDaLinha = gravados ? faixaLinha.getDisplayValues()[0] : antesDaLinha;
+
+    const registro = pendentes.map(function (item) {
+      return {
         linha: linha,
         sc: scgarLinha,
         campo: (item.campo.rotulo || item.campo.cab).toUpperCase(),
-        de: antes,
-        para: String(celula.getDisplayValue() || '')
-      });
+        de: antesDaLinha[item.col - 1],
+        para: depoisDaLinha[item.col - 1]
+      };
     });
 
     if (gravados) _cacheLimpar('gar_lista_v4');
     SpreadsheetApp.flush();
     _registrarAuditoria('Edição', registro);
-    return { ok: true, gravados: gravados };
+
+    // Devolve como a linha ficou, para a tela se atualizar sem outra ida
+    // ao servidor.
+    const linhaAtual = {};
+    _camposAtivos(mapa).forEach(function (i) {
+      linhaAtual[_idCampo(i.campo)] = String(depoisDaLinha[i.col - 1] || '');
+    });
+
+    return { ok: true, gravados: gravados, valores: linhaAtual, scgar: scgarLinha };
   } finally {
     trava.releaseLock();
   }

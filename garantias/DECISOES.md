@@ -34,6 +34,10 @@ Consequências práticas:
 
 ## Módulos
 
+O link abre numa **tela de início** com três cartões — Solicitação, Processos e
+Painel — sobre fundo Eclipse, com o nome do usuário e o selo de acesso
+restrito. O logo no topo e o botão **Início** voltam para lá.
+
 1. **Solicitação** — formulário de abertura de um novo acionamento (cria a linha na aba).
 2. **Processos** — lista todos os acionamentos, independente do status, com edição dos
    campos de tratamento.
@@ -117,10 +121,49 @@ Ag envio OEM · Em andamento para Envio
 
 ## Desempenho
 
-Meta: nenhuma ação deve passar de poucos segundos.
-- A lista carrega apenas as colunas necessárias, não a planilha inteira.
-- Os dados ficam em cache por alguns minutos; gravações limpam o cache.
-- Gravação sempre pontual (célula/linha específica), nunca reescrita da aba.
+O que custa tempo num aplicativo web do Apps Script é **cada ida e volta ao
+servidor** (algo entre meio segundo e um segundo e meio, mesmo para uma resposta
+pequena). Não há como encurtar essa ida e volta; o que dá é **fazer menos idas**
+e **não deixar a pessoa esperando por elas**. Foi essa a estratégia.
+
+| Ação | Antes | Agora |
+|---|---|---|
+| Abrir o link | 1 ida | 1 ida (tela de início aparece na hora) |
+| Entrar em Processos | 2 idas | **nenhuma** — a lista é buscada em segundo plano enquanto a pessoa lê a tela de início, e a primeira página já vem junto dela |
+| Abrir um acionamento | 1 ida | **nenhuma** — o conteúdo da página exibida já está na tela |
+| Salvar | 2 idas (gravar + recarregar a lista) | **nenhuma espera** — a tela mostra o valor novo na hora e grava em segundo plano |
+
+Medido em navegador com 700 ms simulados por ida e volta: entrar em Processos
+425 ms, abrir um acionamento 135 ms, salvar e fechar 102 ms.
+
+Outros cuidados:
+- A lista traz só as colunas de filtro de todas as linhas; o conteúdo completo
+  vem apenas da página exibida.
+- Fica em cache por alguns minutos; gravações limpam o cache.
+- Gravação sempre pontual (célula ou linha), nunca reescrita da aba.
+- `salvarProcesso` lê a linha inteira uma vez antes e uma vez depois, em vez de
+  ler duas vezes por campo alterado.
+- Filtros, busca e paginação rodam no navegador.
+
+### Sobre gravar "em segundo plano"
+
+Quando a pessoa salva, a tela já mostra o valor novo e fecha. Se o servidor
+recusar (planilha bloqueada, linha que mudou de lugar, data inválida), a tela
+**volta ao valor anterior** e mostra o motivo em vermelho. Vale para a edição
+individual e para o lote.
+
+### Por que não a API do Sheets direto do navegador
+
+Foi considerado e **descartado**:
+
+- A ida e volta continuaria existindo — o ganho seria pequeno.
+- Exigiria um projeto OAuth próprio e **cada pessoa autorizando** o acesso.
+- Cada usuário precisaria de permissão de edição **na planilha**, em vez de o
+  script gravar em nome de um só dono. Isso é uma perda de controle, não um
+  ganho.
+
+O caminho que realmente resolve, se um dia o volume exigir, é trocar a planilha
+por um banco de dados. Hoje não é o caso.
 
 ## Identidade visual
 

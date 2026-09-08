@@ -51,6 +51,59 @@ nav.abas{display:flex;gap:4px;margin-left:auto}
 .aba[aria-selected="true"]{background:var(--aurora);color:var(--branco)}
 .usuario{font-size:11.5px;font-weight:500;color:var(--tinta-3);flex-shrink:0;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* ================= Tela de início ================= */
+body.no-inicio{background:var(--eclipse)}
+.inicio{min-height:calc(100vh - 60px);display:flex;flex-direction:column;justify-content:center;
+  padding:56px 24px 72px;background:var(--eclipse);color:#fff;position:relative;overflow:hidden}
+.inicio::before{content:'';position:absolute;top:-220px;right:-160px;width:620px;height:620px;border-radius:50%;
+  background:radial-gradient(circle,rgba(236,110,45,.20) 0%,rgba(236,110,45,0) 68%);pointer-events:none}
+.inicio::after{content:'';position:absolute;bottom:-260px;left:-180px;width:560px;height:560px;border-radius:50%;
+  background:radial-gradient(circle,rgba(13,52,89,.42) 0%,rgba(13,52,89,0) 70%);pointer-events:none}
+.inicio-in{position:relative;z-index:2;max-width:1180px;margin:0 auto;width:100%}
+.selo-ini{display:inline-flex;align-items:center;gap:9px;font-size:10.5px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--aurora);border:1px solid rgba(236,110,45,.4);background:rgba(236,110,45,.08);
+  border-radius:999px;padding:6px 14px;margin-bottom:24px}
+.selo-ini i{width:6px;height:6px;border-radius:50%;background:var(--aurora);font-style:normal}
+.inicio h1{margin:0;font-size:clamp(30px,4.6vw,50px);font-weight:800;letter-spacing:-.03em;line-height:1.06}
+.inicio h1 em{font-style:normal;color:var(--aurora)}
+.inicio .ola{margin:16px 0 0;font-size:15px;color:#9aa3ab;max-width:560px;line-height:1.6}
+.inicio .ola b{color:#fff;font-weight:600}
+
+.cartoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:18px;margin-top:44px}
+.cartao{position:relative;text-align:left;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);
+  border-radius:16px;padding:26px 24px 22px;color:#fff;overflow:hidden;
+  transition:transform .18s cubic-bezier(.4,0,.2,1),border-color .18s,background .18s}
+.cartao::after{content:'';position:absolute;left:0;top:0;height:3px;width:100%;background:var(--aurora);
+  transform:scaleX(0);transform-origin:left;transition:transform .22s}
+.cartao:hover{transform:translateY(-4px);border-color:rgba(236,110,45,.55);background:rgba(236,110,45,.07)}
+.cartao:hover::after{transform:scaleX(1)}
+.cartao .num{font-family:var(--fonte);font-size:11px;font-weight:700;letter-spacing:.14em;color:#6e7780}
+.cartao .icone{width:46px;height:46px;border-radius:12px;background:rgba(236,110,45,.14);border:1px solid rgba(236,110,45,.3);
+  display:flex;align-items:center;justify-content:center;margin:16px 0 18px}
+.cartao:hover .icone{background:var(--aurora);border-color:var(--aurora)}
+.cartao:hover .icone svg *{stroke:#fff}
+.cartao h2{margin:0;font-size:19px;font-weight:700;letter-spacing:-.02em}
+.cartao p{margin:7px 0 0;font-size:13px;color:#9aa3ab;line-height:1.55;min-height:40px}
+.cartao .entrar{display:inline-flex;align-items:center;gap:7px;margin-top:18px;font-size:12.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--aurora)}
+.cartao .entrar span{transition:transform .18s}
+.cartao:hover .entrar span{transform:translateX(4px)}
+.cartao.breve{opacity:.62}
+.cartao.breve:hover{transform:none;border-color:rgba(255,255,255,.11);background:rgba(255,255,255,.045)}
+.cartao.breve:hover::after{transform:scaleX(0)}
+.cartao.breve .entrar{color:#6e7780}
+.cartao .marca-breve{position:absolute;top:22px;right:22px;font-size:9.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:#6e7780;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:4px 9px}
+
+.rodape-ini{position:relative;z-index:2;max-width:1180px;margin:44px auto 0;width:100%;
+  display:flex;align-items:center;gap:10px;font-size:11.5px;color:#5f686f;flex-wrap:wrap}
+.rodape-ini .ponto{width:5px;height:5px;border-radius:50%;background:#3b4247}
+.rodape-ini b{color:#9aa3ab;font-weight:600}
+
+.btn-voltar{background:transparent;border:1px solid #2f373f;color:#9aa3ab;border-radius:8px;
+  font-size:12px;font-weight:600;padding:7px 13px;display:flex;align-items:center;gap:7px}
+.btn-voltar:hover{background:#1a2128;color:#fff;border-color:#3f474f}
+
 /* ================= Estrutura ================= */
 .corpo{max-width:1360px;margin:0 auto;padding:26px 24px 80px}
 .titulo{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px}
@@ -295,8 +348,9 @@ td.cel{text-align:center}
       <div class="nome">Solar<span>Grid</span></div>
       <div class="sub">Garantias</div>
     </div>
-    <nav class="abas" role="tablist">
-      <button class="aba" role="tab" aria-selected="true"  data-mod="solicitacao">Solicitação</button>
+    <nav class="abas" role="tablist" id="abas">
+      <button class="btn-voltar" id="btn-inicio-topo"><span>&#8592;</span> Início</button>
+      <button class="aba" role="tab" aria-selected="false" data-mod="solicitacao">Solicitação</button>
       <button class="aba" role="tab" aria-selected="false" data-mod="processos">Processos</button>
       <button class="aba" role="tab" aria-selected="false" data-mod="painel">Painel</button>
     </nav>
@@ -304,13 +358,66 @@ td.cel{text-align:center}
   </div>
 </header>
 
-<main class="corpo">
+<section class="inicio" id="mod-inicio">
+  <div class="inicio-in">
+    <div class="selo-ini"><i></i> Acionamento de Garantias</div>
+    <h1>Controle de garantias<br>da <em>SolarGrid</em></h1>
+    <p class="ola" id="ola-inicio">Escolha por onde começar.</p>
+
+    <div class="cartoes">
+      <button class="cartao" data-ir="solicitacao">
+        <div class="num">01</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#EC6E2D" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>Solicitação</h2>
+        <p>Abrir um novo acionamento de garantia e anexar os documentos.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+
+      <button class="cartao" data-ir="processos">
+        <div class="num">02</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16M4 12h16M4 18h10" stroke="#EC6E2D" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>Processos</h2>
+        <p id="cartao-processos-sub">Acompanhar e tratar todos os acionamentos.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+
+      <button class="cartao breve" data-ir="painel">
+        <div class="marca-breve">Em breve</div>
+        <div class="num">03</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M5 19V10M12 19V5M19 19v-6" stroke="#EC6E2D" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>Painel</h2>
+        <p>Indicadores e gráficos dos acionamentos.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+    </div>
+  </div>
+
+  <div class="rodape-ini">
+    <span id="rodape-usuario"></span>
+    <span class="ponto"></span>
+    <span>Acesso restrito a <b>@solargrid.com.br</b></span>
+  </div>
+</section>
+
+<main class="corpo" id="area-modulos">
 
   <div id="aviso-erro-js" class="aviso aviso-erro oculto"></div>
   <div id="aviso-faltando" class="aviso aviso-alerta oculto"></div>
 
   <!-- ============ SOLICITAÇÃO ============ -->
-  <section id="mod-solicitacao">
+  <section id="mod-solicitacao" class="oculto">
     <h1 class="titulo" style="margin-bottom:22px">Nova Solicitação</h1>
     <div class="painel" style="padding:24px">
       <div class="grade" id="form-solicitacao"></div>
@@ -517,6 +624,21 @@ function iniciarDeVerdade(dados){
       esc(dados.faltando.join(' · '));
   }
 
+  if (dados.porPagina) POR_PAGINA = dados.porPagina;
+
+  var nome = String(dados.usuario || '').split('@')[0].replace(/[._-]+/g, ' ').trim();
+  if (nome) {
+    nome = nome.split(' ').map(function(p){ return p.charAt(0).toUpperCase() + p.slice(1); }).join(' ');
+    el('ola-inicio').innerHTML = 'Olá, <b>' + esc(nome.split(' ')[0]) + '</b>. Escolha por onde começar.';
+  }
+  el('rodape-usuario').textContent = dados.usuario || '';
+
+  irPara('inicio');
+
+  // Enquanto a pessoa lê a tela de início, os processos já vão sendo
+  // buscados. Quando ela clicar em Processos, a tabela abre na hora.
+  carregarLista(false);
+
   montarFormulario();
 
   el('anexo-obrig').style.display = dados.anexoObrigatorio ? '' : 'none';
@@ -529,14 +651,28 @@ function iniciarDeVerdade(dados){
 document.querySelectorAll('.aba').forEach(function(aba){
   aba.addEventListener('click', function(){ irPara(aba.dataset.mod); });
 });
+document.querySelectorAll('.cartao').forEach(function(c){
+  c.addEventListener('click', function(){ irPara(c.dataset.ir); });
+});
+el('btn-inicio-topo').addEventListener('click', function(){ irPara('inicio'); });
+el('marca').style.cursor = 'pointer';
+el('marca').addEventListener('click', function(){ irPara('inicio'); });
 
 function irPara(mod){
+  var noInicio = (mod === 'inicio');
+
+  document.body.classList.toggle('no-inicio', noInicio);
+  el('mod-inicio').classList.toggle('oculto', !noInicio);
+  el('area-modulos').classList.toggle('oculto', noInicio);
+  el('abas').classList.toggle('oculto', noInicio);
+
   document.querySelectorAll('.aba').forEach(function(a){
     a.setAttribute('aria-selected', a.dataset.mod === mod ? 'true' : 'false');
   });
   ['solicitacao','processos','painel'].forEach(function(m){
     el('mod-'+m).classList.toggle('oculto', m !== mod);
   });
+
   if (mod === 'processos' && !LISTA) carregarLista(false);
   window.scrollTo(0,0);
 }
@@ -801,6 +937,71 @@ function criarSeletor(campo, valor, idCampo){
 
   mostrar();
   return { env: env, oculto: oculto, fechar: fechar };
+}
+
+/* ==================================================================
+   Do texto que aparece na tabela para o valor que o campo edita.
+   É isso que permite abrir um acionamento SEM ir ao servidor.
+   ================================================================== */
+function textoParaISO(t){
+  var m = String(t||'').trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (m){
+    var ano = m[3].length === 2 ? '20' + m[3] : m[3];
+    return ano + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[1]).slice(-2);
+  }
+  m = String(t||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[1]+'-'+m[2]+'-'+m[3] : '';
+}
+
+/** Aceita "R$ 1.234,56", "1234,56", "1234.56" e "1234". */
+function textoParaNumero(t){
+  var txt = String(t == null ? '' : t).replace(/[^\d.,-]/g, '').trim();
+  if (!txt) return '';
+  var temPonto = txt.indexOf('.') >= 0, temVirgula = txt.indexOf(',') >= 0;
+  if (temPonto && temVirgula){
+    // o separador decimal é o que aparece por último
+    var sep = txt.lastIndexOf('.') > txt.lastIndexOf(',') ? '.' : ',';
+    var outro = sep === '.' ? ',' : '.';
+    txt = txt.split(outro).join('');
+    txt = txt.replace(sep, '.');
+  } else if (temVirgula){
+    txt = txt.replace(/\./g, '').replace(',', '.');
+  } else if (temPonto){
+    // ponto só é decimal se vier com 1 ou 2 casas no fim
+    if (!/\.\d{1,2}$/.test(txt)) txt = txt.replace(/\./g, '');
+  }
+  var n = Number(txt);
+  return isNaN(n) ? '' : String(n);
+}
+
+/**
+ * Converte a linha como ela aparece na tabela para os valores editáveis.
+ * Devolve null se alguma data não puder ser entendida — nesse caso a tela
+ * busca a linha no servidor, para não arriscar mostrar campo errado.
+ */
+function paraEdicao(exibido){
+  var saida = {};
+  var seguro = true;
+
+  INICIO.campos.forEach(function(c){
+    var v = exibido[c.id];
+    v = String(v == null ? '' : v);
+
+    if (c.tipo === 'data'){
+      if (v.trim() === ''){ saida[c.id] = ''; return; }
+      var iso = textoParaISO(v);
+      if (!iso) seguro = false;
+      saida[c.id] = iso;
+      return;
+    }
+    if (c.tipo === 'moeda' || c.tipo === 'inteiro'){
+      saida[c.id] = textoParaNumero(v);
+      return;
+    }
+    saida[c.id] = v;
+  });
+
+  return seguro ? saida : null;
 }
 
 /* ---------- dinheiro em reais ---------- */
@@ -1317,12 +1518,16 @@ function carregarLista(forcar){
   google.script.run
     .withSuccessHandler(function(r){
       LISTA = r;
-      CONTEUDO = {};
+      // A primeira página já vem junto da lista: entrar em Processos não
+      // custa outra ida ao servidor.
+      CONTEUDO = r.pagina || {};
       MARCADOS = {};
       atualizarBarraSel();
       montarFiltros();
       PAGINA = 1;
       aplicarFiltros();
+      el('cartao-processos-sub').textContent =
+        LISTA.itens.length + ' acionamentos · ' + LISTA.colunas.length + ' colunas.';
     })
     .withFailureHandler(function(e){
       el('processos-carregando').classList.add('oculto');
@@ -1630,23 +1835,34 @@ el('btn-salvar-lote').addEventListener('click', function(){
   if (!confirm('Aplicar ' + quantos + (quantos === 1 ? ' campo' : ' campos') + ' a ' +
                linhas.length + (linhas.length === 1 ? ' acionamento?' : ' acionamentos?'))) return;
 
+
   var botao = this;
-  botao.disabled = true;
-  botao.textContent = 'Aplicando…';
+  var antes = {};
+  linhas.forEach(function(l){
+    if (CONTEUDO[l]) antes[l] = JSON.parse(JSON.stringify(CONTEUDO[l]));
+    pintarNaTabela(l, alteracoes);
+  });
+
+  fecharLote();
+  MARCADOS = {};
+  atualizarBarraSel();
+  el('processos-corpo').querySelectorAll('.cx-linha').forEach(function(cx){
+    cx.checked = false;
+    cx.closest('tr').classList.remove('marcada');
+  });
+  recado('Aplicando em ' + linhas.length + ' acionamento(s)…');
+
   google.script.run
     .withSuccessHandler(function(r){
-      botao.disabled = false;
-      botao.textContent = 'Aplicar aos selecionados';
+      if (r && r.valores){
+        Object.keys(r.valores).forEach(function(l){ aplicarValoresNaTabela(l, r.valores[l]); });
+      }
       recado(r.celulas + ' célula(s) atualizada(s) em ' + r.linhas + ' acionamento(s).');
-      fecharLote();
-      MARCADOS = {};
-      atualizarBarraSel();
-      carregarLista(true);
     })
     .withFailureHandler(function(e){
-      botao.disabled = false;
-      botao.textContent = 'Aplicar aos selecionados';
-      recado(e.message, true);
+      Object.keys(antes).forEach(function(l){ CONTEUDO[l] = antes[l]; });
+      desenharPagina();
+      recado('Não aplicou: ' + e.message, true);
     })
     .gar_salvarLote(linhas, alteracoes);
 });
@@ -1659,6 +1875,22 @@ function abrirGaveta(linha, scgar){
   el('gaveta').classList.add('abre');
   el('gaveta').setAttribute('aria-hidden','false');
   el('gaveta-cod').textContent = scgar || 'Acionamento';
+
+  // O conteúdo completo da página já está aqui na tela. Se der para usar,
+  // o acionamento abre na hora, sem esperar o servidor.
+  var exibido = CONTEUDO[linha];
+  if (exibido){
+    var pronto = paraEdicao(exibido);
+    if (pronto){
+      ATUAL = { linha: linha, scgar: scgar, dados: pronto };
+      ORIGINAL = {};
+      for (var k in pronto) ORIGINAL[k] = pronto[k];
+      montarGaveta(ATUAL);
+      el('btn-salvar').disabled = false;
+      return;
+    }
+  }
+
   el('gaveta-met').textContent = 'Carregando…';
   el('gaveta-corpo').innerHTML = '<div class="carregando"><span class="giro"></span> Abrindo acionamento…</div>';
   el('btn-salvar').disabled = true;
@@ -1753,24 +1985,81 @@ el('btn-salvar').addEventListener('click', function(){
 
   if (!total){ recado('Nada foi alterado.'); return; }
 
-  botao.disabled = true;
-  botao.textContent = 'Salvando…';
+  // A tela não espera o servidor: fecha, mostra o novo valor na tabela e
+  // grava em segundo plano. Se der erro, avisa e volta o que estava antes.
+  var linha = ATUAL.linha;
+  var scgar = ATUAL.scgar;
+  var anterior = CONTEUDO[linha] ? JSON.parse(JSON.stringify(CONTEUDO[linha])) : null;
+
+  pintarNaTabela(linha, alteracoes);
+  fecharGaveta();
+  recado('Salvando ' + total + (total === 1 ? ' campo…' : ' campos…'));
+
   google.script.run
-    .withSuccessHandler(function(){
-      botao.disabled = false;
-      botao.textContent = 'Salvar alterações';
-      for (var k in alteracoes) ORIGINAL[k] = alteracoes[k];
+    .withSuccessHandler(function(r){
+      if (r && r.valores) aplicarValoresNaTabela(linha, r.valores);
       recado(total + (total === 1 ? ' campo salvo.' : ' campos salvos.'));
-      fecharGaveta();
-      carregarLista(true);
     })
     .withFailureHandler(function(e){
-      botao.disabled = false;
-      botao.textContent = 'Salvar alterações';
-      recado(e.message, true);
+      if (anterior){
+        CONTEUDO[linha] = anterior;
+        desenharPagina();
+      }
+      recado('Não salvou: ' + e.message, true);
     })
-    .gar_salvarProcesso(ATUAL.linha, ATUAL.scgar, alteracoes);
+    .gar_salvarProcesso(linha, scgar, alteracoes);
 });
+
+/** Mostra na tabela, na hora, o que a pessoa acabou de digitar. */
+function pintarNaTabela(linha, alteracoes){
+  if (!CONTEUDO[linha]) return;
+  INICIO.campos.forEach(function(c){
+    if (!(c.id in alteracoes)) return;
+    var v = alteracoes[c.id];
+    if (c.tipo === 'data' && v) v = dataBR(v);
+    else if (c.tipo === 'moeda' && v !== '') v = centavosParaTexto(Math.round(Number(v) * 100));
+    CONTEUDO[linha][c.id] = String(v == null ? '' : v);
+  });
+  atualizarLinhaNaTela(linha);
+}
+
+/** Troca os valores de uma linha pelos que o servidor confirmou. */
+function aplicarValoresNaTabela(linha, valores){
+  CONTEUDO[linha] = valores;
+  var item = LISTA.itens.filter(function(i){ return i.linha === Number(linha); })[0];
+  if (item){
+    if (valores[ID_STATUS] !== undefined) item.status = valores[ID_STATUS];
+    Object.keys(item.f).forEach(function(id){
+      if (valores[id] !== undefined) item.f[id] = valores[id];
+    });
+    var todo = '';
+    for (var k in valores) todo += ' ' + valores[k];
+    item.busca = todo.toLowerCase();
+  }
+  atualizarLinhaNaTela(linha);
+}
+
+/** Redesenha só as células de uma linha, sem refazer a tabela inteira. */
+function atualizarLinhaNaTela(linha){
+  var tr = el('processos-corpo').querySelector('tr[data-linha="' + linha + '"]');
+  if (!tr) return;
+  var dados = CONTEUDO[linha] || {};
+  var tds = tr.querySelectorAll('td');
+  LISTA.colunas.forEach(function(c, n){
+    var td = tds[n + 1];
+    if (!td) return;
+    var v = dados[c.id] || '';
+    if (c.id === ID_STATUS){
+      td.className = 'cel';
+      td.innerHTML = '<span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span>';
+      return;
+    }
+    td.className = (n === 0 ? 'trava cod-col cod' : 'cel') + (v ? '' : ' vazio');
+    td.title = v;
+    td.textContent = v || '—';
+  });
+  posicionarTravadas();
+}
 </script>
 </body>
 </html>
