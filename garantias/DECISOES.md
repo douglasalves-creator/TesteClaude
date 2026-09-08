@@ -312,6 +312,35 @@ Definido em 08/09/2026.
 - O índice de todas as linhas é leve e vem de uma vez; o conteúdo completo é
   buscado só das 100 linhas da página exibida e fica guardado na tela.
 
+### Visões da tabela
+
+Um seletor no topo do módulo troca o recorte de colunas. Definidas na lista
+`VISOES`, no início do `AppGarantia1.gs`:
+
+| Visão | O que mostra |
+|---|---|
+| **Completa** | todas as colunas da aba |
+| **Reunião** | recorte para a reunião semanal de aprovações |
+
+Para criar ou mudar uma visão, basta editar a lista de cabeçalhos em `VISOES`.
+Cabeçalho que não existir na aba é ignorado sem erro. A visão escolhida fica
+guardada no navegador de cada pessoa.
+
+**Edição direto na célula** funciona nas visões recortadas (não na Completa,
+onde as 51 colunas fariam o clique atrapalhar a leitura):
+
+- clique na célula → ela vira campo, com o mesmo tipo da edição normal
+  (calendário para data, R$ para valor, lista suspensa para status);
+- **Enter** grava, **Esc** cancela, **Tab** grava e pula para a próxima célula
+  editável da linha — que é o ritmo de uma reunião;
+- a primeira coluna não é editável de propósito: clicar nela abre o acionamento
+  completo, com todos os campos;
+- a gravação é a mesma da edição individual, então passa pelas mesmas regras e
+  entra na aba Auditoria como `Edição`.
+
+Colunas de valor recebem formato de moeda (`R$ #,##0.00`) na planilha ao serem
+gravadas, para o valor aparecer igual na planilha e na tela.
+
 ### Filtros
 Uma caixinha de seleção múltipla para **Status** (dá para marcar vários), mais
 filtros para: SCGAR, Data de Solicitação (de / até), RMA / OS (Nº),

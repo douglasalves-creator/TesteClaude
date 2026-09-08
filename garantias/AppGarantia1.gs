@@ -80,6 +80,44 @@ const CONFIG = {
   ANEXO_MAX_MB: 25
 };
 
+/**
+ * VISÕES DA TABELA DE PROCESSOS
+ *
+ * Cada visão é um recorte de colunas. A primeira é a completa (todas as
+ * colunas da aba). As outras listam os cabeçalhos que devem aparecer, na
+ * ordem em que você escrever aqui.
+ *
+ * Para montar uma visão nova, copie o bloco abaixo, troque o nome e a lista.
+ * Nome de cabeçalho que não existir na aba é simplesmente ignorado.
+ */
+const VISOES = [
+  {
+    nome: 'Completa',
+    descricao: 'Todas as colunas da planilha',
+    colunas: null            // null = tudo
+  },
+  {
+    nome: 'Reunião',
+    descricao: 'Recorte para a reunião semanal de aprovações',
+    colunas: [
+      'SCGAR',
+      'Data de Solicitação',
+      'UFV de Origem',
+      'Fornecedor',
+      'Material/Equipamento',
+      'Qtd',
+      'Status Geral do Acionamento',
+      'Coberto em Garantia',
+      'Valor do Frete / Envio Estimado (Envio)',
+      'Aprov Marcella (Envio)',
+      'Aprov Felipe (Envio)',
+      'Valor Reparo',
+      'Aprov Marcella (Reparo)',
+      'Aprov Felipe (Reparo)'
+    ]
+  }
+];
+
 /** Lista oficial de status. Para mudar, edite aqui. */
 const STATUS_GERAL = [
   'Pendente',
@@ -480,8 +518,25 @@ function carregarInicio() {
 
   const email = Session.getActiveUser().getEmail();
 
+  // Visões resolvidas: só os cabeçalhos que existem de fato na aba
+  const idsExistentes = {};
+  ativos.forEach(function (item) {
+    idsExistentes[_normalizar(item.campo.cab)] = _idCampo(item.campo);
+  });
+
+  const visoes = VISOES.map(function (v) {
+    if (!v.colunas) return { nome: v.nome, descricao: v.descricao, colunas: null };
+    const ids = [];
+    v.colunas.forEach(function (cab) {
+      const id = idsExistentes[_normalizar(cab)];
+      if (id && ids.indexOf(id) < 0) ids.push(id);
+    });
+    return { nome: v.nome, descricao: v.descricao, colunas: ids };
+  });
+
   return {
     usuario: email,
+    visoes: visoes,
     campos: campos,
     grupos: GRUPOS,
     status: STATUS_GERAL,
@@ -834,7 +889,7 @@ function salvarLote(linhas, alteracoes) {
         }
       }
 
-      if (item.campo.tipo === 'codigo') faixa.setNumberFormat('@');
+      _formatarCelula(faixa, item.campo);
       faixa.setValues(novos);
       campos++;
 
@@ -1009,7 +1064,7 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       if (valor === null) {
         celula.clearContent();
       } else {
-        if (item.campo.tipo === 'codigo') celula.setNumberFormat('@');
+        _formatarCelula(celula, item.campo);
         celula.setValue(valor);
       }
       gravados++;
@@ -1043,6 +1098,20 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
     return { ok: true, gravados: gravados, valores: linhaAtual, scgar: scgarLinha };
   } finally {
     trava.releaseLock();
+  }
+}
+
+/**
+ * Garante o formato certo na célula antes de gravar:
+ * - código (MAC, NS) como texto puro, para não perder zero à esquerda;
+ * - valor como moeda em reais, para aparecer R$ 1.234,56 na planilha e na tela.
+ */
+function _formatarCelula(faixa, campo) {
+  try {
+    if (campo.tipo === 'codigo') faixa.setNumberFormat('@');
+    else if (campo.tipo === 'moeda') faixa.setNumberFormat('R$ #,##0.00');
+  } catch (e) {
+    // formato é acabamento: nunca impede a gravação
   }
 }
 
@@ -1145,7 +1214,9 @@ function criarSolicitacao(dados, arquivos) {
 
     // MAC e NS entram como texto puro, para não perder zero à esquerda
     ativos.forEach(function (item) {
-      if (item.campo.tipo === 'codigo') aba.getRange(linhaNova, item.col).setNumberFormat('@');
+      if (item.campo.tipo === 'codigo' || item.campo.tipo === 'moeda') {
+        _formatarCelula(aba.getRange(linhaNova, item.col), item.campo);
+      }
     });
 
     // Se a linha nova já tiver fórmula em alguma coluna (o CÓD MXM costuma

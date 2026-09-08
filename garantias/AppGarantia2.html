@@ -163,6 +163,27 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .estado h3{margin:0 0 6px;font-size:16px;font-weight:700;color:var(--tinta)}
 .estado p{margin:0;font-size:13px}
 
+/* ================= Seletor de visão ================= */
+.visoes{display:inline-flex;background:var(--sirius);border:1px solid var(--nevoa);border-radius:10px;padding:3px;gap:3px}
+.visao{border:none;background:transparent;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:600;color:var(--tinta-2);white-space:nowrap;transition:.15s}
+.visao:hover{color:var(--tinta)}
+.visao[aria-pressed="true"]{background:var(--branco);color:var(--tinta);box-shadow:0 1px 2px rgba(10,15,20,.1)}
+.visao[aria-pressed="true"]::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--aurora);margin-right:7px;vertical-align:1px}
+.linha-visao{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.linha-visao .desc{font-size:12px;color:var(--tinta-3)}
+
+/* célula editável direto na tabela */
+td.editavel{cursor:text;position:relative}
+td.editavel:hover{background:var(--aurora-fraco);box-shadow:inset 0 0 0 1px var(--nevoa)}
+tbody tr:hover td.editavel:hover{background:#fbe4d4}
+td.editando{padding:0;background:var(--branco) !important;box-shadow:inset 0 0 0 2px var(--aurora);overflow:visible;z-index:9}
+td.editando .cel-campo{width:100%}
+td.editando input,td.editando select{width:100%;border:none;background:transparent;padding:10px 8px;font-family:inherit;font-size:13px;font-weight:500;text-align:center;outline:none}
+td.editando .sel-env{margin:0}
+td.editando .sel-btn{border:none;border-radius:0;padding:9px 8px;justify-content:center}
+td.editando .sel-pop{left:auto;right:auto;min-width:240px;text-align:left}
+.dica-inline{font-size:11.5px;color:var(--tinta-3)}
+
 /* ================= Filtros ================= */
 .filtros{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
 .f-item{display:flex;flex-direction:column;gap:5px}
@@ -438,6 +459,11 @@ td.cel{text-align:center}
     <h1 class="titulo">Processos</h1>
     <p class="legenda" id="legenda-processos">Todos os acionamentos, em qualquer status.</p>
 
+    <div class="linha-visao">
+      <div class="visoes" id="visoes"></div>
+      <span class="desc" id="visao-desc"></span>
+    </div>
+
     <div class="filtros" id="filtros"></div>
 
     <div class="barra">
@@ -601,6 +627,10 @@ function aoIniciar(dados){
 function iniciarDeVerdade(dados){
   INICIO = dados;
   lerLarguras();
+  try {
+    var guardada = Number(window.localStorage.getItem(CHAVE_VISAO));
+    if (guardada >= 0 && dados.visoes && guardada < dados.visoes.length) VISAO = guardada;
+  } catch (e) {}
   dados.campos.forEach(function(c){ CAMPOS_POR_ID[c.id] = c; });
 
   el('usuario').textContent = dados.usuario || '';
@@ -1216,6 +1246,70 @@ var MULTIS = {};          // filtros de caixinha, por id
 var CONTEUDO = {};        // conteúdo completo das linhas já carregadas
 var MARCADOS = {};        // linhas selecionadas para o lote
 var ID_STATUS = 'status geral do acionamento';
+var VISAO = 0;                 // qual visão está escolhida
+var COLUNAS = [];              // colunas visíveis na visão atual
+var CHAVE_VISAO = 'gar_visao_v1';
+
+/* ==================================================================
+   Visões da tabela — recortes de colunas para cada uso
+   ================================================================== */
+function montarVisoes(){
+  var alvo = el('visoes');
+  alvo.innerHTML = '';
+  (INICIO.visoes || []).forEach(function(v, i){
+    var b = document.createElement('button');
+    b.className = 'visao';
+    b.type = 'button';
+    b.textContent = v.nome;
+    b.setAttribute('aria-pressed', i === VISAO ? 'true' : 'false');
+    b.addEventListener('click', function(){ trocarVisao(i); });
+    alvo.appendChild(b);
+  });
+  mostrarDescricaoVisao();
+}
+
+function mostrarDescricaoVisao(){
+  var v = (INICIO.visoes || [])[VISAO];
+  if (!v) return;
+  var quantas = COLUNAS.length ? COLUNAS.length + ' colunas' : '';
+  el('visao-desc').textContent = v.descricao + (quantas ? ' · ' + quantas : '');
+}
+
+function trocarVisao(i){
+  VISAO = i;
+  try { window.localStorage.setItem(CHAVE_VISAO, String(i)); } catch (e) {}
+  document.querySelectorAll('#visoes .visao').forEach(function(b, n){
+    b.setAttribute('aria-pressed', n === i ? 'true' : 'false');
+  });
+  definirColunas();
+  if (LISTA) desenharPagina();
+}
+
+/** Monta a lista de colunas visíveis conforme a visão escolhida. */
+function definirColunas(){
+  if (!LISTA){ COLUNAS = []; return; }
+  var v = (INICIO.visoes || [])[VISAO];
+
+  if (!v || !v.colunas){
+    COLUNAS = LISTA.colunas.slice();
+  } else {
+    var porId = {};
+    LISTA.colunas.forEach(function(c){ porId[c.id] = c; });
+    COLUNAS = v.colunas.map(function(id){ return porId[id]; }).filter(Boolean);
+    if (!COLUNAS.length) COLUNAS = LISTA.colunas.slice();
+  }
+  mostrarDescricaoVisao();
+}
+
+/** Nesta visão, a coluna pode ser editada clicando na célula? */
+function editavelNaTabela(coluna){
+  var v = (INICIO.visoes || [])[VISAO];
+  if (!v || !v.colunas) return false;          // na visão completa, não
+  if (COLUNAS.length && COLUNAS[0].id === coluna.id) return false;  // 1a coluna abre a gaveta
+  var campo = CAMPOS_POR_ID[coluna.id];
+  if (!campo) return false;
+  return !campo.auto && campo.tipo !== 'formula';
+}
 
 /* ==================================================================
    Largura das colunas — ajustável e guardada NO NAVEGADOR DE CADA UM
@@ -1266,7 +1360,7 @@ function larguraDe(coluna, indice){
 function aplicarColgroup(){
   var cg = el('processos-colgroup');
   var html = ['<col style="width:' + LARGURA_CX + 'px">'];
-  LISTA.colunas.forEach(function(c, i){
+  COLUNAS.forEach(function(c, i){
     html.push('<col data-id="' + esc(c.id) + '" style="width:' + larguraDe(c, i) + 'px">');
   });
   cg.innerHTML = html.join('');
@@ -1319,7 +1413,7 @@ function ligarPuxadores(){
     alca.addEventListener('dblclick', function(ev){
       ev.preventDefault();
       ev.stopPropagation();
-      var c = LISTA.colunas[indice];
+      var c = COLUNAS[indice];
       if (!c) return;
       delete LARGURAS[c.id];
       gravarLarguras();
@@ -1427,6 +1521,11 @@ function fecharTodosPops(){
   document.querySelectorAll('.sel-btn.aberto').forEach(function(b){ b.classList.remove('aberto'); });
 }
 document.addEventListener('click', fecharTodosPops);
+document.addEventListener('mousedown', function(ev){
+  if (!EDITANDO) return;
+  if (ev.target.closest('td.editando') || ev.target.closest('.sel-pop')) return;
+  fecharCelula(false);
+});
 
 /* ---------- montagem da barra de filtros ---------- */
 function montarFiltros(){
@@ -1514,6 +1613,8 @@ function carregarLista(forcar){
       CONTEUDO = r.pagina || {};
       MARCADOS = {};
       atualizarBarraSel();
+      definirColunas();
+      montarVisoes();
       montarFiltros();
       PAGINA = 1;
       aplicarFiltros();
@@ -1620,15 +1721,20 @@ function atualizarContagemFiltros(){
 
 /* ---------- desenho da página ---------- */
 function desenharPagina(){
+  if (EDITANDO) fecharCelula(true);
   el('processos-carregando').classList.add('oculto');
 
   var total = FILTRADOS.length;
   var paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
   if (PAGINA > paginas) PAGINA = paginas;
 
+  var v = (INICIO.visoes || [])[VISAO];
+  var comoEditar = (v && v.colunas)
+    ? 'Clique numa célula para editar ali mesmo, ou no código para abrir o acionamento completo.'
+    : 'Clique em uma linha para tratar; arraste a borda do cabeçalho para alargar a coluna.';
   el('legenda-processos').textContent =
-    total + ' de ' + LISTA.itens.length + ' acionamentos · ' + LISTA.colunas.length +
-    ' colunas da planilha. Clique em uma linha para tratar; arraste a borda do cabeçalho para alargar a coluna.';
+    total + ' de ' + LISTA.itens.length + ' acionamentos · ' + COLUNAS.length +
+    ' colunas. ' + comoEditar;
 
   if (!total){
     el('processos-tabela-caixa').classList.add('oculto');
@@ -1664,7 +1770,7 @@ function pintarTabela(fatia, total, paginas){
 
   // cabeçalho
   var th = ['<th class="trava cx-col" style="padding-right:0"><input type="checkbox" id="cx-todos" title="Selecionar a página"></th>'];
-  LISTA.colunas.forEach(function(c, n){
+  COLUNAS.forEach(function(c, n){
     th.push('<th data-indice="' + n + '"' +
             ' title="' + esc(c.rotulo) + '"><span class="rot">' + esc(c.rotulo) + '</span></th>');
   });
@@ -1678,15 +1784,16 @@ function pintarTabela(fatia, total, paginas){
     var dados = CONTEUDO[i.linha] || {};
     var tds = ['<td class="trava cx-col"><input type="checkbox" class="cx-linha" data-linha="' + i.linha + '"' +
                (MARCADOS[i.linha] ? ' checked' : '') + '></td>'];
-    LISTA.colunas.forEach(function(c, n){
+    COLUNAS.forEach(function(c, n){
       var v = dados[c.id] || '';
-      var classe = (n === 0 ? 'cod' : 'cel');
+      var classe = (n === 0 ? 'cod' : 'cel') + (editavelNaTabela(c) ? ' editavel' : '');
+      var attr = ' data-col="' + esc(c.id) + '"';
       if (c.id === ID_STATUS){
-        tds.push('<td class="cel"><span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span></td>');
+        tds.push('<td class="' + classe + '"' + attr + '><span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span></td>');
       } else if (!v){
-        tds.push('<td class="' + classe + ' vazio">—</td>');
+        tds.push('<td class="' + classe + ' vazio"' + attr + '>—</td>');
       } else {
-        tds.push('<td class="' + classe + '" title="' + esc(v) + '">' + esc(v) + '</td>');
+        tds.push('<td class="' + classe + '"' + attr + ' title="' + esc(v) + '">' + esc(v) + '</td>');
       }
     });
     html.push('<tr data-linha="' + i.linha + '" data-scgar="' + esc(i.scgar) + '"' +
@@ -1699,6 +1806,16 @@ function pintarTabela(fatia, total, paginas){
     tr.addEventListener('click', function(ev){
       if (ev.target.classList.contains('cx-linha')) return;
       if (ev.target.closest('.cx-col')) return;
+      if (ev.target.closest('td.editando')) return;
+
+      var td = ev.target.closest('td');
+
+      // Numa visão recortada, clicar na célula edita ali mesmo; clicar na
+      // primeira coluna (o código) abre o acionamento completo.
+      if (td && td.classList.contains('editavel')){
+        abrirCelula(td);
+        return;
+      }
       abrirGaveta(Number(tr.dataset.linha), tr.dataset.scgar);
     });
   });
@@ -1759,6 +1876,114 @@ function sincronizarCxTodos(fatia){
   var marcados = fatia.filter(function(i){ return MARCADOS[i.linha]; }).length;
   cx.checked = marcados === fatia.length && fatia.length > 0;
   cx.indeterminate = marcados > 0 && marcados < fatia.length;
+}
+
+/* ==================================================================
+   Edição direto na célula (visões recortadas, como a da reunião)
+   ------------------------------------------------------------------
+   Clique na célula, mude o valor, e Enter ou Tab grava. Tab pula para a
+   próxima célula editável da mesma linha, que é o ritmo de uma reunião.
+   ================================================================== */
+var EDITANDO = null;
+
+function abrirCelula(td){
+  if (EDITANDO) fecharCelula(true);
+
+  var tr = td.closest('tr');
+  var linha = Number(tr.dataset.linha);
+  var id = td.dataset.col;
+  var campo = CAMPOS_POR_ID[id];
+  if (!campo) return;
+
+  var exibido = (CONTEUDO[linha] || {})[id] || '';
+  var valor = exibido;
+  if (campo.tipo === 'data') valor = textoParaISO(exibido);
+  else if (campo.tipo === 'moeda' || campo.tipo === 'inteiro') valor = textoParaNumero(exibido);
+
+  var antes = td.innerHTML;
+  td.classList.add('editando');
+  td.innerHTML = '';
+
+  var caixa = criarCampo(campo, valor, 'cel-');
+  caixa.className = 'cel-campo';
+  var rot = caixa.querySelector('label');
+  if (rot) rot.remove();
+  td.appendChild(caixa);
+
+  EDITANDO = { td: td, tr: tr, linha: linha, id: id, campo: campo, antes: antes, original: valor };
+
+  var ent = td.querySelector('.entrada');
+  if (!ent) return;
+
+  var botaoSel = td.querySelector('.sel-btn');
+  if (botaoSel){
+    // Abre no próximo instante: se abrisse agora, o próprio clique que nos
+    // trouxe até aqui continuaria subindo e fecharia a lista.
+    setTimeout(function(){ botaoSel.click(); }, 0);
+    ent.addEventListener('change', function(){ fecharCelula(false); });
+  } else {
+    ent.focus();
+    if (ent.select) ent.select();
+  }
+
+  ent.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter'){ ev.preventDefault(); fecharCelula(false); }
+    if (ev.key === 'Escape'){ ev.preventDefault(); fecharCelula(true); }
+    if (ev.key === 'Tab'){ ev.preventDefault(); fecharCelula(false, ev.shiftKey ? -1 : 1); }
+  });
+}
+
+function fecharCelula(cancelar, pular){
+  if (!EDITANDO) return;
+  var e = EDITANDO;
+  EDITANDO = null;
+
+  var ent = e.td.querySelector('.entrada');
+  var novo = ent ? valorParaEnvio(e.campo, ent) : e.original;
+
+  e.td.classList.remove('editando');
+  e.td.innerHTML = e.antes;
+
+  if (!cancelar && String(novo) !== String(e.original)){
+    var mudanca = {};
+    mudanca[e.id] = novo;
+    gravarNaCelula(e.linha, mudanca);
+  }
+
+  if (pular) pularCelula(e.tr, e.td, pular);
+}
+
+/** Grava uma célula: mostra o valor na hora e manda para o servidor atrás. */
+function gravarNaCelula(linha, mudanca){
+  var anterior = CONTEUDO[linha] ? JSON.parse(JSON.stringify(CONTEUDO[linha])) : null;
+  var item = LISTA.itens.filter(function(i){ return i.linha === linha; })[0];
+  var scgar = item ? item.scgar : '';
+
+  pintarNaTabela(linha, mudanca);
+  recado('Salvando…');
+
+  google.script.run
+    .withSuccessHandler(function(r){
+      if (r && r.valores) aplicarValoresNaTabela(linha, r.valores);
+      recado('Salvo.');
+    })
+    .withFailureHandler(function(erro){
+      if (anterior){
+        CONTEUDO[linha] = anterior;
+        atualizarLinhaNaTela(linha);
+      }
+      recado('Não salvou: ' + erro.message, true);
+    })
+    .gar_salvarProcesso(linha, scgar, mudanca);
+}
+
+/** Vai para a próxima (ou anterior) célula editável da mesma linha. */
+function pularCelula(tr, td, direcao){
+  var celulas = [].slice.call(tr.querySelectorAll('td.editavel'));
+  var i = celulas.indexOf(td);
+  if (i < 0) return;
+  var proxima = celulas[i + direcao];
+  if (proxima) setTimeout(function(){ abrirCelula(proxima); }, 10);
 }
 
 /* ==================================================================
@@ -2090,16 +2315,17 @@ function atualizarLinhaNaTela(linha){
   if (!tr) return;
   var dados = CONTEUDO[linha] || {};
   var tds = tr.querySelectorAll('td');
-  LISTA.colunas.forEach(function(c, n){
+  COLUNAS.forEach(function(c, n){
     var td = tds[n + 1];
     if (!td) return;
     var v = dados[c.id] || '';
+    var extra = editavelNaTabela(c) ? ' editavel' : '';
     if (c.id === ID_STATUS){
-      td.className = 'cel';
+      td.className = 'cel' + extra;
       td.innerHTML = '<span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span>';
       return;
     }
-    td.className = (n === 0 ? 'cod' : 'cel') + (v ? '' : ' vazio');
+    td.className = (n === 0 ? 'cod' : 'cel') + extra + (v ? '' : ' vazio');
     td.title = v;
     td.textContent = v || '—';
   });
