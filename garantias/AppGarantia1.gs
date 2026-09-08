@@ -12,6 +12,14 @@
  * tela e o aviso é mostrado ao usuário — nunca se grava no lugar errado.
  */
 
+/* ==================================================================
+   TUDO DESTE SISTEMA FICA DENTRO DA "CAIXA" GAR_GARANTIAS.
+   Isso evita conflito com outros códigos que já existam neste projeto
+   do Apps Script: nada aqui vaza para fora, exceto as poucas funções
+   com o prefixo gar_ que ficam no final do arquivo.
+   ================================================================== */
+var GAR_GARANTIAS = (function () {
+
 /* ================================================================== */
 /* CONFIGURAÇÃO — é só aqui que se mexe no dia a dia                   */
 /* ================================================================== */
@@ -692,4 +700,52 @@ function _avisarPorEmail(scgar, dados, ativos, linhaNova) {
     // O e-mail não pode impedir a abertura da solicitação.
     console.error('Falha ao enviar o aviso: ' + e.message);
   }
+}
+
+/* ================================================================== */
+/* Fim da caixa — o que a tela pode chamar                             */
+/* ================================================================== */
+
+  return {
+    doGet: doGet,
+    carregarInicio: carregarInicio,
+    listarProcessos: listarProcessos,
+    obterProcesso: obterProcesso,
+    salvarProcesso: salvarProcesso,
+    criarSolicitacao: criarSolicitacao
+  };
+
+})();
+
+/* ==================================================================
+   PONTES GLOBAIS
+   São as únicas funções deste arquivo visíveis para o resto do projeto.
+   Todas levam o prefixo gar_ justamente para não colidir com nada.
+   A única sem prefixo é a doGet, exigida pelo Google para abrir o link
+   do app da Web. Se este projeto JÁ tiver outra função chamada doGet,
+   me avise — nesse caso as duas precisam ser unificadas em uma só.
+   ================================================================== */
+
+function doGet(e) {
+  return GAR_GARANTIAS.doGet(e);
+}
+
+function gar_carregarInicio() {
+  return GAR_GARANTIAS.carregarInicio();
+}
+
+function gar_listarProcessos(forcar) {
+  return GAR_GARANTIAS.listarProcessos(forcar);
+}
+
+function gar_obterProcesso(linha) {
+  return GAR_GARANTIAS.obterProcesso(linha);
+}
+
+function gar_salvarProcesso(linha, scgarEsperado, alteracoes) {
+  return GAR_GARANTIAS.salvarProcesso(linha, scgarEsperado, alteracoes);
+}
+
+function gar_criarSolicitacao(dados) {
+  return GAR_GARANTIAS.criarSolicitacao(dados);
 }

@@ -312,7 +312,7 @@ function dataBR(iso){
 /* ==================================================================
    Início
    ================================================================== */
-google.script.run.withSuccessHandler(aoIniciar).withFailureHandler(falhaGrave).carregarInicio();
+google.script.run.withSuccessHandler(aoIniciar).withFailureHandler(falhaGrave).gar_carregarInicio();
 
 function falhaGrave(erro){
   document.querySelector('.corpo').innerHTML =
@@ -457,7 +457,7 @@ el('btn-enviar').addEventListener('click', function(){
       botao.textContent = 'Enviar solicitação';
       recado(e.message, true);
     })
-    .criarSolicitacao(dados);
+    .gar_criarSolicitacao(dados);
 });
 
 /* ==================================================================
@@ -518,7 +518,7 @@ function carregarLista(forcar){
       el('processos-carregando').classList.add('oculto');
       recado(e.message, true);
     })
-    .listarProcessos(!!forcar);
+    .gar_listarProcessos(!!forcar);
 }
 
 function filtrar(){
@@ -596,7 +596,7 @@ function abrirGaveta(linha, scgar){
       el('gaveta-corpo').innerHTML = '<div class="aviso aviso-erro" style="margin-top:18px">' + esc(e.message) + '</div>';
       el('gaveta-met').textContent = '';
     })
-    .obterProcesso(linha);
+    .gar_obterProcesso(linha);
 }
 
 function montarGaveta(r){
@@ -678,7 +678,7 @@ el('btn-salvar').addEventListener('click', function(){
       botao.textContent = 'Salvar alterações';
       recado(e.message, true);
     })
-    .salvarProcesso(ATUAL.linha, ATUAL.scgar, alteracoes);
+    .gar_salvarProcesso(ATUAL.linha, ATUAL.scgar, alteracoes);
 });
 </script>
 </body>

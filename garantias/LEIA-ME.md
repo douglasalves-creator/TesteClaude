@@ -98,3 +98,16 @@ ordem de aparição: a primeira é tratada como **envio** e a segunda como
 `... (Envio)` e `... (Retorno)` resolve de forma definitiva — quando isso for
 feito, basta ajustar os dois `cab` correspondentes na lista `CAMPOS` e remover
 os `ocor`.
+
+## Convivência com outros códigos no mesmo projeto
+
+Todo o sistema fica dentro de uma única "caixa" chamada `GAR_GARANTIAS`, então
+ele **não conflita** com outros scripts que já existam no mesmo projeto do Apps
+Script. Fora da caixa existem apenas estas funções, todas com prefixo próprio:
+
+`gar_carregarInicio` · `gar_listarProcessos` · `gar_obterProcesso` ·
+`gar_salvarProcesso` · `gar_criarSolicitacao`
+
+A única exceção é o `doGet`, que o Google exige com esse nome exato para abrir o
+link do app da Web. **Se o projeto já tiver outra função `doGet`**, as duas
+precisam ser unificadas — nesse caso, avise para fazermos o ajuste.
