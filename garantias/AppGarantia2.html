@@ -143,18 +143,18 @@ table{width:100%;border-collapse:collapse;min-width:900px}
 th{
   font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);
   text-align:center;padding:11px 14px;background:var(--sirius);border-bottom:1px solid var(--nevoa);
-  position:sticky;top:60px;z-index:5;
+  white-space:nowrap;position:sticky;top:60px;z-index:5;
 }
 td{padding:11px 14px;border-bottom:1px solid #ececec;font-size:13px;vertical-align:middle;text-align:center}
 .tabela-caixa td{padding:10px 12px}
 tbody tr{cursor:pointer;transition:background .12s}
 tbody tr:hover{background:var(--aurora-fraco)}
 tbody tr:last-child td{border-bottom:none}
-td.cod{font-weight:700;text-align:center}
+td.cod{font-weight:700;white-space:nowrap;text-align:center}
 
 .vazio{color:var(--tinta-3)}
 
-.pilula{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:normal;background:var(--sirius);color:var(--tinta-2);border:1px solid var(--nevoa)}
+.pilula{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--sirius);color:var(--tinta-2);border:1px solid var(--nevoa)}
 .pilula.s-pendente{background:var(--aurora-fraco);color:#a44a14;border-color:#f6d3ba}
 .pilula.s-andamento{background:#e7effa;color:var(--cosmos);border-color:#c9dcf1}
 .pilula.s-transito{background:#eef7d9;color:#5c6b1c;border-color:#dcecb4}
@@ -262,16 +262,20 @@ input.escondido{position:absolute;width:1px;height:1px;opacity:0;pointer-events:
 
 /* ================= Tabela grande ================= */
 .tabela-caixa{overflow:auto;max-height:calc(100vh - 300px);border-radius:var(--raio)}
-.tabela-caixa table{width:max-content;min-width:100%;table-layout:fixed}
+.tabela-caixa table{table-layout:fixed}
+/* Coluna de sobra: existe só para o cabeçalho encostar na borda direita
+   quando as colunas somam menos que a largura do quadro. Sem ela o
+   navegador esticava as colunas e a largura escolhida era ignorada. */
+.tabela-caixa th.sobra,.tabela-caixa td.sobra{padding:0}
 .tabela-caixa th,.tabela-caixa td{
-  /* Texto dobra para a linha de baixo, como o "Ajustar texto" do Excel.
-     Quebra primeiro nos espaços; só corta palavra quando ela sozinha não
-     couber na largura escolhida. */
-  white-space:normal;overflow-wrap:break-word;
-  vertical-align:middle;line-height:1.35;
+  /* Uma linha por célula. O que não couber termina em "…", avisando que há
+     mais informação: para ver tudo, alargue a coluna arrastando a borda do
+     cabeçalho, passe o mouse por cima, ou abra o acionamento. Assim todas as
+     linhas ficam com a mesma altura e a tabela segue legível com 60 colunas. */
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;
 }
 .tabela-caixa th{position:relative;padding-right:18px}
-.tabela-caixa th .rot{display:block}
+.tabela-caixa th .rot{display:block;overflow:hidden;text-overflow:ellipsis}
 
 /* alça de arrastar a largura da coluna */
 .puxador{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:8;
@@ -1404,10 +1408,25 @@ function larguraDe(coluna, indice){
 function aplicarColgroup(){
   var cg = el('processos-colgroup');
   var html = ['<col style="width:' + LARGURA_CX + 'px">'];
+  var total = LARGURA_CX;
+
   COLUNAS.forEach(function(c, i){
-    html.push('<col data-id="' + esc(c.id) + '" style="width:' + larguraDe(c, i) + 'px">');
+    var largura = larguraDe(c, i);
+    total += largura;
+    html.push('<col data-id="' + esc(c.id) + '" style="width:' + largura + 'px">');
   });
+
+  var caixa = el('processos-tabela-caixa').clientWidth || 0;
+  var sobra = Math.max(0, caixa - total);
+  html.push('<col style="width:' + sobra + 'px">');
   cg.innerHTML = html.join('');
+
+  // A tabela recebe a largura EXATA da soma das colunas. Sem isso o
+  // navegador estica as colunas para preencher o espaço e a largura
+  // escolhida pelo usuário não vale.
+  var tabela = el('processos-tabela-caixa').querySelector('table');
+  if (tabela) tabela.style.width = (total + sobra) + 'px';
+
   posicionarTravadas();
 }
 
@@ -1416,8 +1435,6 @@ function posicionarTravadas(){ /* nada a fazer: a trava é só a primeira coluna
 
 /** Liga o arrastar da largura em cada cabeçalho. */
 function ligarPuxadores(){
-  var cols = el('processos-colgroup').querySelectorAll('col[data-id]');
-
   el('processos-cabecalho').querySelectorAll('th[data-indice]').forEach(function(th){
     var indice = Number(th.dataset.indice);
     var alca = document.createElement('div');
@@ -1425,10 +1442,23 @@ function ligarPuxadores(){
     alca.title = 'Arraste para mudar a largura';
     th.appendChild(alca);
 
+    // O <col> é procurado na hora de arrastar, nunca guardado: a tabela é
+    // redesenhada a cada página e a cada visão, e um elemento guardado
+    // ficaria velho — o arraste mexia num pedaço que não estava mais na tela.
+    function colunaAtual(){
+      var c = COLUNAS[indice];
+      if (!c) return null;
+      var cols = el('processos-colgroup').querySelectorAll('col[data-id]');
+      for (var i = 0; i < cols.length; i++){
+        if (cols[i].getAttribute('data-id') === c.id) return cols[i];
+      }
+      return null;
+    }
+
     alca.addEventListener('mousedown', function(ev){
       ev.preventDefault();
       ev.stopPropagation();
-      var col = cols[indice];
+      var col = colunaAtual();
       if (!col) return;
 
       var xInicial = ev.clientX;
@@ -1445,9 +1475,13 @@ function ligarPuxadores(){
         document.removeEventListener('mouseup', soltar);
         alca.classList.remove('arrastando');
         document.body.classList.remove('redimensionando');
-        var id = col.dataset.id;
-        LARGURAS[id] = parseFloat(col.style.width);
-        gravarLarguras();
+
+        var c = COLUNAS[indice];
+        if (c){
+          LARGURAS[c.id] = parseFloat(col.style.width);
+          gravarLarguras();
+          aplicarColgroup();
+        }
       }
       document.addEventListener('mousemove', mover);
       document.addEventListener('mouseup', soltar);
@@ -1565,6 +1599,9 @@ function fecharTodosPops(){
   document.querySelectorAll('.sel-btn.aberto').forEach(function(b){ b.classList.remove('aberto'); });
 }
 document.addEventListener('click', fecharTodosPops);
+window.addEventListener('resize', function(){
+  if (LISTA && COLUNAS.length) aplicarColgroup();
+});
 document.addEventListener('mousedown', function(ev){
   if (!EDITANDO) return;
   if (ev.target.closest('td.editando') || ev.target.closest('.sel-pop')) return;
@@ -1774,7 +1811,7 @@ function desenharPagina(){
   var v = (INICIO.visoes || [])[VISAO];
   var comoEditar = (v && v.colunas)
     ? 'Clique numa célula para editar ali mesmo, ou no código para abrir o acionamento completo.'
-    : 'Clique em uma linha para tratar; arraste a borda do cabeçalho para alargar a coluna.';
+    : 'Clique em uma linha para tratar. Texto terminando em “…” está cortado: alargue a coluna arrastando a borda do cabeçalho, ou passe o mouse por cima.';
   el('legenda-processos').textContent =
     total + ' de ' + LISTA.itens.length + ' acionamentos · ' + COLUNAS.length +
     ' colunas. ' + comoEditar;
@@ -1817,6 +1854,7 @@ function pintarTabela(fatia, total, paginas){
     th.push('<th data-indice="' + n + '"' +
             ' title="' + esc(c.rotulo) + '"><span class="rot">' + esc(c.rotulo) + '</span></th>');
   });
+  th.push('<th class="sobra"></th>');
   el('processos-cabecalho').innerHTML = th.join('');
   aplicarColgroup();
   ligarPuxadores();
@@ -1839,6 +1877,7 @@ function pintarTabela(fatia, total, paginas){
         tds.push('<td class="' + classe + '"' + attr + ' title="' + esc(v) + '">' + esc(v) + '</td>');
       }
     });
+    tds.push('<td class="sobra"></td>');
     html.push('<tr data-linha="' + i.linha + '" data-scgar="' + esc(i.scgar) + '"' +
               (MARCADOS[i.linha] ? ' class="marcada"' : '') + '>' + tds.join('') + '</tr>');
   });
@@ -1849,6 +1888,7 @@ function pintarTabela(fatia, total, paginas){
     tr.addEventListener('click', function(ev){
       if (ev.target.classList.contains('cx-linha')) return;
       if (ev.target.closest('.cx-col')) return;
+      if (ev.target.closest('td.sobra')) return;
       if (ev.target.closest('td.editando')) return;
 
       var td = ev.target.closest('td');

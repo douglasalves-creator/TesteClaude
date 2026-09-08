@@ -301,10 +301,18 @@ Definido em 08/09/2026.
 - **Largura ajustável por coluna, nas duas visões**: arraste a borda direita do
   cabeçalho. Duplo clique na borda devolve o padrão daquela coluna, e o botão
   **Redefinir colunas** devolve tudo ao padrão.
-- **O texto dobra** para a linha de baixo quando não cabe na largura escolhida,
-  como o "Ajustar texto" do Excel — nada de reticências nem texto escondido. A
-  quebra acontece primeiro nos espaços; palavra que sozinha não cabe é cortada.
-  A altura da linha acompanha.
+- **Uma linha por célula, com "…" no fim do que não couber** (decisão de
+  08/09/2026). A quebra de texto foi testada e descartada: com 60 colunas,
+  basta uma ter texto longo para a linha inteira ficar alta, e a tabela perde a
+  aparência de tabela. Para ver o conteúdo cortado: alargar a coluna, passar o
+  mouse (balão com o texto inteiro) ou abrir o acionamento.
+- Detalhe técnico que fez a diferença: a largura da tabela é definida pela
+  **soma exata das colunas**, mais uma coluna de sobra invisível para encostar
+  na borda. Com `width: max-content` o navegador esticava as colunas para
+  preencher o espaço e a largura escolhida pelo usuário era ignorada.
+- O `<col>` da coluna é procurado **no momento do arraste**, nunca guardado: a
+  tabela é redesenhada a cada página e visão, e um elemento guardado ficava
+  velho.
 - O ajuste é **individual**: fica no armazenamento local do navegador de cada
   pessoa, então o que um faz não muda nada para os outros. Se o navegador
   bloquear o armazenamento, o ajuste vale só enquanto a aba estiver aberta.
