@@ -101,6 +101,7 @@ body.no-inicio{background:var(--eclipse)}
 
 /* ================= Estrutura ================= */
 .corpo{max-width:1360px;margin:0 auto;padding:26px 24px 80px}
+.corpo.largo{max-width:none}
 .titulo{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px}
 .legenda{font-size:13px;color:var(--tinta-2);margin:0 0 22px}
 .painel{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);box-shadow:var(--sombra)}
@@ -181,7 +182,7 @@ td.editando .cel-campo{width:100%}
 td.editando input,td.editando select{width:100%;border:none;background:transparent;padding:10px 8px;font-family:inherit;font-size:13px;font-weight:500;text-align:center;outline:none}
 td.editando .sel-env{margin:0}
 td.editando .sel-btn{border:none;border-radius:0;padding:9px 8px;justify-content:center}
-td.editando .sel-pop{left:auto;right:auto;min-width:240px;text-align:left}
+td.editando .sel-pop{text-align:left;z-index:60}
 .dica-inline{font-size:11.5px;color:var(--tinta-3)}
 
 /* ================= Filtros ================= */
@@ -356,7 +357,7 @@ td.cel{text-align:center}
 }
 </style>
 </head>
-<body>
+<body class="no-inicio">
 
 <header class="topo">
   <div class="topo-in">
@@ -364,7 +365,7 @@ td.cel{text-align:center}
       <div class="nome">Solar<span>Grid</span></div>
       <div class="sub">Garantias</div>
     </div>
-    <nav class="abas" role="tablist" id="abas">
+    <nav class="abas oculto" role="tablist" id="abas">
       <button class="btn-voltar" id="btn-inicio-topo"><span>&#8592;</span> Início</button>
       <button class="aba" role="tab" aria-selected="false" data-mod="solicitacao">Solicitação</button>
       <button class="aba" role="tab" aria-selected="false" data-mod="processos">Processos</button>
@@ -413,7 +414,7 @@ td.cel{text-align:center}
           </svg>
         </div>
         <h2>Painel</h2>
-        <p>Indicadores e gráficos dos acionamentos.</p>
+        <p>Indicadores para acompanhamento.</p>
         <div class="entrar">Abrir <span>&#8594;</span></div>
       </button>
     </div>
@@ -424,7 +425,7 @@ td.cel{text-align:center}
   </div>
 </section>
 
-<main class="corpo" id="area-modulos">
+<main class="corpo oculto" id="area-modulos">
 
   <div id="aviso-erro-js" class="aviso aviso-erro oculto"></div>
   <div id="aviso-faltando" class="aviso aviso-alerta oculto"></div>
@@ -555,6 +556,8 @@ td.cel{text-align:center}
 function mostrarErroJS(texto){
   var caixa = document.getElementById('aviso-erro-js');
   if (!caixa) { alert('Erro: ' + texto); return; }
+  var area = document.getElementById('area-modulos');
+  if (area) area.classList.remove('oculto');
   caixa.classList.remove('oculto');
   caixa.innerHTML = '<b>Falha na tela:</b><br>' + String(texto).replace(/</g,'&lt;');
   window.scrollTo(0,0);
@@ -615,6 +618,7 @@ if (typeof google === 'undefined' || !google.script || !google.script.run) {
 }
 
 function falhaGrave(erro){
+  document.getElementById('area-modulos').classList.remove('oculto');
   document.querySelector('.corpo').innerHTML =
     '<div class="aviso aviso-erro"><b>Não foi possível abrir o sistema.</b><br>' + esc(erro.message) + '</div>';
 }
@@ -688,6 +692,10 @@ function irPara(mod){
   ['solicitacao','processos','painel'].forEach(function(m){
     el('mod-'+m).classList.toggle('oculto', m !== mod);
   });
+
+  // O módulo Processos aproveita a largura toda da tela; os outros ficam
+  // na medida de leitura confortável.
+  el('area-modulos').classList.toggle('largo', mod === 'processos');
 
   if (mod === 'processos' && !LISTA) carregarLista(false);
   window.scrollTo(0,0);
@@ -929,11 +937,40 @@ function criarSeletor(campo, valor, idCampo){
     botao.classList.add('aberto');
     procura.value = '';
     desenhar();
+    posicionarSePreciso();
     procura.focus();
   }
+
+  /**
+   * Dentro da tabela, a lista era CORTADA pela borda do quadro que rola.
+   * Nesse caso ela passa a flutuar por cima da tela, ancorada no campo.
+   */
+  function posicionarSePreciso(){
+    var dentroDaTabela = env.closest('.tabela-caixa');
+    if (!dentroDaTabela){
+      pop.style.position = '';
+      pop.style.top = pop.style.left = pop.style.width = '';
+      return;
+    }
+    var r = botao.getBoundingClientRect();
+    var largura = Math.max(r.width, 260);
+    var altura = pop.offsetHeight || 300;
+
+    var esquerda = Math.min(r.left, window.innerWidth - largura - 12);
+    var topo = r.bottom + 4;
+    if (topo + altura > window.innerHeight - 8) topo = Math.max(8, r.top - altura - 4);
+
+    pop.style.position = 'fixed';
+    pop.style.width = largura + 'px';
+    pop.style.left = Math.max(8, esquerda) + 'px';
+    pop.style.top = topo + 'px';
+  }
+
   function fechar(){
     pop.classList.remove('abre');
     botao.classList.remove('aberto');
+    pop.style.position = '';
+    pop.style.top = pop.style.left = pop.style.width = '';
   }
 
   botao.addEventListener('click', function(ev){
@@ -1618,8 +1655,7 @@ function carregarLista(forcar){
       montarFiltros();
       PAGINA = 1;
       aplicarFiltros();
-      el('cartao-processos-sub').textContent =
-        LISTA.itens.length + ' acionamentos · ' + LISTA.colunas.length + ' colunas.';
+      el('cartao-processos-sub').textContent = LISTA.itens.length + ' acionamentos.';
     })
     .withFailureHandler(function(e){
       el('processos-carregando').classList.add('oculto');

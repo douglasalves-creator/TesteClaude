@@ -35,7 +35,8 @@ Consequências práticas:
 ## Módulos
 
 O link abre numa **tela de início** com três cartões — Solicitação, Processos e
-Painel — sobre fundo Eclipse. Título **Controle de Acionamentos** com
+Painel — sobre fundo Eclipse. O menu superior só aparece **depois** de escolher
+um módulo. Título **Controle de Acionamentos** com
 **SolarGrid** em Aurora na linha de baixo, saudação, e o aviso de acesso
 restrito centralizado no pé. O logo no topo e o botão **Início** voltam para lá.
 
@@ -326,6 +327,9 @@ Para criar ou mudar uma visão, basta editar a lista de cabeçalhos em `VISOES`.
 Cabeçalho que não existir na aba é ignorado sem erro. A visão escolhida fica
 guardada no navegador de cada pessoa.
 
+A tabela de Processos usa a **largura toda da tela**; os outros módulos ficam
+na medida de leitura confortável (1360px).
+
 **Edição direto na célula** funciona nas visões recortadas (não na Completa,
 onde as 51 colunas fariam o clique atrapalhar a leitura):
 
@@ -336,7 +340,11 @@ onde as 51 colunas fariam o clique atrapalhar a leitura):
 - a primeira coluna não é editável de propósito: clicar nela abre o acionamento
   completo, com todos os campos;
 - a gravação é a mesma da edição individual, então passa pelas mesmas regras e
-  entra na aba Auditoria como `Edição`.
+  entra na aba Auditoria como `Edição`;
+- as listas suspensas abertas dentro da tabela **flutuam por cima da tela**
+  (posição fixa, ancorada no campo, virando para cima quando não cabe embaixo).
+  Sem isso ficavam cortadas pela borda do quadro que rola, e as opções não
+  apareciam.
 
 Colunas de valor recebem formato de moeda (`R$ #,##0.00`) na planilha ao serem
 gravadas, para o valor aparecer igual na planilha e na tela.
