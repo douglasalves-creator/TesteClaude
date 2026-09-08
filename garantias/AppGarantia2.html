@@ -141,19 +141,20 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml;charset=
 .rolagem{overflow-x:auto;border-radius:var(--raio)}
 table{width:100%;border-collapse:collapse;min-width:900px}
 th{
-  font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tinta-2);
-  text-align:center;padding:11px 14px;background:var(--sirius);border-bottom:1px solid var(--nevoa);white-space:nowrap;
+  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);
+  text-align:center;padding:11px 14px;background:var(--sirius);border-bottom:1px solid var(--nevoa);
   position:sticky;top:60px;z-index:5;
 }
 td{padding:11px 14px;border-bottom:1px solid #ececec;font-size:13px;vertical-align:middle;text-align:center}
+.tabela-caixa td{padding:10px 12px}
 tbody tr{cursor:pointer;transition:background .12s}
 tbody tr:hover{background:var(--aurora-fraco)}
 tbody tr:last-child td{border-bottom:none}
-td.cod{font-weight:700;white-space:nowrap;text-align:center}
-td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+td.cod{font-weight:700;text-align:center}
+
 .vazio{color:var(--tinta-3)}
 
-.pilula{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--sirius);color:var(--tinta-2);border:1px solid var(--nevoa)}
+.pilula{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:normal;background:var(--sirius);color:var(--tinta-2);border:1px solid var(--nevoa)}
 .pilula.s-pendente{background:var(--aurora-fraco);color:#a44a14;border-color:#f6d3ba}
 .pilula.s-andamento{background:#e7effa;color:var(--cosmos);border-color:#c9dcf1}
 .pilula.s-transito{background:#eef7d9;color:#5c6b1c;border-color:#dcecb4}
@@ -262,9 +263,15 @@ input.escondido{position:absolute;width:1px;height:1px;opacity:0;pointer-events:
 /* ================= Tabela grande ================= */
 .tabela-caixa{overflow:auto;max-height:calc(100vh - 300px);border-radius:var(--raio)}
 .tabela-caixa table{width:max-content;min-width:100%;table-layout:fixed}
-.tabela-caixa th,.tabela-caixa td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabela-caixa th,.tabela-caixa td{
+  /* Texto dobra para a linha de baixo, como o "Ajustar texto" do Excel.
+     Quebra primeiro nos espaços; só corta palavra quando ela sozinha não
+     couber na largura escolhida. */
+  white-space:normal;overflow-wrap:break-word;
+  vertical-align:middle;line-height:1.35;
+}
 .tabela-caixa th{position:relative;padding-right:18px}
-.tabela-caixa th .rot{display:block;overflow:hidden;text-overflow:ellipsis}
+.tabela-caixa th .rot{display:block}
 
 /* alça de arrastar a largura da coluna */
 .puxador{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:8;
@@ -2057,8 +2064,8 @@ function abrirLote(){
   corpo.innerHTML = '';
 
   INICIO.grupos.forEach(function(grupo){
-    var doGrupo = INICIO.campos.filter(function(c){
-      return c.grupo === grupo && c.tipo !== 'formula' && !c.auto;
+    var doGrupo = camposDoGrupo(grupo).filter(function(c){
+      return c.tipo !== 'formula' && !c.auto;
     });
     if (!doGrupo.length) return;
 
@@ -2173,6 +2180,17 @@ el('btn-salvar-lote').addEventListener('click', function(){
     .gar_salvarLote(linhas, alteracoes);
 });
 
+/**
+ * Campos de um bloco, na MESMA ORDEM das colunas da planilha.
+ * (A ordem da lista CAMPOS serve para o formulário de solicitação, que é
+ * outra sequência; aqui o que vale é a leitura da planilha.)
+ */
+function camposDoGrupo(grupo){
+  return INICIO.campos
+    .filter(function(c){ return c.grupo === grupo; })
+    .sort(function(a, b){ return (a.coluna || 0) - (b.coluna || 0); });
+}
+
 /* ==================================================================
    Gaveta de tratamento
    ================================================================== */
@@ -2225,7 +2243,7 @@ function montarGaveta(r){
   corpo.innerHTML = '';
 
   INICIO.grupos.forEach(function(grupo, indice){
-    var doGrupo = INICIO.campos.filter(function(c){ return c.grupo === grupo; });
+    var doGrupo = camposDoGrupo(grupo);
     if (!doGrupo.length) return;
 
     var bloco = document.createElement('section');

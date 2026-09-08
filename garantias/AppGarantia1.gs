@@ -163,56 +163,62 @@ const CAMPOS = [
   { cab: 'CÓD MXM (FÓRMULA)',     tipo: 'formula', grupo: 'Identificação' },
 
   // --- Triagem -------------------------------------------------------
-  { cab: 'Status Geral do Acionamento', tipo: 'select', opcoes: STATUS_GERAL, grupo: 'Triagem', lista: true },
-  { cab: 'Responsável Atual',     tipo: 'select', grupo: 'Triagem', lista: true, opcoesDaColuna: true , filtro: true },
-  { cab: 'Tipo',                  tipo: 'select', grupo: 'Triagem', opcoesDaColuna: true },
-  { cab: 'Chamado',               tipo: 'texto',  grupo: 'Triagem' },
-  { cab: 'Data Abertura',         tipo: 'data',   grupo: 'Triagem' },
-  { cab: 'Status',                tipo: 'select', grupo: 'Triagem', opcoesDaColuna: true },
-  { cab: 'Ação Processos STI',    tipo: 'area',   grupo: 'Triagem' },
-  { cab: 'Historico (resumo)',    tipo: 'area',   grupo: 'Triagem' },
-  { cab: 'Link do Card',          tipo: 'link',   grupo: 'Triagem' },
-  { cab: 'Link',                  tipo: 'link',   grupo: 'Triagem' },
+  { cab: 'Status Geral do Acionamento', tipo: 'select', opcoes: STATUS_GERAL, grupo: 'Identificação', lista: true },
+  { cab: 'Responsável Atual',     tipo: 'select', grupo: 'Identificação', lista: true, opcoesDaColuna: true , filtro: true },
+  { cab: 'Tipo',                  tipo: 'select', grupo: 'Identificação', opcoesDaColuna: true },
+  { cab: 'Chamado',               tipo: 'texto',  grupo: 'Identificação' },
+  { cab: 'Data Abertura',         tipo: 'data',   grupo: 'Identificação' },
+  { cab: 'Status',                tipo: 'select', grupo: 'Identificação', opcoesDaColuna: true },
+  { cab: 'Ação Processos STI',    tipo: 'area',   grupo: 'Identificação' },
+  { cab: 'Historico (resumo)',    tipo: 'area',   grupo: 'Identificação' },
+  { cab: 'Link do Card',          tipo: 'link',   grupo: 'Identificação' },
+  { cab: 'Link',                  tipo: 'link',   grupo: 'Identificação' },
 
   // --- Garantia ------------------------------------------------------
-  { cab: 'Vigencia da Garantia',      tipo: 'data',  grupo: 'Garantia' },
-  { cab: 'Data Emissão Declaração',   tipo: 'data',  grupo: 'Garantia' },
-  { cab: 'NS FINAL',                  tipo: 'texto', grupo: 'Garantia' },
-  { cab: 'Nota Fiscal Retorno',       tipo: 'texto', grupo: 'Garantia' },
+  { cab: 'Vigencia da Garantia',      tipo: 'data',  grupo: 'Supply' },
+  { cab: 'Data Emissão Declaração',   tipo: 'data',  grupo: 'Supply' },
+  { cab: 'NS FINAL',                  tipo: 'texto', grupo: 'Supply' },
+  { cab: 'Nota Fiscal Retorno',       tipo: 'texto', grupo: 'Supply' },
 
   // --- Envio ---------------------------------------------------------
-  { cab: 'Valor do Frete / Envio Estimado (Envio)', tipo: 'moeda',  grupo: 'Envio' },
-  { cab: 'Via / Veiculo',                 tipo: 'texto',  grupo: 'Envio' },
-  { cab: 'Aprov Marcella (Envio)',                      tipo: 'data', grupo: 'Envio' },
-  { cab: 'Aprov Felipe (Envio)',                        tipo: 'data', grupo: 'Envio' },
-  { cab: 'Data  envio/Coleta',            tipo: 'data',   grupo: 'Envio' },
-  { cab: 'Codigo Rastreio / Romaneio RFQ', ocor: 1, tipo: 'texto', grupo: 'Envio', rotulo: 'Código Rastreio / Romaneio RFQ (envio)' },
-  { cab: 'Data Chegada no Fornecedor',    tipo: 'data',   grupo: 'Envio' },
-  { cab: 'Comentarios',                   tipo: 'area',   grupo: 'Envio' },
+  { cab: 'Valor do Frete / Envio Estimado (Envio)', tipo: 'moeda',  grupo: 'Fornecedor' },
+  { cab: 'Via / Veiculo',                 tipo: 'texto',  grupo: 'Fornecedor' },
+  { cab: 'Aprov Marcella (Envio)',                      tipo: 'data', grupo: 'Fornecedor' },
+  { cab: 'Aprov Felipe (Envio)',                        tipo: 'data', grupo: 'Fornecedor' },
+  { cab: 'Data  envio/Coleta',            tipo: 'data',   grupo: 'Fornecedor' },
+  { cab: 'Codigo Rastreio / Romaneio RFQ', ocor: 1, tipo: 'texto', grupo: 'Fornecedor', rotulo: 'Código Rastreio / Romaneio RFQ (envio)' },
+  { cab: 'Data Chegada no Fornecedor',    tipo: 'data',   grupo: 'Fornecedor' },
+  { cab: 'Comentarios',                   tipo: 'area',   grupo: 'Fornecedor' },
 
   // --- Análise / Reparo ----------------------------------------------
-  { cab: 'Coberto em Garantia',      tipo: 'select', opcoes: SIM_NAO,   grupo: 'Análise / Reparo', lista: true },
-  { cab: 'Valor Reparo',             tipo: 'moeda',  grupo: 'Análise / Reparo' },
-  { cab: 'Aprov Marcella (Reparo)',                     tipo: 'data', grupo: 'Análise / Reparo' },
-  { cab: 'Aprov Felipe (Reparo)',                       tipo: 'data', grupo: 'Análise / Reparo' },
+  { cab: 'Coberto em Garantia',      tipo: 'select', opcoes: SIM_NAO,   grupo: 'Fornecedor', lista: true },
+  { cab: 'Valor Reparo',             tipo: 'moeda',  grupo: 'Fornecedor' },
+  { cab: 'Aprov Marcella (Reparo)',                     tipo: 'data', grupo: 'Fornecedor' },
+  { cab: 'Aprov Felipe (Reparo)',                       tipo: 'data', grupo: 'Fornecedor' },
 
   // --- Retorno -------------------------------------------------------
-  { cab: 'Valor do Frete / Envio Estimado (Retorno)', tipo: 'moeda',  grupo: 'Retorno' },
-  { cab: 'Via',                                tipo: 'texto',  grupo: 'Retorno' },
-  { cab: 'Aprov Marcella (Retorno)',                    tipo: 'data', grupo: 'Retorno' },
-  { cab: 'Aprov Felipe (Retorno)',                      tipo: 'data', grupo: 'Retorno' },
-  { cab: 'Data Saida / Coleta  Fornecedor (Real)', tipo: 'data', grupo: 'Retorno' },
-  { cab: 'Codigo Rastreio / Romaneio RFQ', ocor: 2, tipo: 'texto', grupo: 'Retorno', rotulo: 'Código Rastreio / Romaneio RFQ (retorno)' },
-  { cab: 'Data Chegada na usina',              tipo: 'data',   grupo: 'Retorno' },
+  { cab: 'Valor do Frete / Envio Estimado (Retorno)', tipo: 'moeda',  grupo: 'Fornecedor' },
+  { cab: 'Via',                                tipo: 'texto',  grupo: 'Fornecedor' },
+  { cab: 'Aprov Marcella (Retorno)',                    tipo: 'data', grupo: 'Fornecedor' },
+  { cab: 'Aprov Felipe (Retorno)',                      tipo: 'data', grupo: 'Fornecedor' },
+  { cab: 'Data Saida / Coleta  Fornecedor (Real)', tipo: 'data', grupo: 'Fornecedor' },
+  { cab: 'Codigo Rastreio / Romaneio RFQ', ocor: 2, tipo: 'texto', grupo: 'Fornecedor', rotulo: 'Código Rastreio / Romaneio RFQ (retorno)' },
+  { cab: 'Data Chegada na usina',              tipo: 'data',   grupo: 'Fornecedor' },
 
   // --- Acompanhamento ------------------------------------------------
-  { cab: 'FUP - Comentarios',                       tipo: 'area', grupo: 'Acompanhamento' },
-  { cab: 'FUP -  Ações Futuras (TROCA EM AVANÇO)',  tipo: 'area', grupo: 'Acompanhamento' },
-  { cab: 'Ação',                                    tipo: 'area', grupo: 'Acompanhamento' }
+  { cab: 'FUP - Comentarios',                       tipo: 'area', grupo: 'Follow Up' },
+  { cab: 'FUP -  Ações Futuras (TROCA EM AVANÇO)',  tipo: 'area', grupo: 'Follow Up' },
+  { cab: 'Ação',                                    tipo: 'area', grupo: 'Follow Up' }
 ];
 
 const GRUPO_EXTRA = 'Outras colunas';
-const GRUPOS = ['Identificação', 'Triagem', 'Garantia', 'Envio', 'Análise / Reparo', 'Retorno', 'Acompanhamento', GRUPO_EXTRA];
+
+/**
+ * Blocos da tela de tratamento (edição individual e em lote), na ordem em que
+ * aparecem. O grupo de cada coluna está na lista CAMPOS, no campo `grupo`.
+ * Dentro de cada bloco, os campos seguem a ordem das colunas da planilha.
+ */
+const GRUPOS = ['Identificação', 'Supply', 'Fornecedor', 'Follow Up', GRUPO_EXTRA];
 
 /** Cabeçalho da coluna usada como status principal. */
 const CAB_STATUS = 'Status Geral do Acionamento';
@@ -511,6 +517,7 @@ function carregarInicio() {
       auto: !!c.auto,
       obrig: !!c.obrig,
       extra: !!c.extra,
+      coluna: item.col,
       fixo: c.opcoes ? true : ((opcoes[_idCampo(c)] || {}).fixo || false),
       opcoes: c.opcoes || ((opcoes[_idCampo(c)] || {}).vals || null)
     };
