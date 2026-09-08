@@ -51,7 +51,7 @@ e chamar alguém de "M" ou pelo nome do setor é pior do que não saudar.
 1. **Solicitação** — formulário de abertura de um novo acionamento (cria a linha na aba).
 2. **Processos** — lista todos os acionamentos, independente do status, com edição dos
    campos de tratamento.
-3. **Painel** — reservado para dashboard futuro. Por ora, tela vazia com aviso.
+3. **Painel** — indicadores de acompanhamento (ver seção própria).
 
 Todos os usuários do domínio enxergam os três módulos (sem perfis/permissões por enquanto).
 
@@ -120,6 +120,40 @@ depois desta mudança.
 
 Não foi criada coluna para o link da pasta (decisão de 08/09/2026); se quiser
 depois, basta criar o cabeçalho e incluí-lo na lista `CAMPOS`.
+
+## Módulo Painel
+
+Definido em 08/09/2026. Quatro contagens, calculadas **na mesma leitura da
+planilha** que monta a lista de Processos — não custa ida extra ao servidor.
+
+| Gráfico | Coluna analisada | Mostra |
+|---|---|---|
+| Fornecedores mais acionados | `Fornecedor` | os 10 primeiros |
+| Equipamentos com mais acionamentos | `Equipamento Principal` | os 10 primeiros |
+| Acionamentos por status | `Status Geral do Acionamento` | todos, para comparar |
+| Acionamentos por usina | `UFV de Origem` | as 10 primeiras |
+
+Acima deles, quatro números: total de acionamentos, e quantos fornecedores,
+usinas e equipamentos distintos aparecem.
+
+Para incluir outro gráfico, acrescente uma linha na lista `PAINEL`, no início do
+`AppGarantia1.gs`, com o texto do cabeçalho da coluna.
+
+### Decisões de leitura dos gráficos
+
+- **Barras horizontais, uma cor só (Aurora).** O comprimento já mostra a
+  quantidade; pintar cada barra de uma cor diferente gastaria o único canal
+  livre repetindo o que a barra já diz — e viraria arco-íris com 10 categorias.
+  Nomes longos de usina e equipamento também pedem barra horizontal.
+- Quantidade escrita na ponta de cada barra; balão ao passar o mouse com o nome
+  completo, a quantidade e o percentual.
+- Cada gráfico tem **Ver todos**, que abre a lista completa em tabela — nada
+  fica acessível só pelo gráfico.
+- Quando há mais categorias do que as mostradas, uma linha no pé informa quantas
+  são e quanto somam.
+- **Grafias diferentes do mesmo nome são somadas.** `Huawei` e `HUAWEI` contam
+  como um só, e aparece a grafia mais frequente. Sem isso o ranking sairia
+  partido em dois — foi o caso de `Cabine`/`CABINE` na coluna de equipamento.
 
 ## Notificação
 

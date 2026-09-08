@@ -349,6 +349,49 @@ function _camposAtivos(mapa) {
   return ativos;
 }
 
+/**
+ * COLUNAS QUE ALIMENTAM O PAINEL
+ * Cada item vira um gráfico de contagem. Para incluir outra coluna, acrescente
+ * uma linha aqui com o texto do cabeçalho.
+ */
+const PAINEL = [
+  { chave: 'fornecedor',  cab: 'Fornecedor',                  titulo: 'Fornecedores mais acionados' },
+  { chave: 'equipamento', cab: 'Equipamento Principal',       titulo: 'Equipamentos com mais acionamentos' },
+  { chave: 'status',      cab: 'Status Geral do Acionamento', titulo: 'Acionamentos por status' },
+  { chave: 'usina',       cab: 'UFV de Origem',               titulo: 'Acionamentos por usina' }
+];
+
+/**
+ * Conta as repetições de uma coluna.
+ *
+ * Agrupa ignorando maiúsculas e acentos, para "Huawei" e "HUAWEI" contarem
+ * como o mesmo fornecedor, e mostra a grafia que mais aparece. Sem isso o
+ * ranking sairia partido em dois.
+ */
+function _contarColuna(bloco, col) {
+  const grupos = {};
+
+  bloco.forEach(function (linha) {
+    const bruto = String(linha[col - 1] || '').trim();
+    if (!bruto) return;
+    const chave = _normalizar(bruto);
+    if (!grupos[chave]) grupos[chave] = { qtd: 0, grafias: {} };
+    grupos[chave].qtd++;
+    grupos[chave].grafias[bruto] = (grupos[chave].grafias[bruto] || 0) + 1;
+  });
+
+  return Object.keys(grupos).map(function (chave) {
+    const g = grupos[chave];
+    let nome = '', mais = -1;
+    Object.keys(g.grafias).forEach(function (grafia) {
+      if (g.grafias[grafia] > mais) { mais = g.grafias[grafia]; nome = grafia; }
+    });
+    return { nome: nome, qtd: g.qtd };
+  }).sort(function (a, b) {
+    return b.qtd - a.qtd || a.nome.localeCompare(b.nome, 'pt-BR');
+  });
+}
+
 /** Rótulo bonito para colunas que vieram só do cabeçalho da aba. */
 function _rotuloDaColuna(aba, col) {
   return String(aba.getRange(CONFIG.HEADER_ROW, col).getDisplayValue() || '').trim();
@@ -771,6 +814,18 @@ function listarProcessos(forcar) {
   saida.contagemStatus = contagem;
 
   // Mesma ordem das linhas da planilha (sem inverter)
+
+  // Contagens do módulo Painel, calculadas na mesma leitura da planilha.
+  saida.painel = { total: saida.itens.length, series: {} };
+  PAINEL.forEach(function (def) {
+    const col = _coluna(mapa, { cab: def.cab });
+    saida.painel.series[def.chave] = {
+      titulo: def.titulo,
+      rotulo: def.cab,
+      existe: col > 0,
+      dados: col > 0 ? _contarColuna(bloco, col) : []
+    };
+  });
 
   // A PRIMEIRA PÁGINA JÁ VAI JUNTO. Assim, entrar no módulo Processos não
   // precisa de uma segunda ida ao servidor — que é o que mais custa tempo.
