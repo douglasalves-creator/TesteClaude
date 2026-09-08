@@ -298,9 +298,13 @@ Definido em 08/09/2026.
   **Outras colunas** da tela de tratamento, onde podem ser editadas normalmente,
   inclusive em lote.
 - A legenda mostra quantas colunas foram encontradas, para conferência.
-- **Largura ajustável por coluna**: arraste a borda direita do cabeçalho. Duplo
-  clique na borda devolve o padrão daquela coluna, e o botão
+- **Largura ajustável por coluna, nas duas visões**: arraste a borda direita do
+  cabeçalho. Duplo clique na borda devolve o padrão daquela coluna, e o botão
   **Redefinir colunas** devolve tudo ao padrão.
+- **O texto dobra** para a linha de baixo quando não cabe na largura escolhida,
+  como o "Ajustar texto" do Excel — nada de reticências nem texto escondido. A
+  quebra acontece primeiro nos espaços; palavra que sozinha não cabe é cortada.
+  A altura da linha acompanha.
 - O ajuste é **individual**: fica no armazenamento local do navegador de cada
   pessoa, então o que um faz não muda nada para os outros. Se o navegador
   bloquear o armazenamento, o ajuste vale só enquanto a aba estiver aberta.
@@ -317,6 +321,25 @@ Definido em 08/09/2026.
 
 Um seletor no topo do módulo troca o recorte de colunas. Definidas na lista
 `VISOES`, no início do `AppGarantia1.gs`:
+
+### Blocos da tela de tratamento
+
+Definidos em 08/09/2026, valem para a edição individual e para o lote:
+
+| Bloco | Colunas |
+|---|---|
+| **Identificação** | de `SCGAR` a `NS` (23 colunas) |
+| **Supply** | `Vigencia da Garantia`, `Data Emissão Declaração`, `NS FINAL`, `Nota Fiscal Retorno` |
+| **Fornecedor** | de `Valor do Frete (Envio)` a `Data Chegada na usina` (19 colunas) |
+| **Follow Up** | `FUP - Comentarios`, `FUP - Ações Futuras (TROCA EM AVANÇO)`, `Ação` |
+| **Outras colunas** | qualquer coluna da aba que não esteja mapeada no código |
+
+A coluna `Ação` não constava na divisão pedida; foi colocada em **Follow Up**
+por ficar ao lado das outras duas na planilha.
+
+Dentro de cada bloco os campos seguem a **ordem das colunas da planilha**, não a
+ordem da lista `CAMPOS` — essa continua servindo para a sequência do formulário
+de solicitação, que é outra.
 
 | Visão | O que mostra |
 |---|---|
