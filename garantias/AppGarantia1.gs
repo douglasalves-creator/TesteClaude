@@ -109,7 +109,7 @@ const CAMPOS = [
   // Ordem aqui = ordem em que os campos aparecem na tela.
   { cab: 'SCGAR',                 tipo: 'texto',  grupo: 'Identificação', lista: true, auto: true , filtro: true },
   { cab: 'Data de Solicitação',   tipo: 'data',   grupo: 'Identificação', lista: true, auto: true, sol: true , filtro: true },
-  { cab: 'RMA / OS (Nº)',         tipo: 'texto',  grupo: 'Identificação', lista: true, sol: true, obrig: true , filtro: true },
+  { cab: 'RMA / OS (Nº)',         tipo: 'texto',  grupo: 'Identificação', lista: true, sol: true , filtro: true },
   { cab: 'Tipo de Acionamento',   tipo: 'select', grupo: 'Identificação', lista: true, sol: true, obrig: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
   { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
   { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
@@ -990,7 +990,8 @@ function criarSolicitacao(dados, arquivos) {
       throw new Error('Preencha: ' + faltou.join(', ') + '.');
     }
 
-    const linhaAnterior = _ultimaLinhaComSolicitacao(aba, mapa);
+    // Sempre depois da última linha da planilha, tenha ela conteúdo ou não.
+    const linhaAnterior = Math.max(aba.getLastRow(), CONFIG.HEADER_ROW);
     const linhaNova = linhaAnterior + 1;
     const largura = aba.getLastColumn();
 
@@ -1146,27 +1147,6 @@ function _nomeSeguro(nome) {
     .replace(/\s+/g, ' ')
     .trim();
   return limpo.substring(0, 120) || 'arquivo';
-}
-
-/**
- * Última linha que realmente tem uma solicitação, olhando a coluna SCGAR.
- *
- * Não serve usar getLastRow(): ele devolve a última linha com QUALQUER
- * conteúdo, e a coluna de fórmula (CÓD MXM) costuma estar arrastada centenas
- * de linhas para baixo. Isso fazia a solicitação nova cair muito abaixo da
- * última de verdade, deixando um monte de linhas aparentemente vazias no meio.
- */
-function _ultimaLinhaComSolicitacao(aba, mapa) {
-  const col = _coluna(mapa, { cab: CAB_SCGAR });
-  const primeira = CONFIG.HEADER_ROW + 1;
-  const limite = aba.getLastRow();
-  if (!col || limite < primeira) return CONFIG.HEADER_ROW;
-
-  const valores = aba.getRange(primeira, col, limite - primeira + 1, 1).getDisplayValues();
-  for (let i = valores.length - 1; i >= 0; i--) {
-    if (String(valores[i][0] || '').trim() !== '') return primeira + i;
-  }
-  return CONFIG.HEADER_ROW;
 }
 
 /** Monta o código no formato SCGAR-0001 a partir do número. */

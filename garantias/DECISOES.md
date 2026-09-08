@@ -49,7 +49,7 @@ Ordem e comportamento definidos em 08/09/2026. Nenhum outro campo aparece.
 |---|---|
 | SCGAR | Gerado automaticamente. **Não aparece** na tela; vai para a planilha. |
 | Data de Solicitação | Preenchida com a data de hoje e **travada** para o usuário. |
-| RMA / OS (Nº) | Texto livre. **Obrigatório.** |
+| RMA / OS (Nº) | Texto livre. Opcional. |
 | Tipo de Acionamento | Lista suspensa. **Obrigatório.** |
 | UFV de Origem | Lista suspensa vinda da validação da planilha. |
 | Fornecedor | Lista suspensa vinda da validação da planilha. |
@@ -194,23 +194,20 @@ pela ordem de aparição — 1ª = envio, 2ª = retorno (campo `ocor` na lista
 
 ## Onde a linha nova é criada
 
-A solicitação nova entra **logo depois da última linha que tem SCGAR**, e nunca
-se cria mais de uma linha.
+**Sempre depois da última linha da planilha**, tenha ela conteúdo ou não
+(decisão de 08/09/2026). Como a coluna de fórmula `CÓD MXM` está arrastada
+centenas de linhas abaixo da última solicitação, a linha nova entra depois de
+toda essa região — é o comportamento pedido.
 
-Não serve usar o `getLastRow()` da planilha: ele devolve a última linha com
-qualquer conteúdo, e a coluna de fórmula `CÓD MXM` está arrastada centenas de
-linhas abaixo da última solicitação de verdade. Isso fazia a linha nova cair no
-fim da região arrastada, deixando um monte de linhas aparentemente vazias no
-meio — e as mesmas linhas apareciam como acionamentos fantasma no módulo
-Processos.
+Cuidados que continuam valendo:
 
-Três consequências disso, todas tratadas:
-
-1. A linha nova é calculada pela **coluna SCGAR**, não pelo `getLastRow()`.
-2. O módulo Processos só considera acionamento a linha que **tem SCGAR**.
-3. Se a linha nova já tiver fórmula em alguma coluna, a fórmula é devolvida em
-   vez de apagada. Espaço na grade é criado apenas quando falta, e uma linha
-   por vez — antes eram 20 de cada vez, o que também parecia criação de linhas.
+1. O módulo Processos só considera acionamento a linha que **tem SCGAR**. Sem
+   isso, as linhas que carregam apenas a fórmula arrastada apareciam na tabela
+   como acionamentos vazios.
+2. Se a linha nova já tiver fórmula em alguma coluna, a fórmula é devolvida em
+   vez de apagada.
+3. Espaço na grade é criado apenas quando falta, e **uma linha por vez** —
+   antes eram 20 de cada vez, o que parecia criação de várias linhas.
 
 ## Proteções na gravação
 
