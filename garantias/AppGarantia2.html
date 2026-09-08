@@ -190,6 +190,7 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 
 <main class="corpo">
 
+  <div id="aviso-erro-js" class="aviso aviso-erro oculto"></div>
   <div id="aviso-faltando" class="aviso aviso-alerta oculto"></div>
 
   <!-- ============ SOLICITAÇÃO ============ -->
@@ -270,6 +271,24 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 
 <script>
 /* ==================================================================
+   Detector de erros. Qualquer falha aparece na tela, em vermelho,
+   em vez de o botão simplesmente não reagir.
+   ================================================================== */
+function mostrarErroJS(texto){
+  var caixa = document.getElementById('aviso-erro-js');
+  if (!caixa) { alert('Erro: ' + texto); return; }
+  caixa.classList.remove('oculto');
+  caixa.innerHTML = '<b>Falha na tela:</b><br>' + String(texto).replace(/</g,'&lt;');
+  window.scrollTo(0,0);
+}
+window.addEventListener('error', function(ev){
+  mostrarErroJS((ev.message || 'erro') + (ev.lineno ? ' (linha ' + ev.lineno + ')' : ''));
+});
+window.addEventListener('unhandledrejection', function(ev){
+  mostrarErroJS('Promessa rejeitada: ' + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason));
+});
+
+/* ==================================================================
    Estado da tela. Tudo fica em memória para as trocas serem instantâneas.
    ================================================================== */
 var INICIO = null;          // campos, grupos, status
@@ -312,7 +331,11 @@ function dataBR(iso){
 /* ==================================================================
    Início
    ================================================================== */
-google.script.run.withSuccessHandler(aoIniciar).withFailureHandler(falhaGrave).gar_carregarInicio();
+if (typeof google === 'undefined' || !google.script || !google.script.run) {
+  mostrarErroJS('A ponte com o Google não carregou. Abra a tela pelo link do app da Web (termina em /exec), não pelo botão de pré-visualização do editor.');
+} else {
+  google.script.run.withSuccessHandler(aoIniciar).withFailureHandler(falhaGrave).gar_carregarInicio();
+}
 
 function falhaGrave(erro){
   document.querySelector('.corpo').innerHTML =
@@ -320,6 +343,11 @@ function falhaGrave(erro){
 }
 
 function aoIniciar(dados){
+  try { iniciarDeVerdade(dados); }
+  catch (e) { mostrarErroJS('Ao montar a tela: ' + e.message); }
+}
+
+function iniciarDeVerdade(dados){
   INICIO = dados;
   dados.campos.forEach(function(c){ CAMPOS_POR_ID[c.id] = c; });
 
