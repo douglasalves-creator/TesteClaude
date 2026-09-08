@@ -306,6 +306,12 @@ Definido em 08/09/2026.
   basta uma ter texto longo para a linha inteira ficar alta, e a tabela perde a
   aparência de tabela. Para ver o conteúdo cortado: alargar a coluna, passar o
   mouse (balão com o texto inteiro) ou abrir o acionamento.
+- A **largura inicial de cada coluna cabe o título inteiro**: o texto do
+  cabeçalho é medido com a fonte real da tabela, e a largura de partida é a
+  maior entre o que o tipo de informação pede e o que o título precisa (com o
+  padding e o espaço da alça). Limitada a 420px, para um título muito comprido
+  não criar uma coluna gigante. O ajuste manual segue livre — dá para estreitar
+  abaixo disso se você quiser — e **Redefinir colunas** volta a esse padrão.
 - Detalhe técnico que fez a diferença: a largura da tabela é definida pela
   **soma exata das colunas**, mais uma coluna de sobra invisível para encostar
   na borda. Com `width: max-content` o navegador esticava as colunas para

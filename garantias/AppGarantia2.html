@@ -1385,18 +1385,51 @@ function gravarLarguras(){
   catch (e) { /* segue valendo só nesta sessão */ }
 }
 
-/** Largura padrão de cada coluna, pelo tipo de informação que ela guarda. */
-function larguraPadrao(coluna, indice){
-  if (indice === 0) return 140;
-  switch (coluna.tipo) {
-    case 'inteiro': return 80;
-    case 'data':    return 130;
-    case 'moeda':   return 140;
-    case 'area':    return 240;
-    case 'link':    return 200;
-    case 'select':  return 180;
-    default:        return 175;
+/**
+ * Mede quanto o texto do cabeçalho ocupa, com a mesma fonte da tabela.
+ * Serve para nenhuma coluna começar com o título cortado.
+ */
+var _medidor = null;
+function larguraDoTitulo(rotulo){
+  if (!_medidor){
+    _medidor = document.createElement('span');
+    _medidor.style.cssText =
+      'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre;' +
+      'font-family:' + getComputedStyle(document.body).fontFamily + ';' +
+      'font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase';
+    document.body.appendChild(_medidor);
   }
+  _medidor.textContent = String(rotulo || '');
+  return Math.ceil(_medidor.getBoundingClientRect().width);
+}
+
+/**
+ * Largura inicial da coluna: a maior entre o que o TIPO de informação pede e
+ * o que o CABEÇALHO precisa para aparecer inteiro (mais o espaço do padding e
+ * da alça de arraste). Limitada a 420px, para um título muito comprido não
+ * criar uma coluna gigante.
+ */
+var ESPACO_TH = 14 + 14 + 14;   // padding esquerdo + direito + folga da alça
+var LARGURA_MAX_PADRAO = 420;
+
+function larguraPadrao(coluna, indice){
+  var porTipo;
+  if (indice === 0) {
+    porTipo = 140;
+  } else {
+    switch (coluna.tipo) {
+      case 'inteiro': porTipo = 80;  break;
+      case 'data':    porTipo = 130; break;
+      case 'moeda':   porTipo = 140; break;
+      case 'area':    porTipo = 240; break;
+      case 'link':    porTipo = 200; break;
+      case 'select':  porTipo = 180; break;
+      default:        porTipo = 175;
+    }
+  }
+
+  var peloTitulo = larguraDoTitulo(coluna.rotulo) + ESPACO_TH;
+  return Math.min(LARGURA_MAX_PADRAO, Math.max(porTipo, peloTitulo));
 }
 
 function larguraDe(coluna, indice){
