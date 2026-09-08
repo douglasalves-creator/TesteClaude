@@ -77,12 +77,62 @@ Meta: nenhuma ação deve passar de poucos segundos.
 - Os dados ficam em cache por alguns minutos; gravações limpam o cache.
 - Gravação sempre pontual (célula/linha específica), nunca reescrita da aba.
 
+## Identidade visual
+
+Baseada no brandbook SolarGrid (abril/2026):
+
+| Token | Cor | Uso na tela |
+|---|---|---|
+| Aurora | `#EC6E2D` | cor principal, botões, destaques, status ativo |
+| Eclipse | `#0A0F14` | barra superior, cabeçalho da gaveta, textos |
+| Sirius | `#F3F3F3` | fundo geral, cabeçalho de tabela |
+| Cosmos | `#0D3459` | apoio em status e gráficos futuros |
+| Névoa | `#D8D8D8` | bordas e divisores |
+| Amarelo Solar | `#EAFF67` | acento pontual (status Em Trânsito) |
+
+Fonte **Montserrat** em todos os pesos. Cantos de **12px**. Estética minimalista,
+fundo claro com blocos escuros de destaque. Logo: `CONFIG.LOGO_URL` aceita o
+endereço da imagem oficial; enquanto vazio, usa o nome escrito em Montserrat.
+
+## Código SCGAR
+
+Formato `SCGAR-0001`. Gerado a partir do maior número já existente na coluna
+`SCGAR` + 1, dentro de uma trava para dois usuários não pegarem o mesmo número.
+Configurável em `CONFIG.SCGAR_PREFIXO` e `CONFIG.SCGAR_DIGITOS`.
+
+## Colunas duplicadas
+
+Resolvido em 08/09/2026: os cabeçalhos foram renomeados na planilha para
+`Aprov Marcella (Envio) / (Reparo) / (Retorno)`, `Aprov Felipe (...)` e
+`Valor do Frete / Envio Estimado (Envio) / (Retorno)`.
+
+Resta **um** par duplicado: `Codigo Rastreio / Romaneio RFQ` aparece duas vezes
+(a segunda com espaço duplo). Por serem títulos iguais, o sistema as diferencia
+pela ordem de aparição — 1ª = envio, 2ª = retorno (campo `ocor` na lista
+`CAMPOS`). É o **único** ponto do projeto onde a ordem importa. Renomear para
+`(Envio)` e `(Retorno)` elimina a exceção.
+
+## Proteções na gravação
+
+- Grava só as células alteradas, nunca a aba inteira.
+- Confere se o SCGAR da linha continua o mesmo antes de gravar; se alguém apagou
+  ou inseriu linhas no meio, recusa e pede para atualizar a lista.
+- Colunas de fórmula (`CÓD MXM`) e campos automáticos (`SCGAR`,
+  `Data de Solicitação`) são somente leitura — nunca sobrescritos.
+- `LockService` evita duas gravações simultâneas.
+- Na abertura, a fórmula do `CÓD MXM` é copiada da linha de cima.
+
+## Verificação já feita
+
+Simulação com os 49 cabeçalhos reais:
+- 49 de 49 campos resolvidos pelo nome.
+- Com as colunas **invertidas de ordem e 5 apagadas**: 44 resolvidos e os 5
+  ausentes corretamente reportados — nada gravado fora de lugar.
+- SCGAR sequencial, datas em 3 formatos, valores com vírgula e a trava de linha
+  trocada: todos aprovados.
+
 ## Pendências em aberto
 
-- **Cabeçalhos duplicados** na aba atual impedem identificação por nome. Precisam ser
-  renomeados na cópia antes de o módulo Processos gravar nesses campos:
-  - `Aprov Marcella` (3x)
-  - `Aprov Felipe` (3x)
-  - `Valor do Frete / Envio Estimado` (2x)
-- Formato definitivo do código SCGAR.
-- Quais campos exatamente o time preenche no módulo Processos (e em qual ordem/etapa).
+- Instalar na cópia da planilha e validar com dados reais.
+- Definir os indicadores do módulo Painel.
+- Renomear o par `Codigo Rastreio / Romaneio RFQ` (opcional).

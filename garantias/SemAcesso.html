@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#0A0F14;color:#fff;font-family:'Montserrat',Arial,sans-serif;padding:24px}
+  .caixa{max-width:440px;text-align:center}
+  .nome{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:26px}
+  .nome span{color:#EC6E2D}
+  .selo{display:inline-block;background:#EC6E2D;border-radius:12px;padding:9px 16px;
+        font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:18px}
+  h1{font-size:23px;font-weight:800;margin:0 0 12px;letter-spacing:-.02em}
+  p{font-size:14px;line-height:1.6;color:#9aa3ab;margin:0 0 8px}
+  b{color:#fff}
+</style>
+</head>
+<body>
+  <div class="caixa">
+    <div class="nome">Solar<span>Grid</span></div>
+    <div class="selo">Acesso restrito</div>
+    <h1>Este sistema é interno</h1>
+    <p>O acesso é liberado apenas para contas com e-mail <b>@solargrid.com.br</b>.</p>
+    <p>Você está conectado com <b><?= (Session.getActiveUser().getEmail() || 'nenhuma conta') ?></b>. Entre com o seu e-mail corporativo e abra o link novamente.</p>
+  </div>
+</body>
+</html>
