@@ -88,11 +88,6 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml;charset=
 .busca{position:relative;flex:1;min-width:240px}
 .busca .entrada{padding-left:36px}
 .busca svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
-.chip{border:1px solid var(--nevoa);background:var(--branco);border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;color:var(--tinta-2);transition:.15s}
-.chip:hover{border-color:#bfc5ca}
-.chip[aria-pressed="true"]{background:var(--eclipse);border-color:var(--eclipse);color:var(--branco)}
-.chip i{font-style:normal;font-weight:700;opacity:.55;margin-left:5px}
 
 .rolagem{overflow-x:auto;border-radius:var(--raio)}
 table{width:100%;border-collapse:collapse;min-width:900px}
@@ -119,6 +114,72 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .estado{text-align:center;padding:64px 24px;color:var(--tinta-2)}
 .estado h3{margin:0 0 6px;font-size:16px;font-weight:700;color:var(--tinta)}
 .estado p{margin:0;font-size:13px}
+
+/* ================= Filtros ================= */
+.filtros{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.f-item{display:flex;flex-direction:column;gap:5px}
+.f-item > span{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.f-item .entrada{padding:8px 11px;font-size:13px;min-width:0}
+.f-texto{width:150px}
+.f-data{width:140px}
+
+.multi{position:relative}
+.multi-btn{display:flex;align-items:center;gap:8px;width:100%;min-width:170px;padding:8px 11px;border:1px solid var(--nevoa);border-radius:8px;background:var(--branco);font-size:13px;font-weight:500;text-align:left}
+.multi-btn:hover{border-color:#bfc5ca}
+.multi-btn .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tinta-3)}
+.multi-btn.ativo{border-color:var(--aurora);background:var(--aurora-fraco)}
+.multi-btn.ativo .txt{color:var(--tinta);font-weight:600}
+.multi-btn .cnt{background:var(--aurora);color:#fff;border-radius:999px;font-size:10.5px;font-weight:700;padding:1px 7px}
+.multi-btn .cx{width:14px;height:14px;border:1.5px solid var(--tinta-3);border-radius:3px;flex-shrink:0}
+.multi-btn.ativo .cx{background:var(--aurora);border-color:var(--aurora);position:relative}
+.multi-btn.ativo .cx::after{content:'';position:absolute;left:3px;top:0px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+
+.multi-pop{position:absolute;top:calc(100% + 5px);left:0;z-index:30;width:280px;max-width:88vw;background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);box-shadow:0 12px 32px rgba(10,15,20,.16);display:none;overflow:hidden}
+.multi-pop.abre{display:block}
+.multi-pop .topo-pop{padding:9px 11px;border-bottom:1px solid var(--nevoa);display:flex;gap:7px;align-items:center}
+.multi-pop .topo-pop input{flex:1;padding:6px 9px;border:1px solid var(--nevoa);border-radius:6px;font-size:12.5px}
+.multi-pop .acoes{display:flex;gap:6px;padding:8px 11px;border-bottom:1px solid var(--line-2,#eee)}
+.multi-pop .acoes button{border:none;background:transparent;font-size:11.5px;font-weight:600;color:var(--aurora);padding:0}
+.multi-pop .acoes button:hover{text-decoration:underline}
+.multi-lista{max-height:250px;overflow-y:auto;padding:5px 0}
+.multi-lista label{display:flex;align-items:center;gap:9px;padding:6px 12px;font-size:13px;cursor:pointer}
+.multi-lista label:hover{background:var(--sirius)}
+.multi-lista input{width:15px;height:15px;accent-color:var(--aurora);flex-shrink:0}
+.multi-lista .nada{padding:14px 12px;font-size:12.5px;color:var(--tinta-3);text-align:center}
+
+/* ================= Tabela grande ================= */
+.tabela-caixa{overflow:auto;max-height:calc(100vh - 300px);border-radius:var(--raio)}
+.tabela-caixa table{min-width:100%;width:max-content}
+.tabela-caixa th{position:sticky;top:0;z-index:6}
+.tabela-caixa th.trava,.tabela-caixa td.trava{position:sticky;background:var(--branco);z-index:5}
+.tabela-caixa th.trava{background:var(--sirius);z-index:7}
+.tabela-caixa th.cx-col,.tabela-caixa td.cx-col{left:0;width:40px;min-width:40px;text-align:center;padding-left:0;padding-right:0}
+.tabela-caixa th.cod-col,.tabela-caixa td.cod-col{left:40px;min-width:120px;box-shadow:1px 0 0 var(--nevoa)}
+tbody tr:hover td.trava{background:var(--aurora-fraco)}
+tbody tr.marcada td{background:#fff7f1}
+tbody tr.marcada td.trava{background:#fff7f1}
+td input[type=checkbox],th input[type=checkbox]{width:15px;height:15px;accent-color:var(--aurora);cursor:pointer}
+td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ================= Paginação ================= */
+.paginacao{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--nevoa);font-size:12.5px;color:var(--tinta-2);flex-wrap:wrap}
+.paginacao .btn{padding:6px 12px;font-size:12.5px}
+.paginacao b{color:var(--tinta)}
+
+/* ================= Barra de seleção ================= */
+.barra-sel{position:fixed;left:50%;bottom:22px;transform:translate(-50%,90px);z-index:45;background:var(--eclipse);color:#fff;border-radius:999px;padding:10px 12px 10px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 12px 34px rgba(10,15,20,.32);transition:transform .2s}
+.barra-sel.abre{transform:translate(-50%,0)}
+.barra-sel .qtd{font-size:13px;font-weight:600;white-space:nowrap}
+.barra-sel .btn{border:none;padding:8px 16px}
+.barra-sel .btn-fantasma{background:transparent;border:1px solid #2f373f;color:#9aa3ab}
+.barra-sel .btn-fantasma:hover{background:#1a2128;color:#fff}
+
+/* ================= Campo em lote ================= */
+.campo.lote{border-left:2px solid var(--nevoa);padding-left:12px}
+.campo.lote.liga{border-left-color:var(--aurora)}
+.campo .cab-lote{display:flex;align-items:center;gap:8px}
+.campo .cab-lote input{width:14px;height:14px;accent-color:var(--aurora);cursor:pointer}
+.moeda-zero{color:var(--tinta-3)}
 
 /* ================= Gaveta de tratamento ================= */
 .cortina{position:fixed;inset:0;background:rgba(10,15,20,.45);z-index:50;opacity:0;pointer-events:none;transition:opacity .18s}
@@ -210,20 +271,22 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   <!-- ============ PROCESSOS ============ -->
   <section id="mod-processos" class="oculto">
     <h1 class="titulo">Processos</h1>
-    <p class="legenda" id="legenda-processos">Todos os acionamentos, em qualquer status. Clique em uma linha para tratar.</p>
+    <p class="legenda" id="legenda-processos">Todos os acionamentos, em qualquer status.</p>
+
+    <div class="filtros" id="filtros"></div>
 
     <div class="barra">
       <div class="busca">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#0A0F14" stroke-width="1.6"/><path d="M11 11l4 4" stroke="#0A0F14" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <input class="entrada" id="busca" placeholder="Buscar por SCGAR, RMA, usina, fornecedor, série…" autocomplete="off">
+        <input class="entrada" id="busca" placeholder="Buscar em qualquer campo…" autocomplete="off">
       </div>
+      <button class="btn btn-sm" id="btn-limpar-filtros">Limpar filtros</button>
       <button class="btn btn-sm" id="btn-atualizar">Atualizar</button>
     </div>
-    <div class="chips" id="chips"></div>
 
     <div class="painel">
       <div id="processos-carregando" class="carregando"><span class="giro"></span> Carregando acionamentos…</div>
-      <div class="rolagem oculto" id="processos-tabela-caixa">
+      <div class="tabela-caixa oculto" id="processos-tabela-caixa">
         <table>
           <thead><tr id="processos-cabecalho"></tr></thead>
           <tbody id="processos-corpo"></tbody>
@@ -231,8 +294,9 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
       </div>
       <div id="processos-vazio" class="estado oculto">
         <h3>Nenhum acionamento encontrado</h3>
-        <p>Ajuste a busca ou o filtro de status.</p>
+        <p>Ajuste a busca ou os filtros.</p>
       </div>
+      <div class="paginacao oculto" id="paginacao"></div>
     </div>
   </section>
 
@@ -267,6 +331,27 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   </div>
 </aside>
 
+<div class="barra-sel" id="barra-sel">
+  <span class="qtd" id="sel-qtd">0 selecionados</span>
+  <button class="btn btn-aurora" id="btn-lote">Editar em lote</button>
+  <button class="btn btn-fantasma" id="btn-limpar-sel">Limpar seleção</button>
+</div>
+
+<aside class="gaveta" id="gaveta-lote" aria-hidden="true">
+  <div class="gaveta-topo">
+    <div>
+      <div class="cod">Edição em lote</div>
+      <div class="met" id="lote-met"></div>
+    </div>
+    <button class="fechar" id="btn-fechar-lote" title="Fechar">&times;</button>
+  </div>
+  <div class="gaveta-corpo" id="lote-corpo"></div>
+  <div class="gaveta-pe">
+    <button class="btn btn-aurora" id="btn-salvar-lote">Aplicar aos selecionados</button>
+    <span class="dica">Só os campos marcados são gravados.</span>
+  </div>
+</aside>
+
 <div class="recado" id="recado"></div>
 
 <script>
@@ -294,7 +379,6 @@ window.addEventListener('unhandledrejection', function(ev){
 var INICIO = null;          // campos, grupos, status
 var CAMPOS_POR_ID = {};
 var LISTA = null;           // { colunas, itens }
-var FILTRO_STATUS = '';
 var BUSCA = '';
 var ATUAL = null;           // acionamento aberto na gaveta
 var ORIGINAL = {};          // valores como vieram, para gravar só o que mudou
@@ -365,7 +449,6 @@ function iniciarDeVerdade(dados){
   }
 
   montarFormulario();
-  montarChips();
 }
 
 /* ==================================================================
@@ -389,6 +472,69 @@ function irPara(mod){
 /* ==================================================================
    Formulário de nova solicitação
    ================================================================== */
+/* ---------- dinheiro em reais ---------- */
+function centavosParaTexto(centavos){
+  var neg = centavos < 0;
+  var n = Math.abs(centavos);
+  var inteiro = String(Math.floor(n / 100));
+  var cents = ('0' + (n % 100)).slice(-2);
+  var comPonto = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return 'R$ ' + (neg ? '-' : '') + comPonto + ',' + cents;
+}
+
+function textoParaCentavos(texto){
+  var so = String(texto || '').replace(/[^0-9]/g, '');
+  if (!so) return 0;
+  return parseInt(so, 10);
+}
+
+/** Prepara um <input> para funcionar como valor em R$. */
+function ligarMoeda(ent, valorInicial){
+  var centavos = 0;
+  if (valorInicial !== '' && valorInicial != null){
+    var n = Number(String(valorInicial).replace(',', '.'));
+    if (!isNaN(n)) centavos = Math.round(n * 100);
+  }
+  ent.value = centavosParaTexto(centavos);
+  ent.dataset.centavos = String(centavos);
+  ent.setAttribute('inputmode', 'numeric');
+  ent.autocomplete = 'off';
+
+  function redesenhar(){
+    ent.value = centavosParaTexto(centavos);
+    ent.dataset.centavos = String(centavos);
+    ent.classList.toggle('moeda-zero', centavos === 0);
+    // cursor sempre no fim, já que o número cresce da direita para a esquerda
+    try { ent.setSelectionRange(ent.value.length, ent.value.length); } catch (e) {}
+  }
+
+  ent.addEventListener('input', function(){
+    centavos = textoParaCentavos(ent.value);
+    redesenhar();
+  });
+  ent.addEventListener('focus', function(){
+    try { ent.setSelectionRange(ent.value.length, ent.value.length); } catch (e) {}
+  });
+  ent.addEventListener('keydown', function(ev){
+    if (ev.key === 'Backspace'){
+      ev.preventDefault();
+      centavos = Math.floor(centavos / 10);
+      ent.dataset.tocado = '1';
+      redesenhar();
+    }
+  });
+  redesenhar();
+}
+
+/** Valor de um campo pronto para ir ao servidor. */
+function valorParaEnvio(campo, ent){
+  if (campo.tipo === 'moeda'){
+    var c = Number(ent.dataset.centavos || 0);
+    return c === 0 ? '' : (c / 100).toFixed(2);
+  }
+  return String(ent.value).trim();
+}
+
 function hojeISO(){
   var d = new Date();
   return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
@@ -452,7 +598,7 @@ function criarCampo(campo, valor, prefixo){
     }
     else if (campo.tipo === 'codigo') { ent.type = 'text'; ent.autocomplete = 'off'; ent.spellcheck = false; }
     else if (campo.tipo === 'numero') { ent.type = 'number'; ent.min = '0'; ent.step = '1'; }
-    else if (campo.tipo === 'moeda') { ent.type = 'number'; ent.step = '0.01'; }
+    else if (campo.tipo === 'moeda') { ent.type = 'text'; }
     else if (campo.tipo === 'link') ent.type = 'url';
     else ent.type = 'text';
   }
@@ -460,7 +606,16 @@ function criarCampo(campo, valor, prefixo){
   ent.className = 'entrada';
   ent.id = id;
   ent.dataset.campo = campo.id;
-  ent.value = valor || '';
+
+  if (campo.tipo === 'moeda'){
+    ligarMoeda(ent, valor);
+  } else {
+    ent.value = valor || '';
+  }
+
+  ent.addEventListener('input', function(){ ent.dataset.tocado = '1'; });
+  ent.addEventListener('change', function(){ ent.dataset.tocado = '1'; });
+
   if (campo.tipo === 'formula' || campo.auto) { ent.readOnly = true; }
   caixa.appendChild(ent);
   return caixa;
@@ -512,38 +667,173 @@ el('btn-enviar').addEventListener('click', function(){
 });
 
 /* ==================================================================
-   Lista de processos
+   Módulo Processos — filtros, tabela e paginação
    ================================================================== */
-function montarChips(){
-  var alvo = el('chips');
-  alvo.innerHTML = '';
-  var todos = ['Todos'].concat(INICIO.status);
-  todos.forEach(function(s){
-    var valor = (s === 'Todos') ? '' : s;
-    var b = document.createElement('button');
-    b.className = 'chip';
-    b.setAttribute('aria-pressed', valor === FILTRO_STATUS ? 'true' : 'false');
-    b.dataset.valor = valor;
-    b.innerHTML = esc(s) + '<i data-cont="'+esc(valor)+'"></i>';
-    b.addEventListener('click', function(){
-      FILTRO_STATUS = valor;
-      montarChips();
-      desenharLista();
+var POR_PAGINA = 100;
+var PAGINA = 1;
+var FILTRADOS = [];
+var MULTIS = {};          // filtros de caixinha, por id
+var CONTEUDO = {};        // conteúdo completo das linhas já carregadas
+var MARCADOS = {};        // linhas selecionadas para o lote
+var ID_STATUS = 'status geral do acionamento';
+var ID_DATA_SOL = 'data de solicitacao';
+
+/* ---------- caixinha de seleção múltipla ---------- */
+function criarMulti(id, rotulo, opcoes){
+  var caixa = document.createElement('div');
+  caixa.className = 'f-item';
+  caixa.innerHTML = '<span>' + esc(rotulo) + '</span>';
+
+  var envelope = document.createElement('div');
+  envelope.className = 'multi';
+
+  var botao = document.createElement('button');
+  botao.className = 'multi-btn';
+  botao.type = 'button';
+  botao.innerHTML = '<span class="cx"></span><span class="txt">Todos</span>';
+  envelope.appendChild(botao);
+
+  var pop = document.createElement('div');
+  pop.className = 'multi-pop';
+  pop.innerHTML =
+    '<div class="topo-pop"><input type="text" placeholder="Filtrar opções…" autocomplete="off"></div>' +
+    '<div class="acoes"><button type="button" data-a="todos">Marcar todos</button>' +
+    '<button type="button" data-a="nenhum">Desmarcar todos</button></div>' +
+    '<div class="multi-lista"></div>';
+  envelope.appendChild(pop);
+  caixa.appendChild(envelope);
+
+  var escolhidos = {};
+  var lista = pop.querySelector('.multi-lista');
+  var procura = pop.querySelector('.topo-pop input');
+
+  function contar(){
+    var n = Object.keys(escolhidos).length;
+    botao.classList.toggle('ativo', n > 0);
+    var txt = botao.querySelector('.txt');
+    if (!n){ txt.textContent = 'Todos'; }
+    else if (n === 1){ txt.textContent = Object.keys(escolhidos)[0]; }
+    else { txt.textContent = n + ' selecionados'; }
+  }
+
+  function desenhar(){
+    var termo = procura.value.trim().toLowerCase();
+    var vis = opcoes.filter(function(o){ return !termo || o.toLowerCase().indexOf(termo) >= 0; });
+    if (!vis.length){ lista.innerHTML = '<div class="nada">Nenhuma opção</div>'; return; }
+    lista.innerHTML = '';
+    vis.forEach(function(o){
+      var lb = document.createElement('label');
+      var cx = document.createElement('input');
+      cx.type = 'checkbox';
+      cx.checked = !!escolhidos[o];
+      cx.addEventListener('change', function(){
+        if (cx.checked) escolhidos[o] = true; else delete escolhidos[o];
+        contar();
+        PAGINA = 1;
+        aplicarFiltros();
+      });
+      lb.appendChild(cx);
+      var t = document.createElement('span');
+      t.textContent = o;
+      lb.appendChild(t);
+      lista.appendChild(lb);
     });
-    alvo.appendChild(b);
+  }
+
+  botao.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    var abrindo = !pop.classList.contains('abre');
+    fecharTodosPops();
+    if (abrindo){ pop.classList.add('abre'); desenhar(); procura.focus(); }
   });
-  atualizarContagens();
+  pop.addEventListener('click', function(ev){ ev.stopPropagation(); });
+  procura.addEventListener('input', desenhar);
+  pop.querySelectorAll('.acoes button').forEach(function(b){
+    b.addEventListener('click', function(){
+      if (b.dataset.a === 'todos') opcoes.forEach(function(o){ escolhidos[o] = true; });
+      else escolhidos = {};
+      contar(); desenhar(); PAGINA = 1; aplicarFiltros();
+    });
+  });
+
+  contar();
+  return {
+    el: caixa,
+    pop: pop,
+    get: function(){ return Object.keys(escolhidos); },
+    limpar: function(){ escolhidos = {}; contar(); desenhar(); }
+  };
 }
 
-function atualizarContagens(){
-  if (!LISTA) return;
-  var cont = {};
-  LISTA.itens.forEach(function(i){ cont[i.status] = (cont[i.status]||0)+1; });
-  document.querySelectorAll('#chips i').forEach(function(i){
-    var v = i.dataset.cont;
-    i.textContent = v === '' ? LISTA.itens.length : (cont[v]||0);
+function fecharTodosPops(){
+  document.querySelectorAll('.multi-pop').forEach(function(p){ p.classList.remove('abre'); });
+}
+document.addEventListener('click', fecharTodosPops);
+
+/* ---------- montagem da barra de filtros ---------- */
+function montarFiltros(){
+  var alvo = el('filtros');
+  alvo.innerHTML = '';
+  MULTIS = {};
+
+  // Status vem primeiro, com a lista oficial
+  MULTIS[ID_STATUS] = criarMulti(ID_STATUS, 'Status', INICIO.status);
+  alvo.appendChild(MULTIS[ID_STATUS].el);
+
+  (LISTA.filtros || []).forEach(function(f){
+    if (f.id === ID_STATUS) return;
+
+    if (f.tipo === 'data'){
+      ['de','ate'].forEach(function(lado){
+        var c = document.createElement('div');
+        c.className = 'f-item';
+        c.innerHTML = '<span>' + esc(f.rotulo) + (lado === 'de' ? ' — de' : ' — até') + '</span>';
+        var i = document.createElement('input');
+        i.type = 'date';
+        i.className = 'entrada f-data';
+        i.id = 'fdata-' + lado;
+        i.addEventListener('change', function(){ PAGINA = 1; aplicarFiltros(); });
+        c.appendChild(i);
+        alvo.appendChild(c);
+      });
+      return;
+    }
+
+    var opcoes = (LISTA.opcoes || {})[f.id];
+    if (opcoes && opcoes.length){
+      MULTIS[f.id] = criarMulti(f.id, f.rotulo, opcoes);
+      alvo.appendChild(MULTIS[f.id].el);
+      return;
+    }
+
+    // Campos de texto livre (SCGAR, RMA / OS)
+    var c = document.createElement('div');
+    c.className = 'f-item';
+    c.innerHTML = '<span>' + esc(f.rotulo) + '</span>';
+    var i = document.createElement('input');
+    i.type = 'text';
+    i.className = 'entrada f-texto';
+    i.id = 'ftexto-' + slug(f.id);
+    i.autocomplete = 'off';
+    i.placeholder = 'contém…';
+    var t = null;
+    i.addEventListener('input', function(){
+      clearTimeout(t);
+      t = setTimeout(function(){ PAGINA = 1; aplicarFiltros(); }, 150);
+    });
+    c.appendChild(i);
+    alvo.appendChild(c);
   });
 }
+
+el('btn-limpar-filtros').addEventListener('click', function(){
+  Object.keys(MULTIS).forEach(function(k){ MULTIS[k].limpar(); });
+  document.querySelectorAll('#filtros input').forEach(function(i){ i.value = ''; });
+  el('busca').value = '';
+  BUSCA = '';
+  PAGINA = 1;
+  aplicarFiltros();
+});
 
 el('btn-atualizar').addEventListener('click', function(){ carregarLista(true); });
 
@@ -551,19 +841,25 @@ var buscaTimer = null;
 el('busca').addEventListener('input', function(){
   BUSCA = this.value.trim().toLowerCase();
   clearTimeout(buscaTimer);
-  buscaTimer = setTimeout(desenharLista, 130);
+  buscaTimer = setTimeout(function(){ PAGINA = 1; aplicarFiltros(); }, 150);
 });
 
+/* ---------- carga do índice ---------- */
 function carregarLista(forcar){
   el('processos-carregando').classList.remove('oculto');
   el('processos-tabela-caixa').classList.add('oculto');
   el('processos-vazio').classList.add('oculto');
+  el('paginacao').classList.add('oculto');
 
   google.script.run
     .withSuccessHandler(function(r){
       LISTA = r;
-      atualizarContagens();
-      desenharLista();
+      CONTEUDO = {};
+      MARCADOS = {};
+      atualizarBarraSel();
+      montarFiltros();
+      PAGINA = 1;
+      aplicarFiltros();
     })
     .withFailureHandler(function(e){
       el('processos-carregando').classList.add('oculto');
@@ -572,56 +868,324 @@ function carregarLista(forcar){
     .gar_listarProcessos(!!forcar);
 }
 
-function filtrar(){
-  if (!LISTA) return [];
-  return LISTA.itens.filter(function(i){
-    if (FILTRO_STATUS && i.status !== FILTRO_STATUS) return false;
-    if (!BUSCA) return true;
-    var alvo = '';
-    for (var k in i.v) alvo += ' ' + i.v[k];
-    return alvo.toLowerCase().indexOf(BUSCA) >= 0;
+/* ---------- filtros ---------- */
+function aplicarFiltros(){
+  if (!LISTA) return;
+
+  var multis = {};
+  Object.keys(MULTIS).forEach(function(id){
+    var vals = MULTIS[id].get();
+    if (vals.length){
+      var mapa = {};
+      vals.forEach(function(v){ mapa[v] = true; });
+      multis[id] = mapa;
+    }
   });
+
+  var textos = {};
+  (LISTA.filtros || []).forEach(function(f){
+    var campo = el('ftexto-' + slug(f.id));
+    if (campo && campo.value.trim()) textos[f.id] = campo.value.trim().toLowerCase();
+  });
+
+  var de = el('fdata-de') ? el('fdata-de').value : '';
+  var ate = el('fdata-ate') ? el('fdata-ate').value : '';
+
+  FILTRADOS = LISTA.itens.filter(function(i){
+    if (multis[ID_STATUS] && !multis[ID_STATUS][i.status]) return false;
+
+    for (var id in multis){
+      if (id === ID_STATUS) continue;
+      if (!multis[id][i.f[id] || '']) return false;
+    }
+    for (var t in textos){
+      if (String(i.f[t] || '').toLowerCase().indexOf(textos[t]) < 0) return false;
+    }
+    if (de || ate){
+      var iso = brParaISO(i.f[ID_DATA_SOL] || '');
+      if (!iso) return false;
+      if (de && iso < de) return false;
+      if (ate && iso > ate) return false;
+    }
+    if (BUSCA && i.busca.indexOf(BUSCA) < 0) return false;
+    return true;
+  });
+
+  desenharPagina();
 }
 
-function desenharLista(){
+function brParaISO(t){
+  var m = String(t).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (m){
+    var ano = m[3].length === 2 ? '20' + m[3] : m[3];
+    return ano + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[1]).slice(-2);
+  }
+  m = String(t).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : '';
+}
+
+/* ---------- desenho da página ---------- */
+function desenharPagina(){
   el('processos-carregando').classList.add('oculto');
-  var itens = filtrar();
+
+  var total = FILTRADOS.length;
+  var paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  if (PAGINA > paginas) PAGINA = paginas;
 
   el('legenda-processos').textContent =
-    itens.length + ' de ' + LISTA.itens.length + ' acionamentos. Clique em uma linha para tratar.';
+    total + ' de ' + LISTA.itens.length + ' acionamentos. Clique em uma linha para tratar.';
 
-  if (!itens.length){
+  if (!total){
     el('processos-tabela-caixa').classList.add('oculto');
+    el('paginacao').classList.add('oculto');
     el('processos-vazio').classList.remove('oculto');
     return;
   }
   el('processos-vazio').classList.add('oculto');
+
+  var fatia = FILTRADOS.slice((PAGINA-1)*POR_PAGINA, PAGINA*POR_PAGINA);
+  var faltando = fatia.filter(function(i){ return !CONTEUDO[i.linha]; }).map(function(i){ return i.linha; });
+
+  if (!faltando.length){ pintarTabela(fatia, total, paginas); return; }
+
+  el('processos-carregando').classList.remove('oculto');
+  el('processos-tabela-caixa').classList.add('oculto');
+  google.script.run
+    .withSuccessHandler(function(r){
+      for (var k in r) CONTEUDO[k] = r[k];
+      el('processos-carregando').classList.add('oculto');
+      pintarTabela(fatia, total, paginas);
+    })
+    .withFailureHandler(function(e){
+      el('processos-carregando').classList.add('oculto');
+      recado(e.message, true);
+    })
+    .gar_paginaProcessos(faltando);
+}
+
+function pintarTabela(fatia, total, paginas){
   el('processos-tabela-caixa').classList.remove('oculto');
+  el('paginacao').classList.remove('oculto');
 
-  var cab = LISTA.colunas.map(function(c){ return '<th>' + esc(c.rotulo) + '</th>'; }).join('');
-  el('processos-cabecalho').innerHTML = cab;
-
-  var partes = [];
-  itens.forEach(function(i){
-    var tds = LISTA.colunas.map(function(c){
-      var v = i.v[c.id] || '';
-      if (c.id === 'status geral do acionamento'){
-        return '<td><span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span></td>';
-      }
-      if (c.rotulo === 'SCGAR') return '<td class="cod">' + (esc(v) || '—') + '</td>';
-      if (!v) return '<td class="vazio">—</td>';
-      return '<td class="corta" title="' + esc(v) + '">' + esc(v) + '</td>';
-    }).join('');
-    partes.push('<tr data-linha="' + i.linha + '" data-scgar="' + esc(i.scgar) + '">' + tds + '</tr>');
+  // cabeçalho
+  var th = ['<th class="trava cx-col"><input type="checkbox" id="cx-todos" title="Selecionar a página"></th>'];
+  LISTA.colunas.forEach(function(c, n){
+    th.push('<th class="' + (n === 0 ? 'trava cod-col' : '') + '">' + esc(c.rotulo) + '</th>');
   });
-  el('processos-corpo').innerHTML = partes.join('');
+  el('processos-cabecalho').innerHTML = th.join('');
 
+  // linhas
+  var html = [];
+  fatia.forEach(function(i){
+    var dados = CONTEUDO[i.linha] || {};
+    var tds = ['<td class="trava cx-col"><input type="checkbox" class="cx-linha" data-linha="' + i.linha + '"' +
+               (MARCADOS[i.linha] ? ' checked' : '') + '></td>'];
+    LISTA.colunas.forEach(function(c, n){
+      var v = dados[c.id] || '';
+      var classe = (n === 0 ? 'trava cod-col cod' : 'cel');
+      if (c.id === ID_STATUS){
+        tds.push('<td class="cel"><span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span></td>');
+      } else if (!v){
+        tds.push('<td class="' + classe + ' vazio">—</td>');
+      } else {
+        tds.push('<td class="' + classe + '" title="' + esc(v) + '">' + esc(v) + '</td>');
+      }
+    });
+    html.push('<tr data-linha="' + i.linha + '" data-scgar="' + esc(i.scgar) + '"' +
+              (MARCADOS[i.linha] ? ' class="marcada"' : '') + '>' + tds.join('') + '</tr>');
+  });
+  el('processos-corpo').innerHTML = html.join('');
+
+  // cliques
   el('processos-corpo').querySelectorAll('tr').forEach(function(tr){
-    tr.addEventListener('click', function(){
+    tr.addEventListener('click', function(ev){
+      if (ev.target.classList.contains('cx-linha')) return;
       abrirGaveta(Number(tr.dataset.linha), tr.dataset.scgar);
     });
   });
+  el('processos-corpo').querySelectorAll('.cx-linha').forEach(function(cx){
+    cx.addEventListener('change', function(){
+      var l = Number(cx.dataset.linha);
+      if (cx.checked) MARCADOS[l] = true; else delete MARCADOS[l];
+      cx.closest('tr').classList.toggle('marcada', cx.checked);
+      sincronizarCxTodos(fatia);
+      atualizarBarraSel();
+    });
+  });
+  el('cx-todos').addEventListener('change', function(){
+    var marcar = this.checked;
+    fatia.forEach(function(i){ if (marcar) MARCADOS[i.linha] = true; else delete MARCADOS[i.linha]; });
+    el('processos-corpo').querySelectorAll('.cx-linha').forEach(function(cx){
+      cx.checked = marcar;
+      cx.closest('tr').classList.toggle('marcada', marcar);
+    });
+    atualizarBarraSel();
+  });
+  sincronizarCxTodos(fatia);
+
+  // paginação
+  var ini = (PAGINA-1)*POR_PAGINA + 1;
+  var fim = Math.min(PAGINA*POR_PAGINA, total);
+  el('paginacao').innerHTML =
+    '<button class="btn" id="pg-ant"' + (PAGINA <= 1 ? ' disabled' : '') + '>&larr; Anterior</button>' +
+    '<button class="btn" id="pg-prox"' + (PAGINA >= paginas ? ' disabled' : '') + '>Próxima &rarr;</button>' +
+    '<span>Mostrando <b>' + ini + '–' + fim + '</b> de <b>' + total + '</b> · página <b>' + PAGINA + '</b> de <b>' + paginas + '</b></span>';
+  if (el('pg-ant')) el('pg-ant').addEventListener('click', function(){ if (PAGINA > 1){ PAGINA--; desenharPagina(); rolarTopoTabela(); } });
+  if (el('pg-prox')) el('pg-prox').addEventListener('click', function(){ if (PAGINA < paginas){ PAGINA++; desenharPagina(); rolarTopoTabela(); } });
 }
+
+function rolarTopoTabela(){
+  var caixa = el('processos-tabela-caixa');
+  if (caixa) caixa.scrollTop = 0;
+}
+
+function sincronizarCxTodos(fatia){
+  var cx = el('cx-todos');
+  if (!cx) return;
+  var marcados = fatia.filter(function(i){ return MARCADOS[i.linha]; }).length;
+  cx.checked = marcados === fatia.length && fatia.length > 0;
+  cx.indeterminate = marcados > 0 && marcados < fatia.length;
+}
+
+/* ==================================================================
+   Edição em lote
+   ================================================================== */
+function linhasMarcadas(){
+  return Object.keys(MARCADOS).map(Number);
+}
+
+function atualizarBarraSel(){
+  var n = linhasMarcadas().length;
+  el('sel-qtd').textContent = n + (n === 1 ? ' selecionado' : ' selecionados');
+  el('barra-sel').classList.toggle('abre', n > 0);
+}
+
+el('btn-limpar-sel').addEventListener('click', function(){
+  MARCADOS = {};
+  el('processos-corpo').querySelectorAll('.cx-linha').forEach(function(cx){
+    cx.checked = false;
+    cx.closest('tr').classList.remove('marcada');
+  });
+  var t = el('cx-todos'); if (t){ t.checked = false; t.indeterminate = false; }
+  atualizarBarraSel();
+});
+
+el('btn-lote').addEventListener('click', abrirLote);
+el('btn-fechar-lote').addEventListener('click', fecharLote);
+
+function abrirLote(){
+  var n = linhasMarcadas().length;
+  if (!n) return;
+  el('lote-met').textContent = n + (n === 1 ? ' acionamento selecionado' : ' acionamentos selecionados');
+
+  var corpo = el('lote-corpo');
+  corpo.innerHTML = '';
+
+  INICIO.grupos.forEach(function(grupo){
+    var doGrupo = INICIO.campos.filter(function(c){
+      return c.grupo === grupo && c.tipo !== 'formula' && !c.auto;
+    });
+    if (!doGrupo.length) return;
+
+    var bloco = document.createElement('section');
+    bloco.className = 'bloco fechado';
+    var cabec = document.createElement('button');
+    cabec.className = 'bloco-cab';
+    cabec.innerHTML = esc(grupo) + '<span class="seta">&#9660;</span>';
+    cabec.addEventListener('click', function(){ bloco.classList.toggle('fechado'); });
+    bloco.appendChild(cabec);
+
+    var conteudo = document.createElement('div');
+    conteudo.className = 'bloco-conteudo';
+    var grade = document.createElement('div');
+    grade.className = 'grade';
+    doGrupo.forEach(function(c){ grade.appendChild(criarCampoLote(c)); });
+    conteudo.appendChild(grade);
+    bloco.appendChild(conteudo);
+    corpo.appendChild(bloco);
+  });
+
+  el('cortina').classList.add('abre');
+  el('gaveta-lote').classList.add('abre');
+  el('gaveta-lote').setAttribute('aria-hidden','false');
+}
+
+function criarCampoLote(campo){
+  var caixa = criarCampo(campo, '', 'lote-');
+  caixa.classList.add('lote');
+  if (campo.tipo === 'area') caixa.classList.add('largo');
+
+  var rotulo = caixa.querySelector('label');
+  var cab = document.createElement('div');
+  cab.className = 'cab-lote';
+  var liga = document.createElement('input');
+  liga.type = 'checkbox';
+  liga.id = 'aplicar-' + slug(campo.id);
+  liga.title = 'Aplicar este campo';
+  liga.addEventListener('change', function(){ caixa.classList.toggle('liga', liga.checked); });
+  cab.appendChild(liga);
+  caixa.insertBefore(cab, rotulo);
+  cab.appendChild(rotulo);
+
+  // Ao mexer no campo, marca sozinho
+  var ent = caixa.querySelector('.entrada');
+  if (ent){
+    ['input','change'].forEach(function(ev){
+      ent.addEventListener(ev, function(){
+        if (!liga.checked){ liga.checked = true; caixa.classList.add('liga'); }
+      });
+    });
+  }
+  return caixa;
+}
+
+function fecharLote(){
+  el('gaveta-lote').classList.remove('abre');
+  el('gaveta-lote').setAttribute('aria-hidden','true');
+  if (!el('gaveta').classList.contains('abre')) el('cortina').classList.remove('abre');
+}
+
+el('btn-salvar-lote').addEventListener('click', function(){
+  var linhas = linhasMarcadas();
+  if (!linhas.length) return;
+
+  var alteracoes = {};
+  var quantos = 0;
+  INICIO.campos.forEach(function(c){
+    if (c.tipo === 'formula' || c.auto) return;
+    var liga = el('aplicar-' + slug(c.id));
+    if (!liga || !liga.checked) return;
+    var ent = el('lote-' + slug(c.id));
+    if (!ent) return;
+    alteracoes[c.id] = valorParaEnvio(c, ent);
+    quantos++;
+  });
+
+  if (!quantos){ recado('Marque ao menos um campo para aplicar.', true); return; }
+
+  if (!confirm('Aplicar ' + quantos + (quantos === 1 ? ' campo' : ' campos') + ' a ' +
+               linhas.length + (linhas.length === 1 ? ' acionamento?' : ' acionamentos?'))) return;
+
+  var botao = this;
+  botao.disabled = true;
+  botao.textContent = 'Aplicando…';
+  google.script.run
+    .withSuccessHandler(function(r){
+      botao.disabled = false;
+      botao.textContent = 'Aplicar aos selecionados';
+      recado(r.celulas + ' célula(s) atualizada(s) em ' + r.linhas + ' acionamento(s).');
+      fecharLote();
+      MARCADOS = {};
+      atualizarBarraSel();
+      carregarLista(true);
+    })
+    .withFailureHandler(function(e){
+      botao.disabled = false;
+      botao.textContent = 'Aplicar aos selecionados';
+      recado(e.message, true);
+    })
+    .gar_salvarLote(linhas, alteracoes);
+});
 
 /* ==================================================================
    Gaveta de tratamento
@@ -706,9 +1270,21 @@ el('btn-salvar').addEventListener('click', function(){
     if (c.tipo === 'formula' || c.auto) return;
     var ent = el('ed-' + slug(c.id));
     if (!ent) return;
-    var novo = String(ent.value).trim();
+
+    // Campo de dinheiro mostra R$ 0,00 mesmo vazio; só conta se foi mexido.
+    if (c.tipo === 'moeda' && !ent.dataset.tocado) return;
+
+    var novo = valorParaEnvio(c, ent);
     var velho = String(ORIGINAL[c.id] == null ? '' : ORIGINAL[c.id]).trim();
-    if (novo !== velho){ alteracoes[c.id] = novo; total++; }
+    if (c.tipo === 'moeda'){
+      var a = novo === '' ? '' : Number(novo).toFixed(2);
+      var b = velho === '' ? '' : Number(String(velho).replace(',', '.')).toFixed(2);
+      if (a === b) return;
+    } else if (novo === velho){
+      return;
+    }
+    alteracoes[c.id] = novo;
+    total++;
   });
 
   if (!total){ recado('Nada foi alterado.'); return; }

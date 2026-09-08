@@ -87,23 +87,23 @@ const APROVACAO = ['Aprovado', 'Reprovado', 'Pendente'];
 const CAMPOS = [
   // --- Identificação -------------------------------------------------
   // Ordem aqui = ordem em que os campos aparecem na tela.
-  { cab: 'SCGAR',                 tipo: 'texto',  grupo: 'Identificação', lista: true, auto: true },
-  { cab: 'Data de Solicitação',   tipo: 'data',   grupo: 'Identificação', lista: true, auto: true, sol: true },
-  { cab: 'RMA / OS (Nº)',         tipo: 'texto',  grupo: 'Identificação', lista: true, sol: true, obrig: true },
-  { cab: 'Tipo de Acionamento',   tipo: 'select', grupo: 'Identificação', lista: true, sol: true, obrig: true, opcoesDaValidacao: true },
-  { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true },
-  { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true },
-  { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true },
+  { cab: 'SCGAR',                 tipo: 'texto',  grupo: 'Identificação', lista: true, auto: true , filtro: true },
+  { cab: 'Data de Solicitação',   tipo: 'data',   grupo: 'Identificação', lista: true, auto: true, sol: true , filtro: true },
+  { cab: 'RMA / OS (Nº)',         tipo: 'texto',  grupo: 'Identificação', lista: true, sol: true, obrig: true , filtro: true },
+  { cab: 'Tipo de Acionamento',   tipo: 'select', grupo: 'Identificação', lista: true, sol: true, obrig: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
+  { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
+  { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
+  { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true },
   { cab: 'Qtd',                   tipo: 'inteiro', grupo: 'Identificação', lista: true, sol: true },
   { cab: 'Motivo Inicial',        tipo: 'area',   grupo: 'Identificação', sol: true },
-  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true },
+  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true, listaFechada: true },
   { cab: 'MAC',                   tipo: 'codigo', grupo: 'Identificação', sol: true },
   { cab: 'NS',                    tipo: 'codigo', grupo: 'Identificação', lista: true, sol: true },
   { cab: 'CÓD MXM (FÓRMULA)',     tipo: 'formula', grupo: 'Identificação' },
 
   // --- Triagem -------------------------------------------------------
   { cab: 'Status Geral do Acionamento', tipo: 'select', opcoes: STATUS_GERAL, grupo: 'Triagem', lista: true },
-  { cab: 'Responsável Atual',     tipo: 'select', grupo: 'Triagem', lista: true, opcoesDaColuna: true },
+  { cab: 'Responsável Atual',     tipo: 'select', grupo: 'Triagem', lista: true, opcoesDaColuna: true , filtro: true },
   { cab: 'Tipo',                  tipo: 'select', grupo: 'Triagem', opcoesDaColuna: true },
   { cab: 'Chamado',               tipo: 'texto',  grupo: 'Triagem' },
   { cab: 'Data Abertura',         tipo: 'data',   grupo: 'Triagem' },
@@ -122,8 +122,8 @@ const CAMPOS = [
   // --- Envio ---------------------------------------------------------
   { cab: 'Valor do Frete / Envio Estimado (Envio)', tipo: 'moeda',  grupo: 'Envio' },
   { cab: 'Via / Veiculo',                 tipo: 'texto',  grupo: 'Envio' },
-  { cab: 'Aprov Marcella (Envio)',        tipo: 'select', opcoes: APROVACAO, grupo: 'Envio' },
-  { cab: 'Aprov Felipe (Envio)',          tipo: 'select', opcoes: APROVACAO, grupo: 'Envio' },
+  { cab: 'Aprov Marcella (Envio)',                      tipo: 'data', grupo: 'Envio' },
+  { cab: 'Aprov Felipe (Envio)',                        tipo: 'data', grupo: 'Envio' },
   { cab: 'Data  envio/Coleta',            tipo: 'data',   grupo: 'Envio' },
   { cab: 'Codigo Rastreio / Romaneio RFQ', ocor: 1, tipo: 'texto', grupo: 'Envio', rotulo: 'Código Rastreio / Romaneio RFQ (envio)' },
   { cab: 'Data Chegada no Fornecedor',    tipo: 'data',   grupo: 'Envio' },
@@ -132,14 +132,14 @@ const CAMPOS = [
   // --- Análise / Reparo ----------------------------------------------
   { cab: 'Coberto em Garantia',      tipo: 'select', opcoes: SIM_NAO,   grupo: 'Análise / Reparo', lista: true },
   { cab: 'Valor Reparo',             tipo: 'moeda',  grupo: 'Análise / Reparo' },
-  { cab: 'Aprov Marcella (Reparo)',  tipo: 'select', opcoes: APROVACAO, grupo: 'Análise / Reparo' },
-  { cab: 'Aprov Felipe (Reparo)',    tipo: 'select', opcoes: APROVACAO, grupo: 'Análise / Reparo' },
+  { cab: 'Aprov Marcella (Reparo)',                     tipo: 'data', grupo: 'Análise / Reparo' },
+  { cab: 'Aprov Felipe (Reparo)',                       tipo: 'data', grupo: 'Análise / Reparo' },
 
   // --- Retorno -------------------------------------------------------
   { cab: 'Valor do Frete / Envio Estimado (Retorno)', tipo: 'moeda',  grupo: 'Retorno' },
   { cab: 'Via',                                tipo: 'texto',  grupo: 'Retorno' },
-  { cab: 'Aprov Marcella (Retorno)',           tipo: 'select', opcoes: APROVACAO, grupo: 'Retorno' },
-  { cab: 'Aprov Felipe (Retorno)',             tipo: 'select', opcoes: APROVACAO, grupo: 'Retorno' },
+  { cab: 'Aprov Marcella (Retorno)',                    tipo: 'data', grupo: 'Retorno' },
+  { cab: 'Aprov Felipe (Retorno)',                      tipo: 'data', grupo: 'Retorno' },
   { cab: 'Data Saida / Coleta  Fornecedor (Real)', tipo: 'data', grupo: 'Retorno' },
   { cab: 'Codigo Rastreio / Romaneio RFQ', ocor: 2, tipo: 'texto', grupo: 'Retorno', rotulo: 'Código Rastreio / Romaneio RFQ (retorno)' },
   { cab: 'Data Chegada na usina',              tipo: 'data',   grupo: 'Retorno' },
@@ -365,7 +365,13 @@ function _opcoesDeCampos(aba, mapa) {
     if (vals && vals.length) {
       resultado[_idCampo(c)] = { vals: vals, fixo: true };
     } else {
-      resultado[_idCampo(c)] = { vals: _valoresJaUsados(aba, col, primeira, ultima), fixo: false };
+      // Sem regra de validação: usa o que já existe na coluna. Os campos
+      // marcados com listaFechada continuam sendo lista fechada, para que
+      // todos tenham a mesma aparência na tela.
+      resultado[_idCampo(c)] = {
+        vals: _valoresJaUsados(aba, col, primeira, ultima),
+        fixo: !!c.listaFechada
+      };
     }
   });
 
@@ -437,8 +443,15 @@ function _valoresJaUsados(aba, col, primeira, ultima) {
 /* Módulo Processos — lista                                            */
 /* ================================================================== */
 
+/**
+ * ÍNDICE LEVE de todos os acionamentos.
+ *
+ * Devolve só o necessário para filtrar, contar e paginar na tela — nunca as 49
+ * colunas de 840 linhas de uma vez. O conteúdo completo de cada página é
+ * buscado depois, por paginaProcessos(), já filtrado.
+ */
 function listarProcessos(forcar) {
-  const chave = 'gar_lista_v1';
+  const chave = 'gar_lista_v3';
   if (!forcar) {
     const guardado = _cacheLer(chave);
     if (guardado) {
@@ -448,28 +461,36 @@ function listarProcessos(forcar) {
 
   const aba = _aba();
   const mapa = _mapaCabecalhos(aba);
+  const ativos = _camposAtivos(mapa);
   const primeira = CONFIG.HEADER_ROW + 1;
   const ultima = aba.getLastRow();
 
-  const doLista = CAMPOS.filter(function (c) { return c.lista; })
-    .map(function (c) { return { campo: c, col: _coluna(mapa, c) }; })
-    .filter(function (i) { return i.col > 0; });
+  // Todas as colunas da aba viram colunas da tabela, na ordem definida em CAMPOS
+  const colunas = ativos.map(function (i) {
+    return { id: _idCampo(i.campo), rotulo: i.campo.rotulo || i.campo.cab, tipo: i.campo.tipo };
+  });
 
+  const filtraveis = ativos.filter(function (i) { return i.campo.filtro; });
   const colStatus = _coluna(mapa, { cab: CAB_STATUS });
   const colScgar = _coluna(mapa, { cab: CAB_SCGAR });
 
-  const saida = { colunas: [], itens: [] };
-  doLista.forEach(function (i) {
-    saida.colunas.push({ id: _idCampo(i.campo), rotulo: i.campo.rotulo || i.campo.cab, tipo: i.campo.tipo });
-  });
+  const saida = {
+    colunas: colunas,
+    filtros: filtraveis.map(function (i) {
+      return { id: _idCampo(i.campo), rotulo: i.campo.rotulo || i.campo.cab, tipo: i.campo.tipo };
+    }),
+    opcoes: {},
+    itens: []
+  };
 
   if (ultima < primeira) {
     _cacheGravar(chave, JSON.stringify(saida), CONFIG.CACHE_LISTA_SEG);
     return saida;
   }
 
-  const largura = aba.getLastColumn();
-  const bloco = aba.getRange(primeira, 1, ultima - primeira + 1, largura).getDisplayValues();
+  const bloco = aba.getRange(primeira, 1, ultima - primeira + 1, aba.getLastColumn()).getDisplayValues();
+  const vistos = {};
+  filtraveis.forEach(function (i) { vistos[_idCampo(i.campo)] = {}; });
 
   bloco.forEach(function (linha, idx) {
     const vazia = linha.every(function (v) { return String(v).trim() === ''; });
@@ -479,17 +500,143 @@ function listarProcessos(forcar) {
       linha: primeira + idx,
       scgar: colScgar ? String(linha[colScgar - 1] || '').trim() : '',
       status: colStatus ? String(linha[colStatus - 1] || '').trim() : '',
-      v: {}
+      f: {},
+      busca: ''
     };
-    doLista.forEach(function (i) {
-      item.v[_idCampo(i.campo)] = String(linha[i.col - 1] || '');
+
+    filtraveis.forEach(function (i) {
+      const id = _idCampo(i.campo);
+      const v = String(linha[i.col - 1] || '').trim();
+      item.f[id] = v;
+      if (v && i.campo.tipo !== 'data' && i.campo.tipo !== 'texto') vistos[id][v] = true;
+      if (v && i.campo.tipo === 'select') vistos[id][v] = true;
     });
+
+    // Texto usado pela busca livre: toda a linha
+    item.busca = linha.join(' ').toLowerCase();
     saida.itens.push(item);
   });
+
+  // Opções que existem de fato, para as caixinhas de filtro
+  filtraveis.forEach(function (i) {
+    const id = _idCampo(i.campo);
+    if (i.campo.tipo === 'data' || i.campo.tipo === 'texto') return;
+    saida.opcoes[id] = Object.keys(vistos[id]).sort(function (a, b) {
+      return a.localeCompare(b, 'pt-BR');
+    });
+  });
+
+  const contagem = {};
+  saida.itens.forEach(function (i) { contagem[i.status] = (contagem[i.status] || 0) + 1; });
+  saida.contagemStatus = contagem;
 
   saida.itens.reverse(); // mais recentes primeiro
   _cacheGravar(chave, JSON.stringify(saida), CONFIG.CACHE_LISTA_SEG);
   return saida;
+}
+
+/**
+ * Conteúdo completo (todas as colunas) das linhas de UMA página.
+ * Lê um único intervalo, do menor ao maior número de linha pedido.
+ */
+function paginaProcessos(linhas) {
+  const pedidas = (linhas || []).map(Number).filter(function (n) {
+    return n > CONFIG.HEADER_ROW;
+  });
+  if (!pedidas.length) return {};
+
+  let min = pedidas[0], max = pedidas[0];
+  pedidas.forEach(function (n) { if (n < min) min = n; if (n > max) max = n; });
+
+  const aba = _aba();
+  const ultima = aba.getLastRow();
+  if (max > ultima) max = ultima;
+  if (min > max) return {};
+
+  const mapa = _mapaCabecalhos(aba);
+  const ativos = _camposAtivos(mapa);
+  const bloco = aba.getRange(min, 1, max - min + 1, aba.getLastColumn()).getDisplayValues();
+
+  const saida = {};
+  pedidas.forEach(function (n) {
+    const linha = bloco[n - min];
+    if (!linha) return;
+    const o = {};
+    ativos.forEach(function (i) { o[_idCampo(i.campo)] = String(linha[i.col - 1] || ''); });
+    saida[n] = o;
+  });
+  return saida;
+}
+
+/**
+ * EDIÇÃO EM LOTE — aplica os mesmos valores a várias linhas.
+ *
+ * Grava uma coluna por vez, em um único movimento, preservando o conteúdo e as
+ * fórmulas das linhas que NÃO foram selecionadas. Passa pelas mesmas regras da
+ * edição individual (data só aceita data, Qtd só inteiro, valor em número).
+ */
+function salvarLote(linhas, alteracoes) {
+  const pedidas = (linhas || []).map(Number).filter(function (n) {
+    return n > CONFIG.HEADER_ROW;
+  });
+  if (!pedidas.length) throw new Error('Nenhum acionamento selecionado.');
+
+  const trava = LockService.getScriptLock();
+  trava.waitLock(30000);
+  try {
+    const aba = _aba();
+    const ultima = aba.getLastRow();
+    const mapa = _mapaCabecalhos(aba);
+
+    const alvo = {};
+    let min = 0, max = 0;
+    pedidas.forEach(function (n) {
+      if (n > ultima) return;
+      alvo[n] = true;
+      if (!min || n < min) min = n;
+      if (n > max) max = n;
+    });
+    if (!min) throw new Error('As linhas selecionadas não existem mais. Atualize a lista.');
+
+    const porId = {};
+    _camposAtivos(mapa).forEach(function (item) { porId[_idCampo(item.campo)] = item; });
+
+    const altura = max - min + 1;
+    let campos = 0, celulas = 0;
+
+    Object.keys(alteracoes || {}).forEach(function (id) {
+      const item = porId[id];
+      if (!item) return;
+      if (item.campo.tipo === 'formula' || item.campo.auto) return;
+
+      const valor = _paraPlanilha(item.campo, alteracoes[id]);
+      const faixa = aba.getRange(min, item.col, altura, 1);
+      const valores = faixa.getValues();
+      const formulas = faixa.getFormulas();
+
+      const novos = [];
+      for (let r = 0; r < altura; r++) {
+        if (alvo[min + r]) {
+          novos.push([valor === null ? '' : valor]);
+          celulas++;
+        } else {
+          // Linha não selecionada: devolve exatamente o que já estava lá,
+          // inclusive fórmula, para nada ser perdido.
+          novos.push([formulas[r][0] ? formulas[r][0] : valores[r][0]]);
+        }
+      }
+
+      if (item.campo.tipo === 'codigo') faixa.setNumberFormat('@');
+      faixa.setValues(novos);
+      campos++;
+    });
+
+    if (celulas) _cacheLimpar('gar_lista_v3');
+    SpreadsheetApp.flush();
+    return { ok: true, campos: campos, celulas: celulas, linhas: Object.keys(alvo).length };
+  } finally {
+    trava.releaseLock();
+  }
 }
 
 /* ================================================================== */
@@ -561,7 +708,14 @@ function _textoParaISO(texto) {
 function _isoParaData(iso) {
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+
+  const ano = Number(m[1]), mes = Number(m[2]), dia = Number(m[3]);
+  if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
+
+  const d = new Date(ano, mes - 1, dia);
+  // Recusa datas que "viram o mês" (31/02, 45/13 e afins)
+  if (d.getFullYear() !== ano || d.getMonth() !== mes - 1 || d.getDate() !== dia) return null;
+  return d;
 }
 
 /**
@@ -611,7 +765,7 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       gravados++;
     });
 
-    if (gravados) _cacheLimpar('gar_lista_v1');
+    if (gravados) _cacheLimpar('gar_lista_v3');
     SpreadsheetApp.flush();
     return { ok: true, gravados: gravados };
   } finally {
@@ -625,7 +779,10 @@ function _paraPlanilha(campo, valor) {
 
   if (campo.tipo === 'data') {
     const d = _isoParaData(txt);
-    return d || txt;
+    if (!d) {
+      throw new Error('O campo "' + (campo.rotulo || campo.cab) + '" aceita apenas data.');
+    }
+    return d;
   }
   if (campo.tipo === 'inteiro') {
     if (!/^[0-9]+$/.test(txt)) {
@@ -717,7 +874,7 @@ function criarSolicitacao(dados) {
     });
 
     SpreadsheetApp.flush();
-    _cacheLimpar('gar_lista_v1');
+    _cacheLimpar('gar_lista_v3');
     _cacheLimpar('gar_opcoes_v2');
 
     _avisarPorEmail(scgar, dados, ativos, linhaNova);
@@ -800,6 +957,8 @@ function _avisarPorEmail(scgar, dados, ativos, linhaNova) {
     doGet: doGet,
     carregarInicio: carregarInicio,
     listarProcessos: listarProcessos,
+    paginaProcessos: paginaProcessos,
+    salvarLote: salvarLote,
     obterProcesso: obterProcesso,
     salvarProcesso: salvarProcesso,
     criarSolicitacao: criarSolicitacao
@@ -826,6 +985,14 @@ function gar_carregarInicio() {
 
 function gar_listarProcessos(forcar) {
   return GAR_GARANTIAS.listarProcessos(forcar);
+}
+
+function gar_paginaProcessos(linhas) {
+  return GAR_GARANTIAS.paginaProcessos(linhas);
+}
+
+function gar_salvarLote(linhas, alteracoes) {
+  return GAR_GARANTIAS.salvarLote(linhas, alteracoes);
 }
 
 function gar_obterProcesso(linha) {

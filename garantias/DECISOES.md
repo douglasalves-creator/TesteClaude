@@ -154,8 +154,76 @@ Simulação com os 49 cabeçalhos reais:
 - SCGAR sequencial, datas em 3 formatos, valores com vírgula e a trava de linha
   trocada: todos aprovados.
 
+## Módulo Processos
+
+Definido em 08/09/2026.
+
+### Tabela
+- **Todas** as colunas da aba aparecem, na ordem da lista `CAMPOS`.
+- Rolagem lateral livre; as colunas de seleção e **SCGAR** ficam travadas à
+  esquerda para não perder a referência.
+- Cabeçalho fixo no topo durante a rolagem vertical, dentro do próprio quadro da
+  tabela (era o que causava o descasamento anterior).
+- **100 acionamentos por página**, com navegação Anterior / Próxima.
+- O índice de todas as linhas é leve e vem de uma vez; o conteúdo completo é
+  buscado só das 100 linhas da página exibida e fica guardado na tela.
+
+### Filtros
+Uma caixinha de seleção múltipla para **Status** (dá para marcar vários), mais
+filtros para: SCGAR, Data de Solicitação (de / até), RMA / OS (Nº),
+Tipo de Acionamento, Responsável Atual, UFV de Origem e Fornecedor.
+
+- Campos com opções conhecidas viram caixinha de seleção múltipla com busca.
+- SCGAR e RMA / OS são busca por trecho.
+- Data de Solicitação é intervalo.
+- Há ainda a busca livre, que procura em qualquer campo da linha.
+- Todo filtro roda no navegador — resposta imediata, sem ir à planilha.
+
+### Edição em lote
+Caixas de seleção por linha (e uma para marcar a página inteira). Com pelo menos
+um marcado, aparece a barra **Editar em lote**.
+
+Na gaveta de lote, cada campo tem uma marca de "aplicar" que se liga sozinha
+quando você mexe no campo. **Só os campos marcados são gravados** — o resto das
+colunas dos acionamentos selecionados não é tocado.
+
+A gravação em lote acontece uma coluna por vez, em um único movimento, e devolve
+intacto (inclusive fórmulas) o conteúdo das linhas que **não** foram
+selecionadas.
+
+As regras de preenchimento são as mesmas da edição individual.
+
+### Regras de preenchimento
+
+| Campos | Regra |
+|---|---|
+| Valor do Frete / Envio Estimado (Envio), Valor Reparo, Valor do Frete / Envio Estimado (Retorno) | Valor em R$. Vazio mostra `R$ 0,00`; os dígitos entram da direita para a esquerda. Só é gravado se o campo for realmente mexido. |
+| Data Emissão Declaração, Aprov Marcella (Envio/Reparo/Retorno), Aprov Felipe (Envio/Reparo/Retorno), Data envio/Coleta, Data Chegada no Fornecedor, Data Saida / Coleta Fornecedor (Real), Data Chegada na usina | **Somente data.** Seletor de calendário na tela e recusa no servidor para qualquer coisa que não seja data válida (31/02 e 45/13 inclusive). |
+| Qtd | Somente números inteiros. |
+| MAC, NS | Texto puro, preserva zero à esquerda. |
+
+Os seis campos `Aprov Marcella` / `Aprov Felipe` deixaram de ser
+Aprovado/Reprovado e passaram a ser **data da aprovação**.
+
+## Verificação em navegador
+
+Testado em Chromium com 840 linhas simuladas e os 49 cabeçalhos reais:
+
+- Formulário com os 11 campos certos, na ordem certa; as 4 listas suspensas
+  como caixa de seleção fechada, incluindo Equipamento Principal.
+- Tabela com 50 colunas (49 + seleção), 100 linhas por página, 9 páginas,
+  cabeçalho alinhado, rolagem lateral de 6072px e SCGAR travado à esquerda.
+- Filtros: 2 status marcados → 280 de 840; SCGAR "5211" → 1; intervalo de datas
+  → 90; busca livre "Huawei" → 210; limpar → 840.
+- Dinheiro: vazio `R$ 0,00`; digitar 123456 → `R$ 1.234,56`; apagar → `R$ 123,45`.
+- Os 11 campos de data renderizam como seletor de calendário.
+- Salvar sem mexer em nada não envia nada; mexendo em 2 campos, envia exatamente
+  esses 2.
+- Lote em 3 acionamentos envia só o campo marcado; as linhas vizinhas na planilha
+  ficam intactas.
+
 ## Pendências em aberto
 
-- Instalar na cópia da planilha e validar com dados reais.
+- Validar na cópia da planilha com dados reais.
 - Definir os indicadores do módulo Painel.
 - Renomear o par `Codigo Rastreio / Romaneio RFQ` (opcional).
