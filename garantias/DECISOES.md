@@ -39,25 +39,13 @@ Painel — sobre fundo Eclipse. Título **Controle de Acionamentos** com
 **SolarGrid** em Aurora na linha de baixo, saudação, e o aviso de acesso
 restrito centralizado no pé. O logo no topo e o botão **Início** voltam para lá.
 
-### Saudação e o nome de quem entra
+### Sem saudação com nome
 
-O Google entrega apenas o **e-mail**, nunca o nome da pessoa. O primeiro nome é
-deduzido do trecho antes do `@`, e a saudação sai **sem nome** quando essa
-dedução não é confiável:
+Decidido em 08/09/2026: a tela mostra apenas **"Escolha por onde começar."**
 
-| E-mail | Saudação |
-|---|---|
-| `douglas.alves@` | Olá, **Douglas** |
-| `marcella@` | Olá, **Marcella** |
-| `ana.paula.costa@` | Olá, **Ana** |
-| `m.souza@` | *sem nome* — a primeira parte é inicial, não nome |
-| `jp.silva@` | *sem nome* — mesmo caso |
-| `procurement.eng@` | *sem nome* — caixa de setor |
-| `financeiro@` | *sem nome* — caixa de setor |
-
-A regra é conservadora de propósito: melhor não saudar do que chamar a pessoa de
-"M" ou pelo sobrenome. Para acertar um caso específico, basta escrever o nome em
-`CONFIG.NOMES`, por exemplo `'m.souza@solargrid.com.br': 'Marcos'`.
+Motivo: o Google entrega só o **e-mail**, nunca o nome. E-mails como `m.souza@`
+ou `procurement.eng@` não permitem deduzir o primeiro nome de forma confiável,
+e chamar alguém de "M" ou pelo nome do setor é pior do que não saudar.
 
 1. **Solicitação** — formulário de abertura de um novo acionamento (cria a linha na aba).
 2. **Processos** — lista todos os acionamentos, independente do status, com edição dos
@@ -74,16 +62,18 @@ Ordem e comportamento definidos em 08/09/2026. Nenhum outro campo aparece.
 |---|---|
 | SCGAR | Gerado automaticamente. **Não aparece** na tela; vai para a planilha. |
 | Data de Solicitação | Preenchida com a data de hoje e **travada** para o usuário. |
-| RMA / OS (Nº) | Texto livre. Opcional. |
+| RMA / OS (Nº) | Texto livre. **Opcional.** |
 | Tipo de Acionamento | Lista suspensa. **Obrigatório.** |
-| UFV de Origem | Lista suspensa vinda da validação da planilha. |
-| Fornecedor | Lista suspensa vinda da validação da planilha. |
-| Material/Equipamento | Lista suspensa vinda da validação da planilha. |
-| Qtd | **Somente números inteiros.** Vírgula, ponto e letra são bloqueados na digitação e recusados na gravação. |
-| Motivo Inicial | Texto livre, campo largo. |
-| Equipamento Principal | Lista suspensa vinda da validação da planilha. |
-| MAC | Código livre (letras e números), gravado como texto. |
-| NS | Código livre (letras e números), gravado como texto. |
+| UFV de Origem | Lista suspensa vinda da validação da planilha. **Obrigatório.** |
+| Fornecedor | Lista suspensa vinda da validação da planilha. **Obrigatório.** |
+| Material/Equipamento | Lista suspensa vinda da validação da planilha. **Obrigatório.** |
+| Qtd | **Somente números inteiros.** Vírgula, ponto e letra são bloqueados na digitação e recusados na gravação. **Obrigatório.** |
+| Motivo Inicial | Texto livre, campo largo. **Obrigatório.** |
+| Equipamento Principal | Lista suspensa vinda da validação da planilha. **Obrigatório.** |
+| MAC | Código livre (letras e números), gravado como texto. **Opcional.** |
+| NS | Código livre (letras e números), gravado como texto. **Opcional.** |
+
+Ou seja: **tudo obrigatório, menos RMA / OS, MAC e NS.**
 
 Ao salvar, `Status Geral do Acionamento` entra como **Pendente**.
 
@@ -265,9 +255,10 @@ toda essa região — é o comportamento pedido.
 
 Cuidados que continuam valendo:
 
-1. O módulo Processos só considera acionamento a linha que **tem SCGAR**. Sem
-   isso, as linhas que carregam apenas a fórmula arrastada apareciam na tabela
-   como acionamentos vazios.
+1. O módulo Processos considera acionamento **toda linha com qualquer
+   conteúdo**, inclusive os processos antigos sem SCGAR preenchido. As colunas
+   de fórmula não contam para essa decisão — do contrário a região do `CÓD MXM`
+   arrastada para baixo apareceria como centenas de acionamentos vazios.
 2. Se a linha nova já tiver fórmula em alguma coluna, a fórmula é devolvida em
    vez de apagada.
 3. Espaço na grade é criado apenas quando falta, e **uma linha por vez** —
@@ -312,8 +303,9 @@ Definido em 08/09/2026.
 - O ajuste é **individual**: fica no armazenamento local do navegador de cada
   pessoa, então o que um faz não muda nada para os outros. Se o navegador
   bloquear o armazenamento, o ajuste vale só enquanto a aba estiver aberta.
-- Rolagem lateral livre; as colunas de seleção e **SCGAR** ficam travadas à
-  esquerda para não perder a referência.
+- Rolagem lateral livre. **Nenhuma coluna de dado fica congelada** — o SCGAR
+  rola junto com as outras (decisão de 08/09/2026). Só a caixinha de seleção
+  permanece fixa à esquerda, porque é controle de tela e não informação.
 - Cabeçalho fixo no topo durante a rolagem vertical, dentro do próprio quadro da
   tabela (era o que causava o descasamento anterior).
 - **100 acionamentos por página**, com navegação Anterior / Próxima.
@@ -326,6 +318,12 @@ filtros para: SCGAR, Data de Solicitação (de / até), RMA / OS (Nº),
 Tipo de Acionamento, Responsável Atual, UFV de Origem e Fornecedor.
 
 - Campos com opções conhecidas viram caixinha de seleção múltipla com busca.
+- **Os filtros funcionam em cascata**: cada caixinha só oferece o que ainda
+  existe depois dos outros filtros. Filtrando o fornecedor X, o filtro de Status
+  passa a mostrar apenas os status presentes nos acionamentos daquele
+  fornecedor. Um filtro nunca restringe a si mesmo, e valores já marcados
+  continuam visíveis para poderem ser desmarcados. O rótulo da caixinha mostra
+  quantas opções restam.
 - SCGAR e RMA / OS são busca por trecho.
 - Data de Solicitação é intervalo.
 - Há ainda a busca livre, que procura em qualquer campo da linha.

@@ -252,10 +252,10 @@ input.escondido{position:absolute;width:1px;height:1px;opacity:0;pointer-events:
 body.redimensionando{cursor:col-resize;user-select:none}
 body.redimensionando .tabela-caixa tbody tr{cursor:col-resize}
 .tabela-caixa th{position:sticky;top:0;z-index:6}
-.tabela-caixa th.trava,.tabela-caixa td.trava{position:sticky;background:var(--branco);z-index:5}
+.tabela-caixa th.trava,.tabela-caixa td.trava{position:sticky;left:0;background:var(--branco);z-index:5;
+  box-shadow:1px 0 0 var(--nevoa)}
 .tabela-caixa th.trava{background:var(--sirius);z-index:7}
-.tabela-caixa th.cx-col,.tabela-caixa td.cx-col{left:0;text-align:center;padding:11px 0}
-.tabela-caixa th.cod-col,.tabela-caixa td.cod-col{box-shadow:1px 0 0 var(--nevoa)}
+.tabela-caixa th.cx-col,.tabela-caixa td.cx-col{text-align:center;padding:11px 0}
 tbody tr:hover td.trava{background:var(--aurora-fraco)}
 tbody tr.marcada td{background:#fff7f1}
 tbody tr.marcada td.trava{background:#fff7f1}
@@ -356,7 +356,7 @@ td.cel{text-align:center}
 <section class="inicio" id="mod-inicio">
   <div class="inicio-in">
     <h1>Controle de Acionamentos<br><em>SolarGrid</em></h1>
-    <p class="ola" id="ola-inicio">Escolha por onde começar.</p>
+    <p class="ola">Escolha por onde começar.</p>
 
     <div class="cartoes">
       <button class="cartao" data-ir="solicitacao">
@@ -399,7 +399,7 @@ td.cel{text-align:center}
   </div>
 
   <div class="rodape-ini">
-    <span>Acesso restrito a <b>@solargrid.com.br</b></span>
+    <span>Acesso restrito ao domínio <b>@solargrid.com.br</b></span>
   </div>
 </section>
 
@@ -416,7 +416,7 @@ td.cel{text-align:center}
 
       <div class="anexos" id="area-anexos">
         <h3>Anexos <b id="anexo-obrig">*</b></h3>
-        <p id="anexo-ajuda">Fotos, notas fiscais, laudos. Eles vão para uma pasta com o número do SCGAR no Drive.</p>
+        <p id="anexo-ajuda">Fotos, documentos, evidências…</p>
         <div class="solta" id="solta">
           <div class="titulo-solta">Arraste os arquivos aqui ou <span>escolha do computador</span></div>
           <div class="ajuda" id="solta-ajuda">Vários arquivos de uma vez</div>
@@ -618,11 +618,6 @@ function iniciarDeVerdade(dados){
 
   if (dados.porPagina) POR_PAGINA = dados.porPagina;
 
-  // O nome vem pronto do servidor. Quando o e-mail não deixa claro qual é o
-  // primeiro nome, a saudação sai sem nome, em vez de chutar.
-  el('ola-inicio').innerHTML = dados.primeiroNome
-    ? 'Olá, <b>' + esc(dados.primeiroNome) + '</b>. Escolha por onde começar.'
-    : 'Escolha por onde começar.';
 
   irPara('inicio');
 
@@ -1278,12 +1273,8 @@ function aplicarColgroup(){
   posicionarTravadas();
 }
 
-/** A 2a coluna travada precisa começar onde a caixinha de seleção termina. */
-function posicionarTravadas(){
-  document.querySelectorAll('.tabela-caixa .cod-col').forEach(function(e){
-    e.style.left = LARGURA_CX + 'px';
-  });
-}
+/** Só a caixinha de seleção fica travada à esquerda. */
+function posicionarTravadas(){ /* nada a fazer: a trava é só a primeira coluna */ }
 
 /** Liga o arrastar da largura em cada cabeçalho. */
 function ligarPuxadores(){
@@ -1338,7 +1329,7 @@ function ligarPuxadores(){
 }
 
 /* ---------- caixinha de seleção múltipla ---------- */
-function criarMulti(id, rotulo, opcoes){
+function criarMulti(id, rotulo, obterOpcoes){
   var caixa = document.createElement('div');
   caixa.className = 'f-item';
   caixa.innerHTML = '<span>' + esc(rotulo) + '</span>';
@@ -1365,6 +1356,7 @@ function criarMulti(id, rotulo, opcoes){
   var escolhidos = {};
   var lista = pop.querySelector('.multi-lista');
   var procura = pop.querySelector('.topo-pop input');
+  var opcoes = [];
 
   function contar(){
     var n = Object.keys(escolhidos).length;
@@ -1376,6 +1368,9 @@ function criarMulti(id, rotulo, opcoes){
   }
 
   function desenhar(){
+    // Cascata: as opções são recalculadas a cada abertura, considerando o que
+    // os OUTROS filtros já deixaram de fora.
+    opcoes = obterOpcoes();
     var termo = procura.value.trim().toLowerCase();
     var vis = opcoes.filter(function(o){ return !termo || o.toLowerCase().indexOf(termo) >= 0; });
     if (!vis.length){ lista.innerHTML = '<div class="nada">Nenhuma opção</div>'; return; }
@@ -1409,7 +1404,7 @@ function criarMulti(id, rotulo, opcoes){
   procura.addEventListener('input', desenhar);
   pop.querySelectorAll('.acoes button').forEach(function(b){
     b.addEventListener('click', function(){
-      if (b.dataset.a === 'todos') opcoes.forEach(function(o){ escolhidos[o] = true; });
+      if (b.dataset.a === 'todos') obterOpcoes().forEach(function(o){ escolhidos[o] = true; });
       else escolhidos = {};
       contar(); desenhar(); PAGINA = 1; aplicarFiltros();
     });
@@ -1419,8 +1414,10 @@ function criarMulti(id, rotulo, opcoes){
   return {
     el: caixa,
     pop: pop,
+    nome: rotulo,
+    rotulo: caixa.querySelector('span'),
     get: function(){ return Object.keys(escolhidos); },
-    limpar: function(){ escolhidos = {}; contar(); desenhar(); }
+    limpar: function(){ escolhidos = {}; contar(); }
   };
 }
 
@@ -1438,7 +1435,7 @@ function montarFiltros(){
   MULTIS = {};
 
   // Status vem primeiro, com a lista oficial
-  MULTIS[ID_STATUS] = criarMulti(ID_STATUS, 'Status', INICIO.status);
+  MULTIS[ID_STATUS] = criarMulti(ID_STATUS, 'Status', function(){ return opcoesEmCascata(ID_STATUS); });
   alvo.appendChild(MULTIS[ID_STATUS].el);
 
   (LISTA.filtros || []).forEach(function(f){
@@ -1449,7 +1446,9 @@ function montarFiltros(){
 
     var opcoes = (LISTA.opcoes || {})[f.id];
     if (opcoes && opcoes.length){
-      MULTIS[f.id] = criarMulti(f.id, f.rotulo, opcoes);
+      MULTIS[f.id] = criarMulti(f.id, f.rotulo, (function(id){
+        return function(){ return opcoesEmCascata(id); };
+      })(f.id));
       alvo.appendChild(MULTIS[f.id].el);
       return;
     }
@@ -1475,6 +1474,7 @@ function montarFiltros(){
 }
 
 el('btn-limpar-filtros').addEventListener('click', function(){
+  fecharTodosPops();
   Object.keys(MULTIS).forEach(function(k){ MULTIS[k].limpar(); });
   document.querySelectorAll('#filtros input').forEach(function(i){ i.value = ''; });
   el('busca').value = '';
@@ -1527,10 +1527,14 @@ function carregarLista(forcar){
     .gar_listarProcessos(!!forcar);
 }
 
-/* ---------- filtros ---------- */
-function aplicarFiltros(){
-  if (!LISTA) return;
-
+/* ==================================================================
+   Filtros em cascata
+   ------------------------------------------------------------------
+   Cada caixinha só oferece o que ainda existe depois dos OUTROS filtros.
+   Ex.: filtrando o fornecedor X, o filtro de Status passa a mostrar só os
+   status que aparecem nos acionamentos daquele fornecedor.
+   ================================================================== */
+function filtrosAtivos(){
   var multis = {};
   Object.keys(MULTIS).forEach(function(id){
     var vals = MULTIS[id].get();
@@ -1547,21 +1551,70 @@ function aplicarFiltros(){
     if (campo && campo.value.trim()) textos[f.id] = campo.value.trim().toLowerCase();
   });
 
-  FILTRADOS = LISTA.itens.filter(function(i){
-    if (multis[ID_STATUS] && !multis[ID_STATUS][i.status]) return false;
+  return { multis: multis, textos: textos };
+}
 
-    for (var id in multis){
-      if (id === ID_STATUS) continue;
-      if (!multis[id][i.f[id] || '']) return false;
-    }
-    for (var t in textos){
-      if (String(i.f[t] || '').toLowerCase().indexOf(textos[t]) < 0) return false;
-    }
-    if (BUSCA && i.busca.indexOf(BUSCA) < 0) return false;
-    return true;
+/** Valor de um item para um filtro qualquer. */
+function valorDoFiltro(item, id){
+  return id === ID_STATUS ? (item.status || '') : (item.f[id] || '');
+}
+
+/** O item passa nos filtros? `exceto` deixa um filtro de fora (cascata). */
+function passaNosFiltros(item, ativos, exceto){
+  for (var id in ativos.multis){
+    if (id === exceto) continue;
+    if (!ativos.multis[id][valorDoFiltro(item, id)]) return false;
+  }
+  for (var t in ativos.textos){
+    if (t === exceto) continue;
+    if (String(item.f[t] || '').toLowerCase().indexOf(ativos.textos[t]) < 0) return false;
+  }
+  if (BUSCA && item.busca.indexOf(BUSCA) < 0) return false;
+  return true;
+}
+
+/** Opções que ainda fazem sentido para um filtro, dados os outros. */
+function opcoesEmCascata(id){
+  if (!LISTA) return [];
+  var base = (id === ID_STATUS)
+    ? (INICIO.status || [])
+    : ((LISTA.opcoes || {})[id] || []);
+
+  var ativos = filtrosAtivos();
+  var existem = {};
+  LISTA.itens.forEach(function(i){
+    if (!passaNosFiltros(i, ativos, id)) return;
+    var v = valorDoFiltro(i, id);
+    if (v) existem[v] = true;
   });
 
+  // O que já está marcado continua visível, para dar como desmarcar
+  var marcados = MULTIS[id] ? MULTIS[id].get() : [];
+  var aindaMarcado = {};
+  marcados.forEach(function(v){ aindaMarcado[v] = true; });
+
+  return base.filter(function(o){ return existem[o] || aindaMarcado[o]; });
+}
+
+function aplicarFiltros(){
+  if (!LISTA) return;
+  var ativos = filtrosAtivos();
+  FILTRADOS = LISTA.itens.filter(function(i){
+    return passaNosFiltros(i, ativos, null);
+  });
+  atualizarContagemFiltros();
   desenharPagina();
+}
+
+/** Mostra no rótulo de cada caixinha quantas opções ainda restam. */
+function atualizarContagemFiltros(){
+  Object.keys(MULTIS).forEach(function(id){
+    var m = MULTIS[id];
+    if (!m || !m.rotulo) return;
+    var n = opcoesEmCascata(id).length;
+    var marcados = m.get().length;
+    m.rotulo.textContent = m.nome + (marcados ? '' : ' · ' + n);
+  });
 }
 
 
@@ -1612,7 +1665,7 @@ function pintarTabela(fatia, total, paginas){
   // cabeçalho
   var th = ['<th class="trava cx-col" style="padding-right:0"><input type="checkbox" id="cx-todos" title="Selecionar a página"></th>'];
   LISTA.colunas.forEach(function(c, n){
-    th.push('<th data-indice="' + n + '" class="' + (n === 0 ? 'trava cod-col' : '') + '"' +
+    th.push('<th data-indice="' + n + '"' +
             ' title="' + esc(c.rotulo) + '"><span class="rot">' + esc(c.rotulo) + '</span></th>');
   });
   el('processos-cabecalho').innerHTML = th.join('');
@@ -1627,7 +1680,7 @@ function pintarTabela(fatia, total, paginas){
                (MARCADOS[i.linha] ? ' checked' : '') + '></td>'];
     LISTA.colunas.forEach(function(c, n){
       var v = dados[c.id] || '';
-      var classe = (n === 0 ? 'trava cod-col cod' : 'cel');
+      var classe = (n === 0 ? 'cod' : 'cel');
       if (c.id === ID_STATUS){
         tds.push('<td class="cel"><span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span></td>');
       } else if (!v){
@@ -1645,6 +1698,7 @@ function pintarTabela(fatia, total, paginas){
   el('processos-corpo').querySelectorAll('tr').forEach(function(tr){
     tr.addEventListener('click', function(ev){
       if (ev.target.classList.contains('cx-linha')) return;
+      if (ev.target.closest('.cx-col')) return;
       abrirGaveta(Number(tr.dataset.linha), tr.dataset.scgar);
     });
   });
@@ -2045,7 +2099,7 @@ function atualizarLinhaNaTela(linha){
       td.innerHTML = '<span class="pilula ' + classeStatus(v) + '">' + (esc(v) || '—') + '</span>';
       return;
     }
-    td.className = (n === 0 ? 'trava cod-col cod' : 'cel') + (v ? '' : ' vazio');
+    td.className = (n === 0 ? 'cod' : 'cel') + (v ? '' : ' vazio');
     td.title = v;
     td.textContent = v || '—';
   });

@@ -73,17 +73,6 @@ const CONFIG = {
   // SCGAR (ex.: SCGAR-5212). É o trecho depois de /folders/ no endereço.
   PASTA_DRIVE_ID: '1IUG089u2h0i3VEHRADwY_HuZTT9pRIVc',
 
-  // ---------------- Nome de quem entra ----------------
-  // O Google só entrega o e-mail, não o nome. O sistema tenta adivinhar o
-  // primeiro nome pelo e-mail e, quando não dá (m.souza@, financeiro@...),
-  // simplesmente não usa nome nenhum.
-  //
-  // Para corrigir casos assim, escreva o nome aqui. É só copiar a linha,
-  // trocar o e-mail e o nome, e manter a vírgula no fim:
-  NOMES: {
-    // 'm.souza@solargrid.com.br': 'Marcos',
-  },
-
   // Anexar arquivo é obrigatório para abrir a solicitação.
   ANEXO_OBRIGATORIO: true,
 
@@ -125,12 +114,12 @@ const CAMPOS = [
   { cab: 'Data de Solicitação',   tipo: 'data',   grupo: 'Identificação', lista: true, auto: true, sol: true , filtro: true },
   { cab: 'RMA / OS (Nº)',         tipo: 'texto',  grupo: 'Identificação', lista: true, sol: true , filtro: true },
   { cab: 'Tipo de Acionamento',   tipo: 'select', grupo: 'Identificação', lista: true, sol: true, obrig: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
-  { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
-  { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
-  { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true },
-  { cab: 'Qtd',                   tipo: 'inteiro', grupo: 'Identificação', lista: true, sol: true },
-  { cab: 'Motivo Inicial',        tipo: 'area',   grupo: 'Identificação', sol: true },
-  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true, listaFechada: true },
+  { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true , obrig: true },
+  { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true , obrig: true },
+  { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true },
+  { cab: 'Qtd',                   tipo: 'inteiro', grupo: 'Identificação', lista: true, sol: true, obrig: true },
+  { cab: 'Motivo Inicial',        tipo: 'area',   grupo: 'Identificação', sol: true, obrig: true },
+  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true },
   { cab: 'MAC',                   tipo: 'codigo', grupo: 'Identificação', sol: true },
   { cab: 'NS',                    tipo: 'codigo', grupo: 'Identificação', lista: true, sol: true },
   { cab: 'CÓD MXM (FÓRMULA)',     tipo: 'formula', grupo: 'Identificação' },
@@ -493,7 +482,6 @@ function carregarInicio() {
 
   return {
     usuario: email,
-    primeiroNome: _primeiroNome(email),
     campos: campos,
     grupos: GRUPOS,
     status: STATUS_GERAL,
@@ -668,15 +656,23 @@ function listarProcessos(forcar) {
   const vistos = {};
   filtraveis.forEach(function (i) { vistos[_idCampo(i.campo)] = {}; });
 
+  // Colunas de fórmula (o CÓD MXM costuma estar arrastado centenas de linhas
+  // abaixo da última solicitação). Elas NÃO contam para decidir se a linha é
+  // um acionamento — do contrário a região arrastada viraria acionamento
+  // vazio. Fora isso, TODA linha com qualquer conteúdo entra, inclusive os
+  // processos antigos que não têm SCGAR preenchido.
+  const colsFormula = {};
+  ativos.forEach(function (i) {
+    if (i.campo.tipo === 'formula') colsFormula[i.col] = true;
+  });
+
   bloco.forEach(function (linha, idx) {
-    // Uma linha só conta como acionamento se tiver SCGAR. Sem isso, as linhas
-    // que carregam apenas a fórmula do CÓD MXM arrastada para baixo apareciam
-    // na tabela como acionamentos vazios.
-    if (colScgar) {
-      if (String(linha[colScgar - 1] || '').trim() === '') return;
-    } else if (linha.every(function (v) { return String(v).trim() === ''; })) {
-      return;
+    let temConteudo = false;
+    for (let c = 0; c < linha.length; c++) {
+      if (colsFormula[c + 1]) continue;
+      if (String(linha[c]).trim() !== '') { temConteudo = true; break; }
     }
+    if (!temConteudo) return;
 
     const item = {
       linha: primeira + idx,
@@ -1200,40 +1196,6 @@ function criarSolicitacao(dados, arquivos) {
   } finally {
     trava.releaseLock();
   }
-}
-
-/**
- * Primeiro nome de quem está usando, para a saudação da tela de início.
- *
- * Ordem: 1) a lista CONFIG.NOMES; 2) o trecho do e-mail antes do @, quando ele
- * parece um nome mesmo. Devolve '' quando não dá para saber — e aí a tela nem
- * mostra saudação, em vez de chamar a pessoa de "M".
- */
-function _primeiroNome(email) {
-  const limpo = String(email || '').trim().toLowerCase();
-  if (!limpo) return '';
-
-  if (CONFIG.NOMES && CONFIG.NOMES[limpo]) return CONFIG.NOMES[limpo];
-
-  const antes = limpo.split('@')[0];
-  const pedacos = antes.split(/[._\-0-9]+/).filter(function (p) { return p.length > 0; });
-  if (!pedacos.length) return '';
-
-  const primeiro = pedacos[0];
-
-  // Inicial em vez de nome (m.souza, jp.silva): melhor não chamar de nada
-  // do que chamar a pessoa pelo sobrenome ou por uma letra.
-  if (primeiro.length < 3) return '';
-
-  // Caixas de setor não são pessoas
-  const setores = ['procurement', 'supplychain', 'suprimentos', 'compras',
-                   'financeiro', 'contato', 'engenharia', 'eng', 'admin',
-                   'atendimento', 'ti', 'sti', 'rh', 'juridico', 'qualidade',
-                   'logistica', 'comercial', 'diretoria', 'obras', 'om',
-                   'manutencao', 'seguranca', 'fiscal', 'contabil'];
-  if (setores.indexOf(primeiro) >= 0) return '';
-
-  return primeiro.charAt(0).toUpperCase() + primeiro.slice(1);
 }
 
 /** Barra o envio quando a soma dos anexos passa do limite. */
