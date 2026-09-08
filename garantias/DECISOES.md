@@ -163,7 +163,8 @@ Aba `Auditoria`, cabeçalho na linha 1, colunas **Data / Hora · Usuário · Aç
 Linha · SC · Campo · De → Para**. Como no resto do sistema, as colunas são
 localizadas pelo texto do cabeçalho e podem ser reordenadas.
 
-Uma linha por campo alterado. A coluna `Ação` recebe:
+Uma linha por campo alterado nas edições, e **uma linha só** por solicitação
+aberta. A coluna `Ação` recebe:
 
 | Ação | Quando |
 |---|---|
@@ -172,9 +173,8 @@ Uma linha por campo alterado. A coluna `Ação` recebe:
 | `Edição em lote` | alteração aplicada a vários |
 
 `De → Para` mostra os valores como aparecem na planilha, com `(vazio)` quando o
-campo estava ou ficou em branco. Na abertura, além de uma linha por campo
-preenchido, entra uma linha `ABERTURA DA SOLICITAÇÃO` com o código e a
-quantidade de anexos.
+campo estava ou ficou em branco. Na abertura, o campo é
+`ABERTURA DA SOLICITAÇÃO` e o para traz o código e a quantidade de anexos.
 
 O registro nunca derruba a operação: se a aba não existir ou falhar, a gravação
 na planilha continua valendo e o erro fica só no log do script. Para desligar,
@@ -191,6 +191,26 @@ Resta **um** par duplicado: `Codigo Rastreio / Romaneio RFQ` aparece duas vezes
 pela ordem de aparição — 1ª = envio, 2ª = retorno (campo `ocor` na lista
 `CAMPOS`). É o **único** ponto do projeto onde a ordem importa. Renomear para
 `(Envio)` e `(Retorno)` elimina a exceção.
+
+## Onde a linha nova é criada
+
+A solicitação nova entra **logo depois da última linha que tem SCGAR**, e nunca
+se cria mais de uma linha.
+
+Não serve usar o `getLastRow()` da planilha: ele devolve a última linha com
+qualquer conteúdo, e a coluna de fórmula `CÓD MXM` está arrastada centenas de
+linhas abaixo da última solicitação de verdade. Isso fazia a linha nova cair no
+fim da região arrastada, deixando um monte de linhas aparentemente vazias no
+meio — e as mesmas linhas apareciam como acionamentos fantasma no módulo
+Processos.
+
+Três consequências disso, todas tratadas:
+
+1. A linha nova é calculada pela **coluna SCGAR**, não pelo `getLastRow()`.
+2. O módulo Processos só considera acionamento a linha que **tem SCGAR**.
+3. Se a linha nova já tiver fórmula em alguma coluna, a fórmula é devolvida em
+   vez de apagada. Espaço na grade é criado apenas quando falta, e uma linha
+   por vez — antes eram 20 de cada vez, o que também parecia criação de linhas.
 
 ## Proteções na gravação
 

@@ -351,8 +351,9 @@ function _registrarAuditoria(acao, entradas) {
     });
 
     const inicio = Math.max(aba.getLastRow(), linhaCab) + 1;
-    if (inicio + bloco.length - 1 > aba.getMaxRows()) {
-      aba.insertRowsAfter(aba.getMaxRows(), bloco.length + 100);
+    const ultimaNecessaria = inicio + bloco.length - 1;
+    if (ultimaNecessaria > aba.getMaxRows()) {
+      aba.insertRowsAfter(aba.getMaxRows(), ultimaNecessaria - aba.getMaxRows());
     }
     aba.getRange(inicio, 1, bloco.length, largura).setValues(bloco);
   } catch (erro) {
@@ -605,8 +606,14 @@ function listarProcessos(forcar) {
   filtraveis.forEach(function (i) { vistos[_idCampo(i.campo)] = {}; });
 
   bloco.forEach(function (linha, idx) {
-    const vazia = linha.every(function (v) { return String(v).trim() === ''; });
-    if (vazia) return;
+    // Uma linha só conta como acionamento se tiver SCGAR. Sem isso, as linhas
+    // que carregam apenas a fórmula do CÓD MXM arrastada para baixo apareciam
+    // na tabela como acionamentos vazios.
+    if (colScgar) {
+      if (String(linha[colScgar - 1] || '').trim() === '') return;
+    } else if (linha.every(function (v) { return String(v).trim() === ''; })) {
+      return;
+    }
 
     const item = {
       linha: primeira + idx,
@@ -983,12 +990,13 @@ function criarSolicitacao(dados, arquivos) {
       throw new Error('Preencha: ' + faltou.join(', ') + '.');
     }
 
-    const linhaAnterior = Math.max(aba.getLastRow(), CONFIG.HEADER_ROW);
+    const linhaAnterior = _ultimaLinhaComSolicitacao(aba, mapa);
     const linhaNova = linhaAnterior + 1;
     const largura = aba.getLastColumn();
 
+    // Só cria espaço na aba se a linha realmente não existir, e cria UMA.
     if (linhaNova > aba.getMaxRows()) {
-      aba.insertRowsAfter(aba.getMaxRows(), 20);
+      aba.insertRowsAfter(aba.getMaxRows(), 1);
     }
 
     const scgar = _proximoScgar(aba, mapa);
@@ -1027,7 +1035,17 @@ function criarSolicitacao(dados, arquivos) {
       if (item.campo.tipo === 'codigo') aba.getRange(linhaNova, item.col).setNumberFormat('@');
     });
 
-    aba.getRange(linhaNova, 1, 1, largura).setValues([linhaValores]);
+    // Se a linha nova já tiver fórmula em alguma coluna (o CÓD MXM costuma
+    // estar arrastado para baixo), devolve a fórmula em vez de apagá-la.
+    const faixaNova = aba.getRange(linhaNova, 1, 1, largura);
+    const formulasNaLinha = faixaNova.getFormulas()[0];
+    for (let i = 0; i < largura; i++) {
+      if (linhaValores[i] === '' && formulasNaLinha[i]) {
+        linhaValores[i] = formulasNaLinha[i];
+      }
+    }
+
+    faixaNova.setValues([linhaValores]);
 
     // Puxa as fórmulas da linha de cima (ex.: CÓD MXM)
     colFormula.forEach(function (col) {
@@ -1042,8 +1060,8 @@ function criarSolicitacao(dados, arquivos) {
     _cacheLimpar('gar_lista_v3');
     _cacheLimpar('gar_opcoes_v2');
 
-    // Registra a abertura: uma entrada por campo preenchido pelo solicitante
-    const registro = [{
+    // Registra a abertura em UMA linha só
+    _registrarAuditoria('Solicitação', [{
       linha: linhaNova,
       sc: scgar,
       campo: 'ABERTURA DA SOLICITAÇÃO',
@@ -1051,21 +1069,7 @@ function criarSolicitacao(dados, arquivos) {
       para: scgar + (arquivos.length
         ? ' · ' + arquivos.length + (arquivos.length === 1 ? ' anexo' : ' anexos')
         : '')
-    }];
-    ativos.forEach(function (item) {
-      const c = item.campo;
-      if (!c.sol || c.auto) return;
-      const v = String((dados || {})[_idCampo(c)] || '').trim();
-      if (!v) return;
-      registro.push({
-        linha: linhaNova,
-        sc: scgar,
-        campo: (c.rotulo || c.cab).toUpperCase(),
-        de: '',
-        para: v
-      });
-    });
-    _registrarAuditoria('Solicitação', registro);
+    }]);
 
     _avisarPorEmail(scgar, dados, ativos, linhaNova, pasta, arquivos);
 
@@ -1142,6 +1146,27 @@ function _nomeSeguro(nome) {
     .replace(/\s+/g, ' ')
     .trim();
   return limpo.substring(0, 120) || 'arquivo';
+}
+
+/**
+ * Última linha que realmente tem uma solicitação, olhando a coluna SCGAR.
+ *
+ * Não serve usar getLastRow(): ele devolve a última linha com QUALQUER
+ * conteúdo, e a coluna de fórmula (CÓD MXM) costuma estar arrastada centenas
+ * de linhas para baixo. Isso fazia a solicitação nova cair muito abaixo da
+ * última de verdade, deixando um monte de linhas aparentemente vazias no meio.
+ */
+function _ultimaLinhaComSolicitacao(aba, mapa) {
+  const col = _coluna(mapa, { cab: CAB_SCGAR });
+  const primeira = CONFIG.HEADER_ROW + 1;
+  const limite = aba.getLastRow();
+  if (!col || limite < primeira) return CONFIG.HEADER_ROW;
+
+  const valores = aba.getRange(primeira, col, limite - primeira + 1, 1).getDisplayValues();
+  for (let i = valores.length - 1; i >= 0; i--) {
+    if (String(valores[i][0] || '').trim() !== '') return primeira + i;
+  }
+  return CONFIG.HEADER_ROW;
 }
 
 /** Monta o código no formato SCGAR-0001 a partir do número. */
