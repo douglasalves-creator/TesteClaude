@@ -147,6 +147,32 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .multi-lista input{width:15px;height:15px;accent-color:var(--aurora);flex-shrink:0}
 .multi-lista .nada{padding:14px 12px;font-size:12.5px;color:var(--tinta-3);text-align:center}
 
+/* ================= Anexos ================= */
+.anexos{margin-top:22px;padding-top:20px;border-top:1px solid var(--nevoa)}
+.anexos > h3{margin:0 0 3px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.anexos > h3 b{color:var(--aurora)}
+.anexos > p{margin:0 0 12px;font-size:12px;color:var(--tinta-3)}
+.solta{border:1.5px dashed var(--nevoa);border-radius:var(--raio);background:var(--sirius);padding:26px 20px;text-align:center;cursor:pointer;transition:.15s}
+.solta:hover,.solta.sobre{border-color:var(--aurora);background:var(--aurora-fraco)}
+.solta .titulo-solta{font-size:14px;font-weight:600;margin-bottom:3px}
+.solta .titulo-solta span{color:var(--aurora);text-decoration:underline}
+.solta .ajuda{font-size:12px;color:var(--tinta-3)}
+.lista-anexos{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.lista-anexos li{display:flex;align-items:center;gap:11px;padding:9px 12px;border:1px solid var(--nevoa);border-radius:8px;background:var(--branco);font-size:13px}
+.lista-anexos .ico{width:26px;height:26px;border-radius:6px;background:var(--aurora-fraco);color:#a44a14;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.lista-anexos .nome{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.lista-anexos .peso{font-size:11.5px;color:var(--tinta-3);white-space:nowrap}
+.lista-anexos .tira{border:none;background:transparent;color:var(--tinta-3);font-size:17px;line-height:1;padding:2px 5px;border-radius:5px}
+.lista-anexos .tira:hover{background:#f6e9e7;color:#8c2f22}
+.soma-anexos{margin-top:10px;font-size:12px;font-weight:600;color:var(--tinta-2)}
+.soma-anexos.passou{color:#8c2f22}
+
+.sucesso{border:1px solid #c2e2d0;background:#e9f4ee;border-radius:var(--raio);padding:18px 20px;margin-bottom:20px}
+.sucesso h3{margin:0 0 5px;font-size:15px;font-weight:700;color:#1b6b41}
+.sucesso p{margin:0 0 12px;font-size:13px;color:#2c6b48}
+.sucesso a{display:inline-block;background:var(--aurora);color:#fff;text-decoration:none;font-weight:600;font-size:13px;padding:9px 16px;border-radius:8px}
+.sucesso a:hover{background:var(--aurora-escuro)}
+
 /* ================= Seletor de uma opção ================= */
 .sel-env{position:relative}
 .sel-btn{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:1px solid var(--nevoa);border-radius:8px;background:var(--branco);font-weight:500;text-align:left;transition:border-color .15s,box-shadow .15s}
@@ -279,8 +305,23 @@ td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
   <section id="mod-solicitacao">
     <h1 class="titulo">Nova solicitação de garantia</h1>
     <p class="legenda">O código SCGAR e a data são gerados automaticamente ao enviar.</p>
+    <div id="sucesso-envio" class="sucesso oculto"></div>
+
     <div class="painel" style="padding:24px">
       <div class="grade" id="form-solicitacao"></div>
+
+      <div class="anexos" id="area-anexos">
+        <h3>Anexos <b id="anexo-obrig">*</b></h3>
+        <p id="anexo-ajuda">Fotos, notas fiscais, laudos. Eles vão para uma pasta com o número do SCGAR no Drive.</p>
+        <div class="solta" id="solta">
+          <div class="titulo-solta">Arraste os arquivos aqui ou <span>escolha do computador</span></div>
+          <div class="ajuda" id="solta-ajuda">Vários arquivos de uma vez</div>
+        </div>
+        <input type="file" id="arquivos" multiple style="display:none">
+        <ul class="lista-anexos" id="lista-anexos"></ul>
+        <div class="soma-anexos oculto" id="soma-anexos"></div>
+      </div>
+
       <div class="rodape-form">
         <button class="btn btn-aurora" id="btn-enviar">Enviar solicitação</button>
         <button class="btn" id="btn-limpar">Limpar</button>
@@ -470,6 +511,9 @@ function iniciarDeVerdade(dados){
   }
 
   montarFormulario();
+
+  el('anexo-obrig').style.display = dados.anexoObrigatorio ? '' : 'none';
+  el('solta-ajuda').textContent = 'Vários arquivos de uma vez · até ' + dados.anexoMaxMb + ' MB no total';
 }
 
 /* ==================================================================
@@ -493,6 +537,144 @@ function irPara(mod){
 /* ==================================================================
    Formulário de nova solicitação
    ================================================================== */
+/* ==================================================================
+   Anexos — vão para uma pasta com o nome do SCGAR no Drive
+   ================================================================== */
+var ANEXOS = [];   // [{arquivo, nome, tamanho}]
+
+function pesoLegivel(bytes){
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+function extensao(nome){
+  var p = String(nome).split('.');
+  return p.length > 1 ? p.pop().substring(0,4).toUpperCase() : '?';
+}
+
+function somaAnexos(){
+  return ANEXOS.reduce(function(t,a){ return t + a.tamanho; }, 0);
+}
+
+function limiteBytes(){
+  return (INICIO && INICIO.anexoMaxMb ? INICIO.anexoMaxMb : 25) * 1048576;
+}
+
+function desenharAnexos(){
+  var ul = el('lista-anexos');
+  ul.innerHTML = '';
+  ANEXOS.forEach(function(a, i){
+    var li = document.createElement('li');
+
+    var ico = document.createElement('span');
+    ico.className = 'ico';
+    ico.textContent = extensao(a.nome);
+    li.appendChild(ico);
+
+    var nome = document.createElement('span');
+    nome.className = 'nome';
+    nome.textContent = a.nome;
+    nome.title = a.nome;
+    li.appendChild(nome);
+
+    var peso = document.createElement('span');
+    peso.className = 'peso';
+    peso.textContent = pesoLegivel(a.tamanho);
+    li.appendChild(peso);
+
+    var tira = document.createElement('button');
+    tira.type = 'button';
+    tira.className = 'tira';
+    tira.title = 'Remover';
+    tira.innerHTML = '&times;';
+    tira.addEventListener('click', function(){
+      ANEXOS.splice(i,1);
+      desenharAnexos();
+    });
+    li.appendChild(tira);
+
+    ul.appendChild(li);
+  });
+
+  var soma = el('soma-anexos');
+  if (!ANEXOS.length){
+    soma.classList.add('oculto');
+    return;
+  }
+  var total = somaAnexos();
+  var passou = total > limiteBytes();
+  soma.classList.remove('oculto');
+  soma.classList.toggle('passou', passou);
+  soma.textContent = ANEXOS.length + (ANEXOS.length === 1 ? ' arquivo · ' : ' arquivos · ') +
+    pesoLegivel(total) + (passou ? ' — acima do limite de ' + INICIO.anexoMaxMb + ' MB' : '');
+}
+
+function juntarAnexos(fileList){
+  Array.prototype.forEach.call(fileList, function(f){
+    var repetido = ANEXOS.some(function(a){ return a.nome === f.name && a.tamanho === f.size; });
+    if (repetido) return;
+    ANEXOS.push({ arquivo: f, nome: f.name, tamanho: f.size });
+  });
+  desenharAnexos();
+}
+
+el('solta').addEventListener('click', function(){ el('arquivos').click(); });
+el('arquivos').addEventListener('change', function(){
+  juntarAnexos(this.files);
+  this.value = '';
+});
+['dragenter','dragover'].forEach(function(ev){
+  el('solta').addEventListener(ev, function(e){ e.preventDefault(); this.classList.add('sobre'); });
+});
+['dragleave','drop'].forEach(function(ev){
+  el('solta').addEventListener(ev, function(e){ e.preventDefault(); this.classList.remove('sobre'); });
+});
+el('solta').addEventListener('drop', function(e){
+  if (e.dataTransfer && e.dataTransfer.files) juntarAnexos(e.dataTransfer.files);
+});
+
+/** Transforma os arquivos em texto para poderem viajar até o servidor. */
+function lerAnexos(quando){
+  if (!ANEXOS.length){ quando([]); return; }
+  var prontos = [];
+  var i = 0;
+
+  function proximo(){
+    if (i >= ANEXOS.length){ quando(prontos); return; }
+    var a = ANEXOS[i];
+    var leitor = new FileReader();
+    leitor.onload = function(){
+      var texto = String(leitor.result);
+      prontos.push({
+        nome: a.nome,
+        tipo: a.arquivo.type || 'application/octet-stream',
+        dados: texto.substring(texto.indexOf(',') + 1)
+      });
+      i++;
+      atualizarBotaoEnvio('Preparando ' + i + '/' + ANEXOS.length + '…');
+      proximo();
+    };
+    leitor.onerror = function(){
+      recado('Não foi possível ler o arquivo "' + a.nome + '".', true);
+      atualizarBotaoEnvio(null);
+    };
+    leitor.readAsDataURL(a.arquivo);
+  }
+  proximo();
+}
+
+function atualizarBotaoEnvio(texto){
+  var b = el('btn-enviar');
+  if (texto === null){
+    b.disabled = false;
+    b.textContent = 'Enviar solicitação';
+  } else {
+    b.disabled = true;
+    b.textContent = texto;
+  }
+}
+
 /* ---------- seletor de uma opção, com busca ----------
    Usado em TODOS os campos de lista suspensa, para que tenham a mesma
    aparência e o mesmo comportamento, inclusive quando a lista é enorme.
@@ -776,6 +958,9 @@ function limparFormulario(){
 
 el('btn-limpar').addEventListener('click', function(){
   limparFormulario();
+  ANEXOS = [];
+  desenharAnexos();
+  el('sucesso-envio').classList.add('oculto');
   var primeiro = el('form-solicitacao').querySelector('.entrada:not([readonly])');
   if (primeiro) primeiro.focus();
 });
@@ -796,24 +981,50 @@ el('btn-enviar').addEventListener('click', function(){
     recado('Preencha: ' + faltou.join(', '), true);
     return;
   }
+  if (INICIO.anexoObrigatorio && !ANEXOS.length){
+    recado('Anexe ao menos um arquivo.', true);
+    el('solta').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  if (somaAnexos() > limiteBytes()){
+    recado('Os anexos passam de ' + INICIO.anexoMaxMb + ' MB. Remova ou reduza algum arquivo.', true);
+    return;
+  }
 
-  botao.disabled = true;
-  botao.textContent = 'Enviando…';
-  google.script.run
-    .withSuccessHandler(function(r){
-      botao.disabled = false;
-      botao.textContent = 'Enviar solicitação';
-      limparFormulario();
-      recado('Solicitação ' + r.scgar + ' criada.');
-      LISTA = null;
-    })
-    .withFailureHandler(function(e){
-      botao.disabled = false;
-      botao.textContent = 'Enviar solicitação';
-      recado(e.message, true);
-    })
-    .gar_criarSolicitacao(dados);
+  el('sucesso-envio').classList.add('oculto');
+  atualizarBotaoEnvio('Preparando anexos…');
+
+  lerAnexos(function(prontos){
+    atualizarBotaoEnvio(prontos.length ? 'Enviando arquivos…' : 'Enviando…');
+    google.script.run
+      .withSuccessHandler(function(r){
+        atualizarBotaoEnvio(null);
+        ANEXOS = [];
+        desenharAnexos();
+        limparFormulario();
+        LISTA = null;
+        mostrarSucesso(r);
+      })
+      .withFailureHandler(function(e){
+        atualizarBotaoEnvio(null);
+        recado(e.message, true);
+      })
+      .gar_criarSolicitacao(dados, prontos);
+  });
 });
+
+function mostrarSucesso(r){
+  var caixa = el('sucesso-envio');
+  caixa.classList.remove('oculto');
+  caixa.innerHTML =
+    '<h3>Solicitação ' + esc(r.scgar) + ' criada</h3>' +
+    '<p>' + (r.anexos ? (r.anexos + (r.anexos === 1 ? ' arquivo guardado' : ' arquivos guardados') +
+      ' na pasta <b>' + esc(r.scgar) + '</b> do Drive.') : 'Sem anexos.') +
+    ' O time de garantias foi avisado por e-mail.</p>' +
+    (r.pastaUrl ? '<a href="' + esc(r.pastaUrl) + '" target="_blank" rel="noopener">Abrir a pasta no Drive</a>' : '');
+  caixa.scrollIntoView({behavior:'smooth', block:'center'});
+  recado('Solicitação ' + r.scgar + ' criada.');
+}
 
 /* ==================================================================
    Módulo Processos — filtros, tabela e paginação

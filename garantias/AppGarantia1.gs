@@ -54,7 +54,18 @@ const CONFIG = {
   CACHE_OPCOES_SEG: 21600,
 
   // Endereço de uma imagem do logo (PNG/SVG público). Vazio = usa o nome escrito.
-  LOGO_URL: ''
+  LOGO_URL: '',
+
+  // ---------------- Anexos no Google Drive ----------------
+  // Pasta-mãe onde será criada uma subpasta por solicitação, com o nome do
+  // SCGAR (ex.: SCGAR-5212). É o trecho depois de /folders/ no endereço.
+  PASTA_DRIVE_ID: '1IUG089u2h0i3VEHRADwY_HuZTT9pRIVc',
+
+  // Anexar arquivo é obrigatório para abrir a solicitação.
+  ANEXO_OBRIGATORIO: true,
+
+  // Limite somado de todos os anexos de uma solicitação, em MB.
+  ANEXO_MAX_MB: 25
 };
 
 /** Lista oficial de status. Para mudar, edite aqui. */
@@ -332,7 +343,9 @@ function carregarInicio() {
     grupos: GRUPOS,
     status: STATUS_GERAL,
     faltando: faltando,
-    logoUrl: CONFIG.LOGO_URL
+    logoUrl: CONFIG.LOGO_URL,
+    anexoObrigatorio: !!CONFIG.ANEXO_OBRIGATORIO,
+    anexoMaxMb: CONFIG.ANEXO_MAX_MB
   };
 }
 
@@ -802,9 +815,16 @@ function _paraPlanilha(campo, valor) {
 /* Módulo Solicitação — criar novo acionamento                          */
 /* ================================================================== */
 
-function criarSolicitacao(dados) {
+function criarSolicitacao(dados, arquivos) {
+  arquivos = arquivos || [];
+
+  if (CONFIG.ANEXO_OBRIGATORIO && !arquivos.length) {
+    throw new Error('Anexe ao menos um arquivo para abrir a solicitação.');
+  }
+  _conferirTamanhoAnexos(arquivos);
+
   const trava = LockService.getScriptLock();
-  trava.waitLock(30000);
+  trava.waitLock(120000);
   try {
     const aba = _aba();
     const mapa = _mapaCabecalhos(aba);
@@ -832,6 +852,10 @@ function criarSolicitacao(dados) {
 
     const scgar = _proximoScgar(aba, mapa);
     const hoje = new Date();
+
+    // Os anexos vão para o Drive ANTES de a linha ser criada. Se algo falhar
+    // aqui, nada é gravado na planilha e o usuário pode tentar de novo.
+    const pasta = arquivos.length ? _guardarAnexos(scgar, arquivos) : null;
 
     // Monta a linha inteira em memória e grava de uma só vez (rápido)
     const linhaValores = new Array(largura).fill('');
@@ -877,12 +901,81 @@ function criarSolicitacao(dados) {
     _cacheLimpar('gar_lista_v3');
     _cacheLimpar('gar_opcoes_v2');
 
-    _avisarPorEmail(scgar, dados, ativos, linhaNova);
+    _avisarPorEmail(scgar, dados, ativos, linhaNova, pasta, arquivos);
 
-    return { ok: true, scgar: scgar, linha: linhaNova };
+    return {
+      ok: true,
+      scgar: scgar,
+      linha: linhaNova,
+      pastaUrl: pasta ? pasta.url : '',
+      anexos: arquivos.length
+    };
   } finally {
     trava.releaseLock();
   }
+}
+
+/** Barra o envio quando a soma dos anexos passa do limite. */
+function _conferirTamanhoAnexos(arquivos) {
+  let bytes = 0;
+  arquivos.forEach(function (a) {
+    // base64 ocupa 4 caracteres a cada 3 bytes de arquivo
+    bytes += Math.floor(String(a.dados || '').length * 3 / 4);
+  });
+  const limite = CONFIG.ANEXO_MAX_MB * 1024 * 1024;
+  if (bytes > limite) {
+    throw new Error('Os anexos somam ' + (bytes / 1048576).toFixed(1) +
+      ' MB e o limite é ' + CONFIG.ANEXO_MAX_MB + ' MB. Envie arquivos menores.');
+  }
+}
+
+/**
+ * Cria (ou reaproveita) a pasta com o nome do SCGAR dentro da pasta-mãe e
+ * grava os anexos lá dentro.
+ */
+function _guardarAnexos(scgar, arquivos) {
+  if (!CONFIG.PASTA_DRIVE_ID) {
+    throw new Error('A pasta do Drive não está configurada (CONFIG.PASTA_DRIVE_ID).');
+  }
+
+  let mae;
+  try {
+    mae = DriveApp.getFolderById(CONFIG.PASTA_DRIVE_ID);
+  } catch (e) {
+    throw new Error('Não foi possível abrir a pasta do Drive. Confira o CONFIG.PASTA_DRIVE_ID e se você tem acesso a ela.');
+  }
+
+  // Se a pasta do SCGAR já existir, usa a que existe em vez de duplicar
+  let pasta;
+  const iguais = mae.getFoldersByName(scgar);
+  pasta = iguais.hasNext() ? iguais.next() : mae.createFolder(scgar);
+
+  const salvos = [];
+  arquivos.forEach(function (a) {
+    const nome = _nomeSeguro(a.nome);
+    try {
+      const blob = Utilities.newBlob(
+        Utilities.base64Decode(a.dados),
+        a.tipo || 'application/octet-stream',
+        nome
+      );
+      const arq = pasta.createFile(blob);
+      salvos.push({ nome: arq.getName(), url: arq.getUrl() });
+    } catch (e) {
+      throw new Error('Falha ao gravar o anexo "' + nome + '": ' + e.message);
+    }
+  });
+
+  return { id: pasta.getId(), nome: pasta.getName(), url: pasta.getUrl(), arquivos: salvos };
+}
+
+/** Tira do nome do arquivo o que o Drive não aceita bem. */
+function _nomeSeguro(nome) {
+  const limpo = String(nome || 'arquivo')
+    .replace(/[\\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return limpo.substring(0, 120) || 'arquivo';
 }
 
 /** Próximo código no formato SCGAR-0001, olhando o maior já existente. */
@@ -912,7 +1005,7 @@ function _proximoScgar(aba, mapa) {
   return CONFIG.SCGAR_PREFIXO + new Array(zeros + 1).join('0') + numero;
 }
 
-function _avisarPorEmail(scgar, dados, ativos, linhaNova) {
+function _avisarPorEmail(scgar, dados, ativos, linhaNova, pasta, arquivos) {
   if (!CONFIG.EMAIL_NOVA_SOLICITACAO) return;
   try {
     const solicitante = Session.getActiveUser().getEmail() || '(não identificado)';
@@ -925,6 +1018,20 @@ function _avisarPorEmail(scgar, dados, ativos, linhaNova) {
                '</td><td style="padding:6px 12px;border-bottom:1px solid #D8D8D8;font-weight:600">' + valor + '</td></tr>';
       }).join('');
 
+    let blocoPasta = '';
+    if (pasta) {
+      const nomes = (pasta.arquivos || []).map(function (a) {
+        return '<li style="margin:2px 0">' + a.nome + '</li>';
+      }).join('');
+      blocoPasta =
+        '<div style="padding:14px 12px 0">' +
+          '<a href="' + pasta.url + '" style="display:inline-block;background:#EC6E2D;color:#fff;' +
+          'text-decoration:none;font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px">' +
+          'Abrir a pasta ' + pasta.nome + ' no Drive</a>' +
+          '<ul style="margin:12px 0 0;padding-left:20px;font-size:12.5px;color:#5b6670">' + nomes + '</ul>' +
+        '</div>';
+    }
+
     const html =
       '<div style="font-family:Montserrat,Arial,sans-serif;color:#0A0F14;max-width:620px">' +
         '<div style="background:#EC6E2D;color:#fff;padding:18px 20px;border-radius:12px 12px 0 0">' +
@@ -933,6 +1040,7 @@ function _avisarPorEmail(scgar, dados, ativos, linhaNova) {
         '</div>' +
         '<div style="border:1px solid #D8D8D8;border-top:none;border-radius:0 0 12px 12px;padding:8px 0 14px">' +
           '<table style="width:100%;border-collapse:collapse;font-size:13px">' + linhas + '</table>' +
+          blocoPasta +
           '<p style="padding:12px 12px 0;margin:0;font-size:12px;color:#5b6670">Aberta por ' + solicitante +
           ' — linha ' + linhaNova + ' da aba ' + CONFIG.SHEET_NAME + '.</p>' +
         '</div>' +
@@ -1003,6 +1111,6 @@ function gar_salvarProcesso(linha, scgarEsperado, alteracoes) {
   return GAR_GARANTIAS.salvarProcesso(linha, scgarEsperado, alteracoes);
 }
 
-function gar_criarSolicitacao(dados) {
-  return GAR_GARANTIAS.criarSolicitacao(dados);
+function gar_criarSolicitacao(dados, arquivos) {
+  return GAR_GARANTIAS.criarSolicitacao(dados, arquivos);
 }

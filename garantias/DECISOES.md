@@ -77,6 +77,34 @@ os valores já digitados naquela coluna.
 `MAC` e `NS` recebem formato de texto puro (`@`) na célula antes da gravação,
 para não perder zero à esquerda nem virar notação científica.
 
+## Anexos no Google Drive
+
+Definido em 08/09/2026. Anexar arquivo é **obrigatório** para abrir a
+solicitação.
+
+- Pasta-mãe: `1IUG089u2h0i3VEHRADwY_HuZTT9pRIVc` (`CONFIG.PASTA_DRIVE_ID`).
+- Ao enviar, o sistema cria dentro dela uma subpasta com o nome do SCGAR
+  (ex.: `SCGAR-5212`) e grava os arquivos lá. Se a pasta já existir, ela é
+  reaproveitada em vez de duplicada.
+- Limite somado de **25 MB** por solicitação (`CONFIG.ANEXO_MAX_MB`), conferido
+  na tela e no servidor.
+- Nomes de arquivo são limpos dos caracteres que o Drive não aceita
+  (`NF: 12345/2026.pdf` → `NF- 12345-2026.pdf`).
+- A tela aceita arrastar e soltar, lista os arquivos com tamanho, permite
+  remover, não repete o mesmo arquivo duas vezes e mostra o andamento.
+- No fim aparece uma caixa verde com o botão **Abrir a pasta no Drive**; o mesmo
+  link vai no e-mail de aviso, junto da lista de arquivos.
+
+**Ordem da gravação:** os arquivos sobem para o Drive **antes** de a linha ser
+criada na planilha. Se o Drive falhar, nada é gravado na planilha e o usuário
+pode tentar de novo — não sobra solicitação sem anexo.
+
+Por usar o Drive, o script pede uma **nova autorização** na primeira publicação
+depois desta mudança.
+
+Não foi criada coluna para o link da pasta (decisão de 08/09/2026); se quiser
+depois, basta criar o cabeçalho e incluí-lo na lista `CAMPOS`.
+
 ## Notificação
 
 - A cada nova solicitação, envia e-mail para **procurement.eng@solargrid.com.br**.
