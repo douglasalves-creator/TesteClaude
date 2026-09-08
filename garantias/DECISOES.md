@@ -233,7 +233,21 @@ Simulação com os 49 cabeçalhos reais:
 Definido em 08/09/2026.
 
 ### Tabela
-- **Todas** as colunas da aba aparecem, na ordem da lista `CAMPOS`.
+- **Todas** as colunas da aba aparecem, **na ordem da planilha**, e as linhas
+  também seguem a ordem da planilha (de cima para baixo, sem inverter).
+- As colunas são montadas lendo o **cabeçalho da aba**, não a lista `CAMPOS`.
+  Qualquer coluna que exista na aba entra na tabela automaticamente, mesmo sem
+  estar mapeada no código — importante para a reestruturação que a planilha vai
+  passar. As não mapeadas viram texto simples e aparecem no grupo
+  **Outras colunas** da tela de tratamento, onde podem ser editadas normalmente,
+  inclusive em lote.
+- A legenda mostra quantas colunas foram encontradas, para conferência.
+- **Largura ajustável por coluna**: arraste a borda direita do cabeçalho. Duplo
+  clique na borda devolve o padrão daquela coluna, e o botão
+  **Redefinir colunas** devolve tudo ao padrão.
+- O ajuste é **individual**: fica no armazenamento local do navegador de cada
+  pessoa, então o que um faz não muda nada para os outros. Se o navegador
+  bloquear o armazenamento, o ajuste vale só enquanto a aba estiver aberta.
 - Rolagem lateral livre; as colunas de seleção e **SCGAR** ficam travadas à
   esquerda para não perder a referência.
 - Cabeçalho fixo no topo durante a rolagem vertical, dentro do próprio quadro da

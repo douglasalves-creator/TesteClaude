@@ -191,17 +191,28 @@ input.escondido{position:absolute;width:1px;height:1px;opacity:0;pointer-events:
 
 /* ================= Tabela grande ================= */
 .tabela-caixa{overflow:auto;max-height:calc(100vh - 300px);border-radius:var(--raio)}
-.tabela-caixa table{min-width:100%;width:max-content}
+.tabela-caixa table{width:max-content;min-width:100%;table-layout:fixed}
+.tabela-caixa th,.tabela-caixa td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabela-caixa th{position:relative;padding-right:18px}
+.tabela-caixa th .rot{display:block;overflow:hidden;text-overflow:ellipsis}
+
+/* alça de arrastar a largura da coluna */
+.puxador{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:8;
+  display:flex;align-items:center;justify-content:center}
+.puxador::after{content:'';width:2px;height:60%;background:var(--nevoa);border-radius:1px;transition:background .12s}
+.puxador:hover::after,.puxador.arrastando::after{background:var(--aurora);width:3px}
+body.redimensionando{cursor:col-resize;user-select:none}
+body.redimensionando .tabela-caixa tbody tr{cursor:col-resize}
 .tabela-caixa th{position:sticky;top:0;z-index:6}
 .tabela-caixa th.trava,.tabela-caixa td.trava{position:sticky;background:var(--branco);z-index:5}
 .tabela-caixa th.trava{background:var(--sirius);z-index:7}
-.tabela-caixa th.cx-col,.tabela-caixa td.cx-col{left:0;width:40px;min-width:40px;text-align:center;padding-left:0;padding-right:0}
-.tabela-caixa th.cod-col,.tabela-caixa td.cod-col{left:40px;min-width:120px;box-shadow:1px 0 0 var(--nevoa)}
+.tabela-caixa th.cx-col,.tabela-caixa td.cx-col{left:0;text-align:center;padding:11px 0}
+.tabela-caixa th.cod-col,.tabela-caixa td.cod-col{box-shadow:1px 0 0 var(--nevoa)}
 tbody tr:hover td.trava{background:var(--aurora-fraco)}
 tbody tr.marcada td{background:#fff7f1}
 tbody tr.marcada td.trava{background:#fff7f1}
 td input[type=checkbox],th input[type=checkbox]{width:15px;height:15px;accent-color:var(--aurora);cursor:pointer}
-td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+td.cel{text-align:center}
 
 /* ================= Paginação ================= */
 .paginacao{padding:14px;border-top:1px solid var(--nevoa);font-size:12.5px;color:var(--tinta-2);text-align:center}
@@ -337,12 +348,14 @@ td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
       </div>
       <button class="btn btn-sm" id="btn-limpar-filtros">Limpar filtros</button>
       <button class="btn btn-sm" id="btn-atualizar">Atualizar</button>
+      <button class="btn btn-sm" id="btn-redefinir-colunas" title="Volta as colunas ao tamanho padrão">Redefinir colunas</button>
     </div>
 
     <div class="painel">
       <div id="processos-carregando" class="carregando"><span class="giro"></span> Carregando acionamentos…</div>
       <div class="tabela-caixa oculto" id="processos-tabela-caixa">
         <table>
+          <colgroup id="processos-colgroup"></colgroup>
           <thead><tr id="processos-cabecalho"></tr></thead>
           <tbody id="processos-corpo"></tbody>
         </table>
@@ -488,6 +501,7 @@ function aoIniciar(dados){
 
 function iniciarDeVerdade(dados){
   INICIO = dados;
+  lerLarguras();
   dados.campos.forEach(function(c){ CAMPOS_POR_ID[c.id] = c; });
 
   el('usuario').textContent = dados.usuario || '';
@@ -1016,6 +1030,121 @@ var CONTEUDO = {};        // conteúdo completo das linhas já carregadas
 var MARCADOS = {};        // linhas selecionadas para o lote
 var ID_STATUS = 'status geral do acionamento';
 
+/* ==================================================================
+   Largura das colunas — ajustável e guardada NO NAVEGADOR DE CADA UM
+   ------------------------------------------------------------------
+   Fica no armazenamento local do navegador do próprio usuário, então o
+   ajuste de um não interfere no de ninguém. Se o navegador bloquear o
+   armazenamento, vale só para a sessão aberta.
+   ================================================================== */
+var CHAVE_LARGURAS = 'gar_larguras_colunas_v1';
+var LARGURAS = {};
+var LARGURA_CX = 42;
+
+function lerLarguras(){
+  try {
+    var bruto = window.localStorage.getItem(CHAVE_LARGURAS);
+    LARGURAS = bruto ? JSON.parse(bruto) : {};
+  } catch (e) {
+    LARGURAS = {};
+  }
+  if (!LARGURAS || typeof LARGURAS !== 'object') LARGURAS = {};
+}
+
+function gravarLarguras(){
+  try { window.localStorage.setItem(CHAVE_LARGURAS, JSON.stringify(LARGURAS)); }
+  catch (e) { /* segue valendo só nesta sessão */ }
+}
+
+/** Largura padrão de cada coluna, pelo tipo de informação que ela guarda. */
+function larguraPadrao(coluna, indice){
+  if (indice === 0) return 140;
+  switch (coluna.tipo) {
+    case 'inteiro': return 80;
+    case 'data':    return 130;
+    case 'moeda':   return 140;
+    case 'area':    return 240;
+    case 'link':    return 200;
+    case 'select':  return 180;
+    default:        return 175;
+  }
+}
+
+function larguraDe(coluna, indice){
+  var guardada = Number(LARGURAS[coluna.id]);
+  if (guardada && guardada >= 60) return guardada;
+  return larguraPadrao(coluna, indice);
+}
+
+function aplicarColgroup(){
+  var cg = el('processos-colgroup');
+  var html = ['<col style="width:' + LARGURA_CX + 'px">'];
+  LISTA.colunas.forEach(function(c, i){
+    html.push('<col data-id="' + esc(c.id) + '" style="width:' + larguraDe(c, i) + 'px">');
+  });
+  cg.innerHTML = html.join('');
+  posicionarTravadas();
+}
+
+/** A 2a coluna travada precisa começar onde a caixinha de seleção termina. */
+function posicionarTravadas(){
+  document.querySelectorAll('.tabela-caixa .cod-col').forEach(function(e){
+    e.style.left = LARGURA_CX + 'px';
+  });
+}
+
+/** Liga o arrastar da largura em cada cabeçalho. */
+function ligarPuxadores(){
+  var cols = el('processos-colgroup').querySelectorAll('col[data-id]');
+
+  el('processos-cabecalho').querySelectorAll('th[data-indice]').forEach(function(th){
+    var indice = Number(th.dataset.indice);
+    var alca = document.createElement('div');
+    alca.className = 'puxador';
+    alca.title = 'Arraste para mudar a largura';
+    th.appendChild(alca);
+
+    alca.addEventListener('mousedown', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      var col = cols[indice];
+      if (!col) return;
+
+      var xInicial = ev.clientX;
+      var larguraInicial = parseFloat(col.style.width) || th.offsetWidth;
+      alca.classList.add('arrastando');
+      document.body.classList.add('redimensionando');
+
+      function mover(e){
+        var nova = Math.max(60, Math.round(larguraInicial + (e.clientX - xInicial)));
+        col.style.width = nova + 'px';
+      }
+      function soltar(){
+        document.removeEventListener('mousemove', mover);
+        document.removeEventListener('mouseup', soltar);
+        alca.classList.remove('arrastando');
+        document.body.classList.remove('redimensionando');
+        var id = col.dataset.id;
+        LARGURAS[id] = parseFloat(col.style.width);
+        gravarLarguras();
+      }
+      document.addEventListener('mousemove', mover);
+      document.addEventListener('mouseup', soltar);
+    });
+
+    // Duplo clique na alça devolve o padrão daquela coluna
+    alca.addEventListener('dblclick', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      var c = LISTA.colunas[indice];
+      if (!c) return;
+      delete LARGURAS[c.id];
+      gravarLarguras();
+      aplicarColgroup();
+    });
+  });
+}
+
 /* ---------- caixinha de seleção múltipla ---------- */
 function criarMulti(id, rotulo, opcoes){
   var caixa = document.createElement('div');
@@ -1164,6 +1293,13 @@ el('btn-limpar-filtros').addEventListener('click', function(){
 
 el('btn-atualizar').addEventListener('click', function(){ carregarLista(true); });
 
+el('btn-redefinir-colunas').addEventListener('click', function(){
+  LARGURAS = {};
+  gravarLarguras();
+  if (LISTA) aplicarColgroup();
+  recado('Colunas de volta ao tamanho padrão.');
+});
+
 var buscaTimer = null;
 el('busca').addEventListener('input', function(){
   BUSCA = this.value.trim().toLowerCase();
@@ -1242,7 +1378,8 @@ function desenharPagina(){
   if (PAGINA > paginas) PAGINA = paginas;
 
   el('legenda-processos').textContent =
-    total + ' de ' + LISTA.itens.length + ' acionamentos. Clique em uma linha para tratar.';
+    total + ' de ' + LISTA.itens.length + ' acionamentos · ' + LISTA.colunas.length +
+    ' colunas da planilha. Clique em uma linha para tratar; arraste a borda do cabeçalho para alargar a coluna.';
 
   if (!total){
     el('processos-tabela-caixa').classList.add('oculto');
@@ -1277,11 +1414,14 @@ function pintarTabela(fatia, total, paginas){
   el('paginacao').classList.remove('oculto');
 
   // cabeçalho
-  var th = ['<th class="trava cx-col"><input type="checkbox" id="cx-todos" title="Selecionar a página"></th>'];
+  var th = ['<th class="trava cx-col" style="padding-right:0"><input type="checkbox" id="cx-todos" title="Selecionar a página"></th>'];
   LISTA.colunas.forEach(function(c, n){
-    th.push('<th class="' + (n === 0 ? 'trava cod-col' : '') + '">' + esc(c.rotulo) + '</th>');
+    th.push('<th data-indice="' + n + '" class="' + (n === 0 ? 'trava cod-col' : '') + '"' +
+            ' title="' + esc(c.rotulo) + '"><span class="rot">' + esc(c.rotulo) + '</span></th>');
   });
   el('processos-cabecalho').innerHTML = th.join('');
+  aplicarColgroup();
+  ligarPuxadores();
 
   // linhas
   var html = [];

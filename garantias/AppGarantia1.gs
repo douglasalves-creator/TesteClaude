@@ -170,7 +170,8 @@ const CAMPOS = [
   { cab: 'Ação',                                    tipo: 'area', grupo: 'Acompanhamento' }
 ];
 
-const GRUPOS = ['Identificação', 'Triagem', 'Garantia', 'Envio', 'Análise / Reparo', 'Retorno', 'Acompanhamento'];
+const GRUPO_EXTRA = 'Outras colunas';
+const GRUPOS = ['Identificação', 'Triagem', 'Garantia', 'Envio', 'Análise / Reparo', 'Retorno', 'Acompanhamento', GRUPO_EXTRA];
 
 /** Cabeçalho da coluna usada como status principal. */
 const CAB_STATUS = 'Status Geral do Acionamento';
@@ -261,13 +262,49 @@ function _idCampo(campo) {
   return _normalizar(campo.cab) + (campo.ocor && campo.ocor > 1 ? '#' + campo.ocor : '');
 }
 
-/** Só os campos cujo cabeçalho realmente existe na aba hoje. */
+/**
+ * Campos ativos = os da lista CAMPOS que existem na aba HOJE, mais toda coluna
+ * da aba que não está na lista.
+ *
+ * Isso garante que a tabela de Processos mostre TODAS as colunas da planilha,
+ * inclusive as que forem criadas depois, sem precisar mexer no código. As
+ * colunas não mapeadas entram como texto simples, no grupo "Outras colunas".
+ */
 function _camposAtivos(mapa) {
-  return CAMPOS.map(function (campo) {
-    return { campo: campo, col: _coluna(mapa, campo) };
-  }).filter(function (item) {
-    return item.col > 0;
+  const usados = {};
+  const ativos = [];
+
+  CAMPOS.forEach(function (campo) {
+    const col = _coluna(mapa, campo);
+    if (!col) return;
+    usados[col] = true;
+    ativos.push({ campo: campo, col: col });
   });
+
+  // Colunas da aba que a lista CAMPOS não cobre
+  Object.keys(mapa).forEach(function (chave) {
+    mapa[chave].forEach(function (col, ocorrencia) {
+      if (usados[col]) return;
+      usados[col] = true;
+      ativos.push({
+        campo: {
+          cab: chave,
+          ocor: ocorrencia + 1,
+          tipo: 'texto',
+          grupo: GRUPO_EXTRA,
+          extra: true
+        },
+        col: col
+      });
+    });
+  });
+
+  return ativos;
+}
+
+/** Rótulo bonito para colunas que vieram só do cabeçalho da aba. */
+function _rotuloDaColuna(aba, col) {
+  return String(aba.getRange(CONFIG.HEADER_ROW, col).getDisplayValue() || '').trim();
 }
 
 /* ================================================================== */
@@ -425,13 +462,14 @@ function carregarInicio() {
     return {
       id: _idCampo(c),
       cab: c.cab,
-      rotulo: c.rotulo || c.cab,
+      rotulo: c.rotulo || (c.extra ? _rotuloDaColuna(aba, item.col) : c.cab),
       tipo: c.tipo,
       grupo: c.grupo,
       sol: !!c.sol,
       lista: !!c.lista,
       auto: !!c.auto,
       obrig: !!c.obrig,
+      extra: !!c.extra,
       fixo: c.opcoes ? true : ((opcoes[_idCampo(c)] || {}).fixo || false),
       opcoes: c.opcoes || ((opcoes[_idCampo(c)] || {}).vals || null)
     };
@@ -564,7 +602,7 @@ function _valoresJaUsados(aba, col, primeira, ultima) {
  * buscado depois, por paginaProcessos(), já filtrado.
  */
 function listarProcessos(forcar) {
-  const chave = 'gar_lista_v3';
+  const chave = 'gar_lista_v4';
   if (!forcar) {
     const guardado = _cacheLer(chave);
     if (guardado) {
@@ -578,9 +616,16 @@ function listarProcessos(forcar) {
   const primeira = CONFIG.HEADER_ROW + 1;
   const ultima = aba.getLastRow();
 
-  // Todas as colunas da aba viram colunas da tabela, na ordem definida em CAMPOS
-  const colunas = ativos.map(function (i) {
-    return { id: _idCampo(i.campo), rotulo: i.campo.rotulo || i.campo.cab, tipo: i.campo.tipo };
+  // Todas as colunas da aba viram colunas da tabela, NA ORDEM DA PLANILHA
+  const colunas = ativos.slice().sort(function (a, b) {
+    return a.col - b.col;
+  }).map(function (i) {
+    return {
+      id: _idCampo(i.campo),
+      rotulo: i.campo.rotulo || (i.campo.extra ? _rotuloDaColuna(aba, i.col) : i.campo.cab),
+      tipo: i.campo.tipo,
+      coluna: i.col
+    };
   });
 
   const filtraveis = ativos.filter(function (i) { return i.campo.filtro; });
@@ -649,7 +694,7 @@ function listarProcessos(forcar) {
   saida.itens.forEach(function (i) { contagem[i.status] = (contagem[i.status] || 0) + 1; });
   saida.contagemStatus = contagem;
 
-  saida.itens.reverse(); // mais recentes primeiro
+  // Mesma ordem das linhas da planilha (sem inverter)
   _cacheGravar(chave, JSON.stringify(saida), CONFIG.CACHE_LISTA_SEG);
   return saida;
 }
@@ -774,7 +819,7 @@ function salvarLote(linhas, alteracoes) {
       }
     });
 
-    if (celulas) _cacheLimpar('gar_lista_v3');
+    if (celulas) _cacheLimpar('gar_lista_v4');
     SpreadsheetApp.flush();
     _registrarAuditoria('Edição em lote', registro);
     return { ok: true, campos: campos, celulas: celulas, linhas: Object.keys(alvo).length };
@@ -925,7 +970,7 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       });
     });
 
-    if (gravados) _cacheLimpar('gar_lista_v3');
+    if (gravados) _cacheLimpar('gar_lista_v4');
     SpreadsheetApp.flush();
     _registrarAuditoria('Edição', registro);
     return { ok: true, gravados: gravados };
@@ -1058,7 +1103,7 @@ function criarSolicitacao(dados, arquivos) {
     });
 
     SpreadsheetApp.flush();
-    _cacheLimpar('gar_lista_v3');
+    _cacheLimpar('gar_lista_v4');
     _cacheLimpar('gar_opcoes_v2');
 
     // Registra a abertura em UMA linha só
