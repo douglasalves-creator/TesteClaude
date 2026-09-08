@@ -134,7 +134,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml;charset=
 
 /* ================= Processos ================= */
 .barra{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.busca{position:relative;flex:1;min-width:240px}
+.busca{position:relative;flex:1 1 260px;min-width:220px;max-width:560px}
 .busca .entrada{padding-left:36px}
 .busca svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45}
 
@@ -166,6 +166,55 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .estado p{margin:0;font-size:13px}
 
 /* ================= Painel ================= */
+.selecoes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px;min-height:32px}
+.selecoes .titulo-sel{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tinta-3)}
+.marca-sel{display:inline-flex;align-items:center;gap:8px;background:var(--eclipse);color:#fff;border:none;
+  border-radius:999px;padding:6px 8px 6px 13px;font-size:12px;font-weight:600}
+.marca-sel .dim{color:#8d959c;font-weight:500}
+.marca-sel .x{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:50%;width:17px;height:17px;
+  font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
+.marca-sel .x:hover{background:var(--aurora)}
+.limpa-sel{border:1px solid var(--nevoa);background:var(--branco);border-radius:999px;padding:6px 14px;
+  font-size:12px;font-weight:600;color:var(--tinta-2)}
+.limpa-sel:hover{background:var(--sirius)}
+
+.grafico.largo{grid-column:1/-1}
+.grafico .selecionavel{cursor:pointer}
+.apagado{opacity:.28}
+.lt-ponto.apagado{opacity:.25}
+.sem-dado{padding:26px 6px;text-align:center;font-size:12.5px;color:var(--tinta-3)}
+
+/* pontos (usinas) */
+.pontos{display:flex;flex-direction:column;gap:1px}
+.ponto-linha{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;align-items:center;gap:12px;
+  padding:5px 6px;border-radius:7px;cursor:pointer;transition:background .12s}
+.ponto-linha:hover{background:var(--sirius)}
+.ponto-linha .nome{font-size:12.5px;font-weight:500;color:var(--tinta-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.ponto-trilho{position:relative;height:18px;display:flex;align-items:center}
+.ponto-trilho::before{content:'';position:absolute;left:0;right:0;height:1px;background:var(--nevoa)}
+.ponto-haste{position:relative;height:2px;background:var(--cosmos);opacity:.35;border-radius:1px}
+.ponto-bola{position:absolute;width:11px;height:11px;border-radius:50%;background:var(--cosmos);
+  box-shadow:0 0 0 2px var(--branco);transition:left .25s}
+.ponto-linha .qtd{font-size:12.5px;font-weight:700;min-width:34px;text-align:right}
+
+/* linha do tempo */
+.linha-tempo{position:relative}
+.linha-tempo svg{display:block;width:100%;height:210px;overflow:visible;font-family:var(--fonte)}
+.lt-grade{stroke:#ececec;stroke-width:1}
+.lt-eixo{fill:var(--tinta-3);font-size:10px}
+.lt-area{fill:var(--aurora);opacity:.10}
+.lt-linha{fill:none;stroke:var(--aurora);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.lt-ponto{fill:var(--aurora);stroke:var(--branco);stroke-width:2}
+.lt-guia{stroke:var(--nevoa);stroke-width:1}
+.lt-alvo{fill:transparent;cursor:crosshair}
+
+/* barras de status, com a cor de cada status */
+.barra-graf.st .preenche{background:var(--nevoa)}
+.barra-graf.st.s-pendente .preenche{background:#EC6E2D}
+.barra-graf.st.s-andamento .preenche{background:#0D3459}
+.barra-graf.st.s-transito .preenche{background:#8a9a2e}
+.barra-graf.st.s-concluido .preenche{background:#1b6b41}
+.barra-graf.st.s-cancelado .preenche{background:#8c2f22}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
 .kpi{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);padding:18px 20px;box-shadow:var(--sombra)}
 .kpi .rot{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-3)}
@@ -186,15 +235,13 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .grafico .ver-tabela:hover{text-decoration:underline}
 
 .barras{display:flex;flex-direction:column;gap:2px}
-.barra{display:grid;grid-template-columns:minmax(90px,34%) 1fr auto;align-items:center;gap:12px;
-  padding:5px 6px;border-radius:7px;cursor:default;transition:background .12s}
-.barra:hover{background:var(--sirius)}
-.barra .nome{font-size:12.5px;font-weight:500;color:var(--tinta-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
-.barra .trilho{height:20px;display:flex;align-items:center}
-.barra .preenche{height:20px;background:var(--aurora);border-radius:0 4px 4px 0;min-width:3px}
-.barra:first-child .preenche{background:var(--aurora)}
-.barra .qtd{font-family:var(--fonte);font-size:12.5px;font-weight:700;color:var(--tinta);min-width:34px;text-align:right}
-.barra .pct{font-size:11px;color:var(--tinta-3);margin-left:2px}
+.barra-graf{display:grid;grid-template-columns:minmax(90px,34%) 1fr auto;align-items:center;gap:12px;
+  padding:5px 6px;border-radius:7px;cursor:pointer;transition:background .12s}
+.barra-graf:hover{background:var(--sirius)}
+.barra-graf .nome{font-size:12.5px;font-weight:500;color:var(--tinta-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.barra-graf .trilho{height:20px;display:flex;align-items:center}
+.barra-graf .preenche{height:20px;background:var(--aurora);border-radius:0 4px 4px 0;min-width:3px;transition:width .25s}
+.barra-graf .qtd{font-family:var(--fonte);font-size:12.5px;font-weight:700;color:var(--tinta);min-width:34px;text-align:right}
 
 .grafico .cauda{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-2,#eef0ec);font-size:11.5px;color:var(--tinta-3)}
 .tabela-grafico{margin-top:14px;max-height:260px;overflow-y:auto;border:1px solid var(--nevoa);border-radius:8px}
@@ -557,6 +604,7 @@ td.cel{text-align:center}
 
     <div id="painel-conteudo" class="oculto">
       <div class="kpis" id="painel-kpis"></div>
+      <div class="selecoes" id="painel-selecoes"></div>
       <div class="graficos" id="painel-graficos"></div>
     </div>
   </section>
@@ -2153,16 +2201,120 @@ function pularCelula(tr, td, direcao){
 }
 
 /* ==================================================================
-   Painel — contagens vindas da planilha, desenhadas em barras
+   Painel
    ------------------------------------------------------------------
-   Barras horizontais, uma cor só (Aurora): o comprimento já mostra a
-   quantidade, então pintar cada barra de uma cor diferente só gastaria
-   informação. Nomes longos cabem à esquerda e a quantidade fica na ponta.
-   ================================================================== */
-var TOPO_GRAFICO = 10;   // quantas categorias cada gráfico mostra
+   Quatro formas diferentes, cada uma pela pergunta que responde:
+     · linha do tempo  -> como os acionamentos se distribuem no tempo
+     · barras          -> ranking de fornecedor e de equipamento
+     · barras coloridas-> status (a cor é a mesma da tabela, tem significado)
+     · pontos          -> ranking de usina, com muitas categorias
 
+   Os gráficos conversam entre si: clicar numa categoria filtra os outros,
+   como no Power BI. Cada gráfico continua mostrando as opções da sua própria
+   dimensão, com as não escolhidas apagadas — assim dá para trocar a escolha
+   sem precisar limpar tudo.
+   ================================================================== */
+var TOPO_GRAFICO = 10;
+var SELECAO = {};        // { dimensão: valor escolhido }
+
+var DIMS = {
+  fornecedor:  { id: 'fornecedor',            rotulo: 'Fornecedor' },
+  equipamento: { id: 'equipamento principal', rotulo: 'Equipamento Principal' },
+  status:      { id: '__status',              rotulo: 'Status Geral do Acionamento' },
+  usina:       { id: 'ufv de origem',         rotulo: 'UFV de Origem' },
+  mes:         { id: '__mes',                 rotulo: 'Mês da solicitação' }
+};
+
+/* ---------- leitura dos valores de cada acionamento ---------- */
+function valorDaDim(item, dim){
+  if (dim === 'status') return item.status || '';
+  if (dim === 'mes'){
+    var iso = textoParaISO(item.f['data de solicitacao'] || '');
+    return iso ? iso.substring(0, 7) : '';
+  }
+  return item.f[DIMS[dim].id] || '';
+}
+
+/** Passa pelas escolhas ativas? `exceto` deixa uma dimensão de fora. */
+function passaNaSelecao(item, exceto){
+  for (var dim in SELECAO){
+    if (dim === exceto) continue;
+    if (_normalizar2(valorDaDim(item, dim)) !== _normalizar2(SELECAO[dim])) return false;
+  }
+  return true;
+}
+
+/** Mesma comparação tolerante do resto do sistema: sem acento e sem caixa. */
+function _normalizar2(txt){
+  return String(txt == null ? '' : txt)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Conta as repetições de uma dimensão.
+ * Grafias diferentes do mesmo nome somam juntas ("Huawei" e "HUAWEI"), e
+ * aparece a grafia mais usada.
+ */
+function contar(dim){
+  var grupos = {};
+  LISTA.itens.forEach(function(item){
+    if (!passaNaSelecao(item, dim)) return;
+    var bruto = String(valorDaDim(item, dim)).trim();
+    if (!bruto) return;
+    var chave = _normalizar2(bruto);
+    if (!grupos[chave]) grupos[chave] = { qtd: 0, grafias: {} };
+    grupos[chave].qtd++;
+    grupos[chave].grafias[bruto] = (grupos[chave].grafias[bruto] || 0) + 1;
+  });
+
+  return Object.keys(grupos).map(function(chave){
+    var g = grupos[chave], nome = '', mais = -1;
+    Object.keys(g.grafias).forEach(function(gr){
+      if (g.grafias[gr] > mais){ mais = g.grafias[gr]; nome = gr; }
+    });
+    return { nome: nome, qtd: g.qtd, chave: chave };
+  }).sort(function(a, b){
+    return b.qtd - a.qtd || a.nome.localeCompare(b.nome, 'pt-BR');
+  });
+}
+
+/** Quantos acionamentos sobram com todas as escolhas aplicadas. */
+function totalFiltrado(){
+  return LISTA.itens.filter(function(i){ return passaNaSelecao(i, null); }).length;
+}
+
+/**
+ * Quantas categorias distintas restam considerando TODAS as escolhas — é o que
+ * vale para os números do topo. Os gráficos usam contar(), que deixa a própria
+ * dimensão de fora para dar para trocar a escolha.
+ */
+function distintosComFiltro(dim){
+  var vistos = {};
+  LISTA.itens.forEach(function(item){
+    if (!passaNaSelecao(item, null)) return;
+    var v = _normalizar2(valorDaDim(item, dim));
+    if (v) vistos[v] = true;
+  });
+  return Object.keys(vistos).length;
+}
+
+/* ---------- clique numa categoria ---------- */
+function escolher(dim, nome){
+  if (SELECAO[dim] && _normalizar2(SELECAO[dim]) === _normalizar2(nome)) delete SELECAO[dim];
+  else SELECAO[dim] = nome;
+  montarPainel();
+}
+
+function escolhido(dim, nome){
+  return SELECAO[dim] && _normalizar2(SELECAO[dim]) === _normalizar2(nome);
+}
+
+/* ================================================================== */
+/* Montagem                                                            */
+/* ================================================================== */
 function montarPainel(){
-  if (!LISTA || !LISTA.painel){
+  if (!LISTA){
     el('painel-carregando').classList.remove('oculto');
     el('painel-conteudo').classList.add('oculto');
     return;
@@ -2170,18 +2322,15 @@ function montarPainel(){
   el('painel-carregando').classList.add('oculto');
   el('painel-conteudo').classList.remove('oculto');
 
-  var p = LISTA.painel;
-  var series = p.series || {};
+  var total = totalFiltrado();
+  var temFiltro = Object.keys(SELECAO).length > 0;
 
   /* ---------- números do topo ---------- */
-  function distintos(chave){
-    return (series[chave] && series[chave].dados) ? series[chave].dados.length : 0;
-  }
   var kpis = [
-    { rot: 'Acionamentos', num: p.total, destaque: true },
-    { rot: 'Fornecedores', num: distintos('fornecedor') },
-    { rot: 'Usinas', num: distintos('usina') },
-    { rot: 'Equipamentos', num: distintos('equipamento') }
+    { rot: temFiltro ? 'Acionamentos filtrados' : 'Acionamentos', num: total, destaque: true },
+    { rot: 'Fornecedores', num: distintosComFiltro('fornecedor') },
+    { rot: 'Usinas',       num: distintosComFiltro('usina') },
+    { rot: 'Equipamentos', num: distintosComFiltro('equipamento') }
   ];
   el('painel-kpis').innerHTML = kpis.map(function(k){
     return '<div class="kpi' + (k.destaque ? ' destaque' : '') + '">' +
@@ -2190,96 +2339,294 @@ function montarPainel(){
            '</div>';
   }).join('');
 
-  /* ---------- um gráfico por coluna ---------- */
+  desenharSelecoes();
+
+  /* ---------- gráficos ---------- */
   var alvo = el('painel-graficos');
   alvo.innerHTML = '';
+  alvo.appendChild(cartaoLinhaDoTempo());
+  alvo.appendChild(cartaoBarras('fornecedor', 'Fornecedores mais acionados'));
+  alvo.appendChild(cartaoBarras('equipamento', 'Equipamentos com mais acionamentos'));
+  alvo.appendChild(cartaoStatus());
+  alvo.appendChild(cartaoPontos('usina', 'Acionamentos por usina'));
+}
 
-  ['fornecedor','equipamento','status','usina'].forEach(function(chave){
-    var s = series[chave];
-    if (!s) return;
-
-    var cartao = document.createElement('section');
-    cartao.className = 'grafico';
-
-    if (!s.existe){
-      cartao.innerHTML = '<div class="grafico-topo"><h3>' + esc(s.titulo) + '</h3></div>' +
-        '<p class="fonte">A coluna <b>' + esc(s.rotulo) + '</b> não foi encontrada na planilha.</p>';
-      alvo.appendChild(cartao);
-      return;
-    }
-
-    // O status mostra todos, para dar para comparar; os outros, os 10 primeiros.
-    var mostrar = (chave === 'status') ? s.dados.length : Math.min(TOPO_GRAFICO, s.dados.length);
-    var visiveis = s.dados.slice(0, mostrar);
-    var resto = s.dados.slice(mostrar);
-    var maior = visiveis.length ? visiveis[0].qtd : 1;
-    var somaTotal = s.dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
-
-    var subtitulo = (chave === 'status')
-      ? s.dados.length + ' status em uso · coluna ' + s.rotulo
-      : 'Os ' + visiveis.length + ' primeiros de ' + s.dados.length + ' · coluna ' + s.rotulo;
-
-    cartao.innerHTML =
-      '<div class="grafico-topo"><h3>' + esc(s.titulo) + '</h3>' +
-        '<button type="button" class="ver-tabela">Ver todos</button></div>' +
-      '<p class="fonte">' + esc(subtitulo) + '</p>';
-
-    var barras = document.createElement('div');
-    barras.className = 'barras';
-    visiveis.forEach(function(d){
-      var pct = (d.qtd / somaTotal) * 100;
-      var linha = document.createElement('div');
-      linha.className = 'barra';
-      linha.innerHTML =
-        '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
-        '<div class="trilho"><div class="preenche" style="width:' +
-          Math.max(2, (d.qtd / maior) * 100) + '%"></div></div>' +
-        '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
-      ligarDica(linha, d.nome, d.qtd, pct);
-      barras.appendChild(linha);
+/** As escolhas ativas, em marcadores que dá para tirar um a um. */
+function desenharSelecoes(){
+  var caixa = el('painel-selecoes');
+  var dims = Object.keys(SELECAO);
+  if (!dims.length){
+    caixa.innerHTML = '<span class="titulo-sel">Clique em qualquer categoria para cruzar os gráficos</span>';
+    return;
+  }
+  caixa.innerHTML = '<span class="titulo-sel">Filtrando por</span>';
+  dims.forEach(function(dim){
+    var m = document.createElement('span');
+    m.className = 'marca-sel';
+    m.innerHTML = '<span class="dim">' + esc(DIMS[dim].rotulo) + ':</span> ' +
+                  esc(dim === 'mes' ? mesLegivel(SELECAO[dim]) : SELECAO[dim]) +
+                  '<button type="button" class="x" title="Remover">&times;</button>';
+    m.querySelector('.x').addEventListener('click', function(){
+      delete SELECAO[dim];
+      montarPainel();
     });
-    cartao.appendChild(barras);
-
-    if (resto.length){
-      var somaResto = resto.reduce(function(t, d){ return t + d.qtd; }, 0);
-      var cauda = document.createElement('p');
-      cauda.className = 'cauda';
-      cauda.textContent = 'Mais ' + resto.length +
-        (resto.length === 1 ? ' categoria' : ' categorias') + ' somando ' +
-        numeroBR(somaResto) + (somaResto === 1 ? ' acionamento' : ' acionamentos') + '.';
-      cartao.appendChild(cauda);
-    }
-
-    // Tabela com tudo: garante que nada fique só no gráfico
-    var caixaTabela = document.createElement('div');
-    caixaTabela.className = 'tabela-grafico oculto';
-    caixaTabela.innerHTML =
-      '<table><thead><tr><th>#</th><th>' + esc(s.rotulo) + '</th><th>Acionamentos</th></tr></thead><tbody>' +
-      s.dados.map(function(d, i){
-        return '<tr><td>' + (i + 1) + '</td><td>' + esc(d.nome) + '</td><td>' + numeroBR(d.qtd) + '</td></tr>';
-      }).join('') + '</tbody></table>';
-    cartao.appendChild(caixaTabela);
-
-    cartao.querySelector('.ver-tabela').addEventListener('click', function(){
-      var aberto = !caixaTabela.classList.contains('oculto');
-      caixaTabela.classList.toggle('oculto', aberto);
-      this.textContent = aberto ? 'Ver todos' : 'Esconder';
-    });
-
-    alvo.appendChild(cartao);
+    caixa.appendChild(m);
   });
+  var limpa = document.createElement('button');
+  limpa.type = 'button';
+  limpa.className = 'limpa-sel';
+  limpa.textContent = 'Limpar tudo';
+  limpa.addEventListener('click', function(){ SELECAO = {}; montarPainel(); });
+  caixa.appendChild(limpa);
+}
+
+/* ---------- moldura comum dos cartões ---------- */
+function molduraCartao(titulo, subtitulo, largo){
+  var c = document.createElement('section');
+  c.className = 'grafico' + (largo ? ' largo' : '');
+  c.innerHTML = '<div class="grafico-topo"><h3>' + esc(titulo) + '</h3>' +
+                '<button type="button" class="ver-tabela oculto">Ver todos</button></div>' +
+                '<p class="fonte">' + esc(subtitulo) + '</p>';
+  return c;
+}
+
+/** Tabela com a lista completa, para nada ficar só no gráfico. */
+function anexarTabela(cartao, rotulo, dados){
+  var caixa = document.createElement('div');
+  caixa.className = 'tabela-grafico oculto';
+  caixa.innerHTML = '<table><thead><tr><th>#</th><th>' + esc(rotulo) +
+    '</th><th>Acionamentos</th></tr></thead><tbody>' +
+    dados.map(function(d, i){
+      return '<tr><td>' + (i + 1) + '</td><td>' + esc(d.nome) + '</td><td>' + numeroBR(d.qtd) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  cartao.appendChild(caixa);
+
+  var botao = cartao.querySelector('.ver-tabela');
+  botao.classList.remove('oculto');
+  botao.addEventListener('click', function(){
+    var aberto = !caixa.classList.contains('oculto');
+    caixa.classList.toggle('oculto', aberto);
+    botao.textContent = aberto ? 'Ver todos' : 'Esconder';
+  });
+}
+
+function rodapeResto(cartao, resto){
+  if (!resto.length) return;
+  var soma = resto.reduce(function(t, d){ return t + d.qtd; }, 0);
+  var p = document.createElement('p');
+  p.className = 'cauda';
+  p.textContent = 'Mais ' + resto.length + (resto.length === 1 ? ' categoria' : ' categorias') +
+    ' somando ' + numeroBR(soma) + (soma === 1 ? ' acionamento' : ' acionamentos') + '.';
+  cartao.appendChild(p);
+}
+
+function semDado(cartao, texto){
+  var p = document.createElement('div');
+  p.className = 'sem-dado';
+  p.textContent = texto;
+  cartao.appendChild(p);
+}
+
+/* ================= barras (ranking) ================= */
+function cartaoBarras(dim, titulo){
+  var dados = contar(dim);
+  var visiveis = dados.slice(0, TOPO_GRAFICO);
+  var resto = dados.slice(TOPO_GRAFICO);
+  var cartao = molduraCartao(titulo,
+    visiveis.length ? 'Os ' + visiveis.length + ' primeiros de ' + dados.length : '—');
+
+  if (!visiveis.length){ semDado(cartao, 'Nada a mostrar com esse filtro.'); return cartao; }
+
+  var maior = visiveis[0].qtd;
+  var soma = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
+  var caixa = document.createElement('div');
+  caixa.className = 'barras';
+
+  visiveis.forEach(function(d){
+    var linha = document.createElement('div');
+    linha.className = 'barra-graf selecionavel' +
+      (SELECAO[dim] && !escolhido(dim, d.nome) ? ' apagado' : '');
+    linha.innerHTML =
+      '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
+      '<div class="trilho"><div class="preenche" style="width:' +
+        Math.max(2, (d.qtd / maior) * 100) + '%"></div></div>' +
+      '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
+    linha.addEventListener('click', function(){ escolher(dim, d.nome); });
+    ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
+    caixa.appendChild(linha);
+  });
+
+  cartao.appendChild(caixa);
+  rodapeResto(cartao, resto);
+  anexarTabela(cartao, DIMS[dim].rotulo, dados);
+  return cartao;
+}
+
+/* ================= barras de status (cor com significado) ================= */
+function cartaoStatus(){
+  var dados = contar('status');
+  var cartao = molduraCartao('Acionamentos por status',
+    dados.length + (dados.length === 1 ? ' status em uso' : ' status em uso'));
+
+  if (!dados.length){ semDado(cartao, 'Nada a mostrar com esse filtro.'); return cartao; }
+
+  var maior = dados[0].qtd;
+  var soma = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
+  var caixa = document.createElement('div');
+  caixa.className = 'barras';
+
+  dados.forEach(function(d){
+    var linha = document.createElement('div');
+    linha.className = 'barra-graf st ' + classeStatus(d.nome) + ' selecionavel' +
+      (SELECAO.status && !escolhido('status', d.nome) ? ' apagado' : '');
+    linha.innerHTML =
+      '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
+      '<div class="trilho"><div class="preenche" style="width:' +
+        Math.max(2, (d.qtd / maior) * 100) + '%"></div></div>' +
+      '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
+    linha.addEventListener('click', function(){ escolher('status', d.nome); });
+    ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
+    caixa.appendChild(linha);
+  });
+
+  cartao.appendChild(caixa);
+  anexarTabela(cartao, DIMS.status.rotulo, dados);
+  return cartao;
+}
+
+/* ================= pontos (ranking com nomes longos) ================= */
+function cartaoPontos(dim, titulo){
+  var dados = contar(dim);
+  var visiveis = dados.slice(0, TOPO_GRAFICO);
+  var resto = dados.slice(TOPO_GRAFICO);
+  var cartao = molduraCartao(titulo,
+    visiveis.length ? 'As ' + visiveis.length + ' primeiras de ' + dados.length : '—');
+
+  if (!visiveis.length){ semDado(cartao, 'Nada a mostrar com esse filtro.'); return cartao; }
+
+  var maior = visiveis[0].qtd;
+  var soma = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
+  var caixa = document.createElement('div');
+  caixa.className = 'pontos';
+
+  visiveis.forEach(function(d){
+    var pos = Math.max(3, (d.qtd / maior) * 100);
+    var linha = document.createElement('div');
+    linha.className = 'ponto-linha selecionavel' +
+      (SELECAO[dim] && !escolhido(dim, d.nome) ? ' apagado' : '');
+    linha.innerHTML =
+      '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
+      '<div class="ponto-trilho"><div class="ponto-haste" style="width:' + pos + '%"></div>' +
+        '<div class="ponto-bola" style="left:calc(' + pos + '% - 5px)"></div></div>' +
+      '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
+    linha.addEventListener('click', function(){ escolher(dim, d.nome); });
+    ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
+    caixa.appendChild(linha);
+  });
+
+  cartao.appendChild(caixa);
+  rodapeResto(cartao, resto);
+  anexarTabela(cartao, DIMS[dim].rotulo, dados);
+  return cartao;
+}
+
+/* ================= linha do tempo ================= */
+var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+function mesLegivel(aaaaMM){
+  var p = String(aaaaMM || '').split('-');
+  if (p.length < 2) return String(aaaaMM || '');
+  return MESES[Number(p[1]) - 1] + '/' + p[0].substring(2);
+}
+
+function cartaoLinhaDoTempo(){
+  var dados = contar('mes').slice().sort(function(a, b){
+    return a.nome < b.nome ? -1 : (a.nome > b.nome ? 1 : 0);
+  });
+
+  var cartao = molduraCartao('Acionamentos por mês',
+    dados.length ? 'Da coluna Data de Solicitação · ' + dados.length + ' meses com acionamento' : '—',
+    true);
+
+  if (dados.length < 2){
+    semDado(cartao, dados.length
+      ? 'Só um mês com acionamento; a linha aparece com dois ou mais.'
+      : 'Nada a mostrar com esse filtro.');
+    return cartao;
+  }
+
+  // Últimos 24 meses, para a linha não virar um borrão
+  if (dados.length > 24) dados = dados.slice(-24);
+
+  var L = 44, R = 16, T = 14, B = 30, W = 1000, H = 210;
+  var largura = W - L - R, altura = H - T - B;
+  var maior = dados.reduce(function(m, d){ return Math.max(m, d.qtd); }, 0) || 1;
+  var teto = Math.ceil(maior / 5) * 5 || 5;
+
+  function px(i){ return L + (dados.length === 1 ? largura / 2 : (i / (dados.length - 1)) * largura); }
+  function py(v){ return T + altura - (v / teto) * altura; }
+
+  var pontos = dados.map(function(d, i){ return px(i) + ',' + py(d.qtd); });
+  var caminho = 'M' + pontos.join(' L');
+  var area = 'M' + px(0) + ',' + py(0) + ' L' + pontos.join(' L') + ' L' + px(dados.length - 1) + ',' + py(0) + ' Z';
+
+  var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img">'];
+
+  // grade e escala
+  for (var g = 0; g <= 4; g++){
+    var v = (teto / 4) * g, y = py(v);
+    svg.push('<line class="lt-grade" x1="' + L + '" y1="' + y + '" x2="' + (W - R) + '" y2="' + y + '"/>');
+    svg.push('<text class="lt-eixo" x="' + (L - 8) + '" y="' + (y + 3.5) + '" text-anchor="end">' + Math.round(v) + '</text>');
+  }
+
+  svg.push('<path class="lt-area" d="' + area + '"/>');
+  svg.push('<path class="lt-linha" d="' + caminho + '"/>');
+
+  // rótulos do eixo: no máximo 12, para não colidir
+  var passo = Math.ceil(dados.length / 12);
+  dados.forEach(function(d, i){
+    if (i % passo === 0 || i === dados.length - 1){
+      svg.push('<text class="lt-eixo" x="' + px(i) + '" y="' + (H - 10) + '" text-anchor="middle">' + esc(mesLegivel(d.nome)) + '</text>');
+    }
+  });
+
+  dados.forEach(function(d, i){
+    var apagado = (SELECAO.mes && !escolhido('mes', d.nome)) ? ' apagado' : '';
+    svg.push('<circle class="lt-ponto' + apagado + '" cx="' + px(i) + '" cy="' + py(d.qtd) + '" r="4.5"/>');
+    // alvo largo e invisível, para o mouse pegar fácil
+    svg.push('<rect class="lt-alvo" data-i="' + i + '" x="' + (px(i) - largura / (dados.length * 2) - 6) +
+             '" y="' + T + '" width="' + (largura / dados.length + 12) + '" height="' + altura + '"/>');
+  });
+
+  svg.push('</svg>');
+
+  var caixa = document.createElement('div');
+  caixa.className = 'linha-tempo';
+  caixa.innerHTML = svg.join('');
+  cartao.appendChild(caixa);
+
+  var somaMes = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
+  caixa.querySelectorAll('.lt-alvo').forEach(function(alvo){
+    var d = dados[Number(alvo.dataset.i)];
+    alvo.style.cursor = 'pointer';
+    alvo.addEventListener('click', function(){ escolher('mes', d.nome); });
+    ligarDica(alvo, mesLegivel(d.nome), d.qtd, (d.qtd / somaMes) * 100);
+  });
+
+  anexarTabela(cartao, 'Mês', dados.map(function(d){ return { nome: mesLegivel(d.nome), qtd: d.qtd }; }));
+  return cartao;
 }
 
 function numeroBR(n){
   return String(n == null ? 0 : n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
-/** Balãozinho ao passar o mouse na barra. */
+/** Balãozinho ao passar o mouse. */
 function ligarDica(elemento, nome, qtd, pct){
   var dica = el('dica-grafico');
   elemento.addEventListener('mouseenter', function(){
     dica.innerHTML = esc(nome) + '<br><b>' + numeroBR(qtd) + '</b> ' +
-      (qtd === 1 ? 'acionamento' : 'acionamentos') + ' · ' + pct.toFixed(1).replace('.', ',') + '% do total';
+      (qtd === 1 ? 'acionamento' : 'acionamentos') + ' · ' + pct.toFixed(1).replace('.', ',') + '% do que está na tela';
     dica.classList.add('abre');
   });
   elemento.addEventListener('mousemove', function(ev){
@@ -2289,9 +2636,7 @@ function ligarDica(elemento, nome, qtd, pct){
     dica.style.left = l + 'px';
     dica.style.top = t + 'px';
   });
-  elemento.addEventListener('mouseleave', function(){
-    dica.classList.remove('abre');
-  });
+  elemento.addEventListener('mouseleave', function(){ dica.classList.remove('abre'); });
 }
 
 /* ==================================================================

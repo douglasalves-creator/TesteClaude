@@ -44,7 +44,7 @@ const CONFIG = {
   DOMINIO_PERMITIDO: 'solargrid.com.br',
 
   // Recebe um aviso a cada nova solicitação. Deixe '' para desligar.
-  EMAIL_NOVA_SOLICITACAO: 'procurement.eng@solargrid.com.br',
+  EMAIL_NOVA_SOLICITACAO: 'supplychain.eng@solargrid.com.br',
 
   // Formato do código gerado automaticamente na abertura.
   SCGAR_PREFIXO: 'SCGAR-',
@@ -93,27 +93,44 @@ const CONFIG = {
 const VISOES = [
   {
     nome: 'Completa',
-    descricao: 'Todas as colunas da planilha',
-    colunas: null            // null = tudo
-  },
-  {
-    nome: 'Reunião',
-    descricao: 'Recorte para a reunião semanal de aprovações',
+    descricao: 'Colunas de acompanhamento do processo',
     colunas: [
-      'SCGAR',
       'Data de Solicitação',
+      'RMA / OS (Nº)',
+      'Tipo de Acionamento',
+      'Responsável Atual',
+      'Status Geral do Acionamento',
       'UFV de Origem',
       'Fornecedor',
       'Material/Equipamento',
       'Qtd',
-      'Status Geral do Acionamento',
+      'NS',
+      'Data  envio/Coleta',
+      'Codigo Rastreio / Romaneio RFQ',          // a de envio
       'Coberto em Garantia',
-      'Valor do Frete / Envio Estimado (Envio)',
-      'Aprov Marcella (Envio)',
-      'Aprov Felipe (Envio)',
-      'Valor Reparo',
-      'Aprov Marcella (Reparo)',
-      'Aprov Felipe (Reparo)'
+      'Data Saida / Coleta  Fornecedor (Real)',
+      'Codigo Rastreio / Romaneio RFQ#2',        // a de retorno
+      'Data Chegada na usina',
+      'FUP - Comentarios',
+      'FUP -  Ações Futuras (TROCA EM AVANÇO)'
+    ]
+  },
+  {
+    nome: 'Reunião',
+    descricao: 'Recorte para a reunião semanal',
+    colunas: [
+      'Data de Solicitação',
+      'RMA / OS (Nº)',
+      'Status Geral do Acionamento',
+      'UFV de Origem',
+      'Fornecedor',
+      'Material/Equipamento',
+      'Qtd',
+      'Coberto em Garantia',
+      'Data  envio/Coleta',
+      'Data Saida / Coleta  Fornecedor (Real)',
+      'Data Chegada na usina',
+      'FUP - Comentarios'
     ]
   }
 ];
@@ -157,7 +174,7 @@ const CAMPOS = [
   { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true },
   { cab: 'Qtd',                   tipo: 'inteiro', grupo: 'Identificação', lista: true, sol: true, obrig: true },
   { cab: 'Motivo Inicial',        tipo: 'area',   grupo: 'Identificação', sol: true, obrig: true },
-  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true },
+  { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true, indice: true },
   { cab: 'MAC',                   tipo: 'codigo', grupo: 'Identificação', sol: true },
   { cab: 'NS',                    tipo: 'codigo', grupo: 'Identificação', lista: true, sol: true },
   { cab: 'CÓD MXM (FÓRMULA)',     tipo: 'formula', grupo: 'Identificação' },
@@ -349,49 +366,6 @@ function _camposAtivos(mapa) {
   return ativos;
 }
 
-/**
- * COLUNAS QUE ALIMENTAM O PAINEL
- * Cada item vira um gráfico de contagem. Para incluir outra coluna, acrescente
- * uma linha aqui com o texto do cabeçalho.
- */
-const PAINEL = [
-  { chave: 'fornecedor',  cab: 'Fornecedor',                  titulo: 'Fornecedores mais acionados' },
-  { chave: 'equipamento', cab: 'Equipamento Principal',       titulo: 'Equipamentos com mais acionamentos' },
-  { chave: 'status',      cab: 'Status Geral do Acionamento', titulo: 'Acionamentos por status' },
-  { chave: 'usina',       cab: 'UFV de Origem',               titulo: 'Acionamentos por usina' }
-];
-
-/**
- * Conta as repetições de uma coluna.
- *
- * Agrupa ignorando maiúsculas e acentos, para "Huawei" e "HUAWEI" contarem
- * como o mesmo fornecedor, e mostra a grafia que mais aparece. Sem isso o
- * ranking sairia partido em dois.
- */
-function _contarColuna(bloco, col) {
-  const grupos = {};
-
-  bloco.forEach(function (linha) {
-    const bruto = String(linha[col - 1] || '').trim();
-    if (!bruto) return;
-    const chave = _normalizar(bruto);
-    if (!grupos[chave]) grupos[chave] = { qtd: 0, grafias: {} };
-    grupos[chave].qtd++;
-    grupos[chave].grafias[bruto] = (grupos[chave].grafias[bruto] || 0) + 1;
-  });
-
-  return Object.keys(grupos).map(function (chave) {
-    const g = grupos[chave];
-    let nome = '', mais = -1;
-    Object.keys(g.grafias).forEach(function (grafia) {
-      if (g.grafias[grafia] > mais) { mais = g.grafias[grafia]; nome = grafia; }
-    });
-    return { nome: nome, qtd: g.qtd };
-  }).sort(function (a, b) {
-    return b.qtd - a.qtd || a.nome.localeCompare(b.nome, 'pt-BR');
-  });
-}
-
 /** Rótulo bonito para colunas que vieram só do cabeçalho da aba. */
 function _rotuloDaColuna(aba, col) {
   return String(aba.getRange(CONFIG.HEADER_ROW, col).getDisplayValue() || '').trim();
@@ -574,12 +548,19 @@ function carregarInicio() {
     idsExistentes[_normalizar(item.campo.cab)] = _idCampo(item.campo);
   });
 
+  // Todos os ids de campo que existem hoje, para conferir as visões
+  const idsValidos = {};
+  ativos.forEach(function (item) { idsValidos[_idCampo(item.campo)] = true; });
+
   const visoes = VISOES.map(function (v) {
     if (!v.colunas) return { nome: v.nome, descricao: v.descricao, colunas: null };
     const ids = [];
     v.colunas.forEach(function (cab) {
-      const id = idsExistentes[_normalizar(cab)];
-      if (id && ids.indexOf(id) < 0) ids.push(id);
+      // "Cabeçalho#2" aponta para a segunda coluna com esse mesmo título
+      const partes = String(cab).split('#');
+      const ocor = partes.length > 1 ? Number(partes[1]) : 1;
+      const id = _idCampo({ cab: partes[0], ocor: ocor });
+      if (idsValidos[id] && ids.indexOf(id) < 0) ids.push(id);
     });
     return { nome: v.nome, descricao: v.descricao, colunas: ids };
   });
@@ -739,13 +720,15 @@ function listarProcessos(forcar) {
     };
   });
 
-  const filtraveis = ativos.filter(function (i) { return i.campo.filtro; });
+  // Vão para o índice leve os campos de filtro e os que o Painel precisa
+  const filtraveis = ativos.filter(function (i) { return i.campo.filtro || i.campo.indice; });
   const colStatus = _coluna(mapa, { cab: CAB_STATUS });
   const colScgar = _coluna(mapa, { cab: CAB_SCGAR });
 
   const saida = {
     colunas: colunas,
-    filtros: filtraveis.map(function (i) {
+    // Só os de filtro aparecem como caixinha na tela
+    filtros: filtraveis.filter(function (i) { return i.campo.filtro; }).map(function (i) {
       return { id: _idCampo(i.campo), rotulo: i.campo.rotulo || i.campo.cab, tipo: i.campo.tipo };
     }),
     opcoes: {},
@@ -803,6 +786,7 @@ function listarProcessos(forcar) {
   // Opções que existem de fato, para as caixinhas de filtro
   filtraveis.forEach(function (i) {
     const id = _idCampo(i.campo);
+    if (!i.campo.filtro) return;
     if (i.campo.tipo === 'data' || i.campo.tipo === 'texto') return;
     saida.opcoes[id] = Object.keys(vistos[id]).sort(function (a, b) {
       return a.localeCompare(b, 'pt-BR');
@@ -814,18 +798,6 @@ function listarProcessos(forcar) {
   saida.contagemStatus = contagem;
 
   // Mesma ordem das linhas da planilha (sem inverter)
-
-  // Contagens do módulo Painel, calculadas na mesma leitura da planilha.
-  saida.painel = { total: saida.itens.length, series: {} };
-  PAINEL.forEach(function (def) {
-    const col = _coluna(mapa, { cab: def.cab });
-    saida.painel.series[def.chave] = {
-      titulo: def.titulo,
-      rotulo: def.cab,
-      existe: col > 0,
-      dados: col > 0 ? _contarColuna(bloco, col) : []
-    };
-  });
 
   // A PRIMEIRA PÁGINA JÁ VAI JUNTO. Assim, entrar no módulo Processos não
   // precisa de uma segunda ida ao servidor — que é o que mais custa tempo.

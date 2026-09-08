@@ -128,36 +128,55 @@ planilha** que monta a lista de Processos — não custa ida extra ao servidor.
 
 | Gráfico | Coluna analisada | Mostra |
 |---|---|---|
+| Acionamentos por mês | `Data de Solicitação` | os últimos 24 meses |
 | Fornecedores mais acionados | `Fornecedor` | os 10 primeiros |
 | Equipamentos com mais acionamentos | `Equipamento Principal` | os 10 primeiros |
 | Acionamentos por status | `Status Geral do Acionamento` | todos, para comparar |
 | Acionamentos por usina | `UFV de Origem` | as 10 primeiras |
 
 Acima deles, quatro números: total de acionamentos, e quantos fornecedores,
-usinas e equipamentos distintos aparecem.
+usinas e equipamentos distintos aparecem — todos respeitando o cruzamento.
 
-Para incluir outro gráfico, acrescente uma linha na lista `PAINEL`, no início do
-`AppGarantia1.gs`, com o texto do cabeçalho da coluna.
+### Cada gráfico com a forma da pergunta que responde
 
-### Decisões de leitura dos gráficos
+| Gráfico | Forma | Por quê |
+|---|---|---|
+| Acionamentos por mês | **linha do tempo** | é a única dimensão contínua; linha só faz sentido sobre tempo |
+| Fornecedores / Equipamentos | **barras horizontais** | comparar magnitude com nomes longos |
+| Status | **barras com a cor do status** | a cor aqui tem significado e é a mesma da tabela |
+| Usinas | **pontos numa régua** | ranking com muitas categorias de nome comprido |
 
-- **Barras horizontais, uma cor só (Aurora).** O comprimento já mostra a
-  quantidade; pintar cada barra de uma cor diferente gastaria o único canal
-  livre repetindo o que a barra já diz — e viraria arco-íris com 10 categorias.
-  Nomes longos de usina e equipamento também pedem barra horizontal.
+Não usei linha para as usinas, embora tenha sido sugerido: linha liga pontos e
+sugere continuidade entre eles, o que faria parecer que uma usina "vira" a
+seguinte. Para ranking, a régua de pontos dá a mesma leveza sem essa leitura
+errada.
+
+### Cruzamento entre os gráficos
+
+Clicar numa categoria filtra **todos os outros gráficos** e os números do topo,
+como no Power BI. Regras:
+
+- Um clique escolhe, outro na mesma categoria desfaz.
+- Dá para combinar dimensões (fornecedor + status + mês, por exemplo).
+- Cada gráfico continua mostrando as opções da **sua própria** dimensão, com as
+  não escolhidas apagadas — assim dá para trocar a escolha sem limpar tudo.
+- Os marcadores no topo mostram o que está filtrado e permitem tirar um a um.
+- As contagens são feitas **na tela**, sobre o índice que já foi baixado: o
+  cruzamento é instantâneo e não custa ida ao servidor.
+
+### Outras decisões
+
 - Quantidade escrita na ponta de cada barra; balão ao passar o mouse com o nome
   completo, a quantidade e o percentual.
-- Cada gráfico tem **Ver todos**, que abre a lista completa em tabela — nada
-  fica acessível só pelo gráfico.
+- Cada gráfico tem **Ver todos**, que abre a lista completa em tabela.
 - Quando há mais categorias do que as mostradas, uma linha no pé informa quantas
   são e quanto somam.
 - **Grafias diferentes do mesmo nome são somadas.** `Huawei` e `HUAWEI` contam
-  como um só, e aparece a grafia mais frequente. Sem isso o ranking sairia
-  partido em dois — foi o caso de `Cabine`/`CABINE` na coluna de equipamento.
+  como um só, e aparece a grafia mais frequente.
 
 ## Notificação
 
-- A cada nova solicitação, envia e-mail para **procurement.eng@solargrid.com.br**.
+- A cada nova solicitação, envia e-mail para **supplychain.eng@solargrid.com.br**.
 
 ## Status Geral do Acionamento (lista oficial)
 
@@ -389,10 +408,24 @@ Dentro de cada bloco os campos seguem a **ordem das colunas da planilha**, não 
 ordem da lista `CAMPOS` — essa continua servindo para a sequência do formulário
 de solicitação, que é outra.
 
+As colunas do módulo foram fechadas em 08/09/2026. **Só estas 18 aparecem**,
+mesmo que a aba tenha outras:
+
+`Data de Solicitação` · `RMA / OS (Nº)` · `Tipo de Acionamento` ·
+`Responsável Atual` · `Status Geral do Acionamento` · `UFV de Origem` ·
+`Fornecedor` · `Material/Equipamento` · `Qtd` · `NS` · `Data envio/Coleta` ·
+`Codigo Rastreio / Romaneio RFQ (envio)` · `Coberto em Garantia` ·
+`Data Saida / Coleta Fornecedor (Real)` ·
+`Codigo Rastreio / Romaneio RFQ (retorno)` · `Data Chegada na usina` ·
+`FUP - Comentarios` · `FUP - Ações Futuras (TROCA EM AVANÇO)`
+
 | Visão | O que mostra |
 |---|---|
-| **Completa** | todas as colunas da aba |
-| **Reunião** | recorte para a reunião semanal de aprovações |
+| **Completa** | as 18 colunas acima |
+| **Reunião** | 12 dessas, recorte da reunião semanal |
+
+A tela de tratamento (individual e lote) continua com **todas** as colunas da
+aba, divididas nos blocos — o recorte vale só para a tabela.
 
 Para criar ou mudar uma visão, basta editar a lista de cabeçalhos em `VISOES`.
 Cabeçalho que não existir na aba é ignorado sem erro. A visão escolhida fica
