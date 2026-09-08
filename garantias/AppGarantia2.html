@@ -93,15 +93,15 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml;charset=
 table{width:100%;border-collapse:collapse;min-width:900px}
 th{
   font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tinta-2);
-  text-align:left;padding:11px 14px;background:var(--sirius);border-bottom:1px solid var(--nevoa);white-space:nowrap;
+  text-align:center;padding:11px 14px;background:var(--sirius);border-bottom:1px solid var(--nevoa);white-space:nowrap;
   position:sticky;top:60px;z-index:5;
 }
-td{padding:11px 14px;border-bottom:1px solid #ececec;font-size:13px;vertical-align:middle}
+td{padding:11px 14px;border-bottom:1px solid #ececec;font-size:13px;vertical-align:middle;text-align:center}
 tbody tr{cursor:pointer;transition:background .12s}
 tbody tr:hover{background:var(--aurora-fraco)}
 tbody tr:last-child td{border-bottom:none}
-td.cod{font-weight:700;white-space:nowrap}
-td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.cod{font-weight:700;white-space:nowrap;text-align:center}
+td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .vazio{color:var(--tinta-3)}
 
 .pilula{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--sirius);color:var(--tinta-2);border:1px solid var(--nevoa)}
@@ -167,11 +167,6 @@ td.corta{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .soma-anexos{margin-top:10px;font-size:12px;font-weight:600;color:var(--tinta-2)}
 .soma-anexos.passou{color:#8c2f22}
 
-.sucesso{border:1px solid #c2e2d0;background:#e9f4ee;border-radius:var(--raio);padding:18px 20px;margin-bottom:20px}
-.sucesso h3{margin:0 0 5px;font-size:15px;font-weight:700;color:#1b6b41}
-.sucesso p{margin:0 0 12px;font-size:13px;color:#2c6b48}
-.sucesso a{display:inline-block;background:var(--aurora);color:#fff;text-decoration:none;font-weight:600;font-size:13px;padding:9px 16px;border-radius:8px}
-.sucesso a:hover{background:var(--aurora-escuro)}
 
 /* ================= Seletor de uma opção ================= */
 .sel-env{position:relative}
@@ -206,11 +201,13 @@ tbody tr:hover td.trava{background:var(--aurora-fraco)}
 tbody tr.marcada td{background:#fff7f1}
 tbody tr.marcada td.trava{background:#fff7f1}
 td input[type=checkbox],th input[type=checkbox]{width:15px;height:15px;accent-color:var(--aurora);cursor:pointer}
-td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 
 /* ================= Paginação ================= */
-.paginacao{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--nevoa);font-size:12.5px;color:var(--tinta-2);flex-wrap:wrap}
+.paginacao{padding:14px;border-top:1px solid var(--nevoa);font-size:12.5px;color:var(--tinta-2);text-align:center}
+.paginacao .botoes{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
 .paginacao .btn{padding:6px 12px;font-size:12.5px}
+.paginacao .conta{margin-top:10px}
 .paginacao b{color:var(--tinta)}
 
 /* ================= Barra de seleção ================= */
@@ -303,10 +300,7 @@ td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
 
   <!-- ============ SOLICITAÇÃO ============ -->
   <section id="mod-solicitacao">
-    <h1 class="titulo">Nova solicitação de garantia</h1>
-    <p class="legenda">O código SCGAR e a data são gerados automaticamente ao enviar.</p>
-    <div id="sucesso-envio" class="sucesso oculto"></div>
-
+    <h1 class="titulo" style="margin-bottom:22px">Nova Solicitação</h1>
     <div class="painel" style="padding:24px">
       <div class="grade" id="form-solicitacao"></div>
 
@@ -325,7 +319,6 @@ td.cel{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
       <div class="rodape-form">
         <button class="btn btn-aurora" id="btn-enviar">Enviar solicitação</button>
         <button class="btn" id="btn-limpar">Limpar</button>
-        <span class="dica">Um aviso é enviado por e-mail ao time de garantias.</span>
       </div>
     </div>
   </section>
@@ -960,7 +953,6 @@ el('btn-limpar').addEventListener('click', function(){
   limparFormulario();
   ANEXOS = [];
   desenharAnexos();
-  el('sucesso-envio').classList.add('oculto');
   var primeiro = el('form-solicitacao').querySelector('.entrada:not([readonly])');
   if (primeiro) primeiro.focus();
 });
@@ -991,7 +983,6 @@ el('btn-enviar').addEventListener('click', function(){
     return;
   }
 
-  el('sucesso-envio').classList.add('oculto');
   atualizarBotaoEnvio('Preparando anexos…');
 
   lerAnexos(function(prontos){
@@ -1003,7 +994,7 @@ el('btn-enviar').addEventListener('click', function(){
         desenharAnexos();
         limparFormulario();
         LISTA = null;
-        mostrarSucesso(r);
+        recado('Solicitação ' + r.scgar + ' criada.');
       })
       .withFailureHandler(function(e){
         atualizarBotaoEnvio(null);
@@ -1013,18 +1004,6 @@ el('btn-enviar').addEventListener('click', function(){
   });
 });
 
-function mostrarSucesso(r){
-  var caixa = el('sucesso-envio');
-  caixa.classList.remove('oculto');
-  caixa.innerHTML =
-    '<h3>Solicitação ' + esc(r.scgar) + ' criada</h3>' +
-    '<p>' + (r.anexos ? (r.anexos + (r.anexos === 1 ? ' arquivo guardado' : ' arquivos guardados') +
-      ' na pasta <b>' + esc(r.scgar) + '</b> do Drive.') : 'Sem anexos.') +
-    ' O time de garantias foi avisado por e-mail.</p>' +
-    (r.pastaUrl ? '<a href="' + esc(r.pastaUrl) + '" target="_blank" rel="noopener">Abrir a pasta no Drive</a>' : '');
-  caixa.scrollIntoView({behavior:'smooth', block:'center'});
-  recado('Solicitação ' + r.scgar + ' criada.');
-}
 
 /* ==================================================================
    Módulo Processos — filtros, tabela e paginação
@@ -1036,7 +1015,6 @@ var MULTIS = {};          // filtros de caixinha, por id
 var CONTEUDO = {};        // conteúdo completo das linhas já carregadas
 var MARCADOS = {};        // linhas selecionadas para o lote
 var ID_STATUS = 'status geral do acionamento';
-var ID_DATA_SOL = 'data de solicitacao';
 
 /* ---------- caixinha de seleção múltipla ---------- */
 function criarMulti(id, rotulo, opcoes){
@@ -1145,21 +1123,8 @@ function montarFiltros(){
   (LISTA.filtros || []).forEach(function(f){
     if (f.id === ID_STATUS) return;
 
-    if (f.tipo === 'data'){
-      ['de','ate'].forEach(function(lado){
-        var c = document.createElement('div');
-        c.className = 'f-item';
-        c.innerHTML = '<span>' + esc(f.rotulo) + (lado === 'de' ? ' — de' : ' — até') + '</span>';
-        var i = document.createElement('input');
-        i.type = 'date';
-        i.className = 'entrada f-data';
-        i.id = 'fdata-' + lado;
-        i.addEventListener('change', function(){ PAGINA = 1; aplicarFiltros(); });
-        c.appendChild(i);
-        alvo.appendChild(c);
-      });
-      return;
-    }
+    // Campos de data não entram como filtro
+    if (f.tipo === 'data') return;
 
     var opcoes = (LISTA.opcoes || {})[f.id];
     if (opcoes && opcoes.length){
@@ -1250,9 +1215,6 @@ function aplicarFiltros(){
     if (campo && campo.value.trim()) textos[f.id] = campo.value.trim().toLowerCase();
   });
 
-  var de = el('fdata-de') ? el('fdata-de').value : '';
-  var ate = el('fdata-ate') ? el('fdata-ate').value : '';
-
   FILTRADOS = LISTA.itens.filter(function(i){
     if (multis[ID_STATUS] && !multis[ID_STATUS][i.status]) return false;
 
@@ -1263,12 +1225,6 @@ function aplicarFiltros(){
     for (var t in textos){
       if (String(i.f[t] || '').toLowerCase().indexOf(textos[t]) < 0) return false;
     }
-    if (de || ate){
-      var iso = brParaISO(i.f[ID_DATA_SOL] || '');
-      if (!iso) return false;
-      if (de && iso < de) return false;
-      if (ate && iso > ate) return false;
-    }
     if (BUSCA && i.busca.indexOf(BUSCA) < 0) return false;
     return true;
   });
@@ -1276,15 +1232,6 @@ function aplicarFiltros(){
   desenharPagina();
 }
 
-function brParaISO(t){
-  var m = String(t).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if (m){
-    var ano = m[3].length === 2 ? '20' + m[3] : m[3];
-    return ano + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[1]).slice(-2);
-  }
-  m = String(t).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? m[0] : '';
-}
 
 /* ---------- desenho da página ---------- */
 function desenharPagina(){
@@ -1390,11 +1337,14 @@ function pintarTabela(fatia, total, paginas){
   var fim = Math.min(PAGINA*POR_PAGINA, total);
   var noComeco = PAGINA <= 1, noFim = PAGINA >= paginas;
   el('paginacao').innerHTML =
-    '<button class="btn" id="pg-inicio"' + (noComeco ? ' disabled' : '') + ' title="Primeira página">&#8676; Início</button>' +
-    '<button class="btn" id="pg-ant"'    + (noComeco ? ' disabled' : '') + '>&larr; Anterior</button>' +
-    '<button class="btn" id="pg-prox"'   + (noFim ? ' disabled' : '') + '>Próxima &rarr;</button>' +
-    '<button class="btn" id="pg-fim"'    + (noFim ? ' disabled' : '') + ' title="Última página">Fim &#8677;</button>' +
-    '<span>Mostrando <b>' + ini + '–' + fim + '</b> de <b>' + total + '</b> · página <b>' + PAGINA + '</b> de <b>' + paginas + '</b></span>';
+    '<div class="botoes">' +
+      '<button class="btn" id="pg-inicio"' + (noComeco ? ' disabled' : '') + ' title="Primeira página">&#8676; Início</button>' +
+      '<button class="btn" id="pg-ant"'    + (noComeco ? ' disabled' : '') + '>&larr; Anterior</button>' +
+      '<button class="btn" id="pg-prox"'   + (noFim ? ' disabled' : '') + '>Próxima &rarr;</button>' +
+      '<button class="btn" id="pg-fim"'    + (noFim ? ' disabled' : '') + ' title="Última página">Fim &#8677;</button>' +
+    '</div>' +
+    '<div class="conta">Mostrando <b>' + ini + '–' + fim + '</b> de <b>' + total +
+      '</b> · página <b>' + PAGINA + '</b> de <b>' + paginas + '</b></div>';
 
   function irParaPagina(n){
     if (n < 1 || n > paginas || n === PAGINA) return;

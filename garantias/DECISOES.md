@@ -141,15 +141,44 @@ endereço da imagem oficial; enquanto vazio, usa o nome escrito em Montserrat.
 
 ## Código SCGAR
 
-Formato `SCGAR-0001`. Gerado a partir do maior número já existente na coluna
-`SCGAR` + 1, dentro de uma trava para dois usuários não pegarem o mesmo número.
+Formato `SCGAR-0001`. A contagem parte de `CONFIG.SCGAR_MINIMO` (**5211**) e
+avança de um em um: `SCGAR-5212`, `SCGAR-5213`, `SCGAR-5214`...
 
-O último código real da planilha é **SCGAR-5211**, então `CONFIG.SCGAR_MINIMO`
-está em `5211`: nenhum código novo sai abaixo disso, mesmo que a cópia da
-planilha não tenha o histórico completo. O próximo será `SCGAR-5212`.
+**Não** se usa o maior número da coluna. A planilha tem códigos herdados de
+outros sistemas com numeração bem mais alta (faixa 15xxx) e olhar para o maior
+fazia o sistema entregar `SCGAR-15950`. Em vez disso, o último número entregue
+fica guardado nas propriedades do script (`gar_ultimo_scgar`) e o sistema só
+confere se o código seguinte já está em uso na coluna, pulando para o próximo
+livre se estiver.
 
-Configurável em `CONFIG.SCGAR_PREFIXO`, `CONFIG.SCGAR_DIGITOS` e
-`CONFIG.SCGAR_MINIMO`.
+Para reiniciar a contagem: mude `CONFIG.SCGAR_MINIMO` e apague a propriedade
+`gar_ultimo_scgar` em *Configurações do projeto → Propriedades do script*.
+
+Tudo dentro de uma trava, para dois usuários simultâneos não pegarem o mesmo
+número.
+
+## Aba Auditoria
+
+Aba `Auditoria`, cabeçalho na linha 1, colunas **Data / Hora · Usuário · Ação ·
+Linha · SC · Campo · De → Para**. Como no resto do sistema, as colunas são
+localizadas pelo texto do cabeçalho e podem ser reordenadas.
+
+Uma linha por campo alterado. A coluna `Ação` recebe:
+
+| Ação | Quando |
+|---|---|
+| `Solicitação` | abertura pelo formulário |
+| `Edição` | alteração de um acionamento |
+| `Edição em lote` | alteração aplicada a vários |
+
+`De → Para` mostra os valores como aparecem na planilha, com `(vazio)` quando o
+campo estava ou ficou em branco. Na abertura, além de uma linha por campo
+preenchido, entra uma linha `ABERTURA DA SOLICITAÇÃO` com o código e a
+quantidade de anexos.
+
+O registro nunca derruba a operação: se a aba não existir ou falhar, a gravação
+na planilha continua valendo e o erro fica só no log do script. Para desligar,
+deixe `CONFIG.ABA_AUDITORIA` em branco.
 
 ## Colunas duplicadas
 

@@ -32,6 +32,11 @@ const CONFIG = {
 
   SHEET_NAME: 'Controle Acionamento',
 
+  // Aba que recebe o registro de tudo que foi criado ou alterado.
+  // Deixe '' para desligar o registro.
+  ABA_AUDITORIA: 'Auditoria',
+  AUDITORIA_HEADER_ROW: 1,
+
   // Linha onde estão os títulos das colunas. Os dados começam na linha seguinte.
   HEADER_ROW: 6,
 
@@ -45,8 +50,12 @@ const CONFIG = {
   SCGAR_PREFIXO: 'SCGAR-',
   SCGAR_DIGITOS: 4,
 
-  // Nenhum código novo sai abaixo deste número. Serve de piso de segurança
-  // para o caso de a cópia da planilha não ter o histórico completo.
+  // A numeração continua a partir daqui. O último código em uso é o
+  // SCGAR-5211, então o próximo sai SCGAR-5212, depois 5213, e assim por
+  // diante. O sistema guarda o último número entregue, então códigos maiores
+  // que existam na planilha por herança de outros sistemas não interferem.
+  // Para reiniciar a contagem: mude o número aqui e apague a propriedade
+  // gar_ultimo_scgar em Configurações do projeto > Propriedades do script.
   SCGAR_MINIMO: 5211,
 
   // Segundos que a lista fica guardada em memória (deixa a tela rápida).
@@ -259,6 +268,96 @@ function _camposAtivos(mapa) {
   }).filter(function (item) {
     return item.col > 0;
   });
+}
+
+/* ================================================================== */
+/* Auditoria — registro de tudo que foi criado ou alterado             */
+/* ================================================================== */
+
+/**
+ * Cabeçalhos da aba de auditoria. Como no resto do sistema, tudo é localizado
+ * pelo TEXTO do cabeçalho, então as colunas podem ser reordenadas na aba.
+ */
+const AUD = {
+  DATA:    'Data / Hora',
+  USUARIO: 'Usuário',
+  ACAO:    'Ação',
+  LINHA:   'Linha',
+  SC:      'SC',
+  CAMPO:   'Campo',
+  DEPARA:  'De → Para'
+};
+
+/** Como o valor aparece no registro. Vazio vira "(vazio)". */
+function _audValor(v) {
+  const t = String(v == null ? '' : v).trim();
+  return t === '' ? '(vazio)' : t;
+}
+
+/**
+ * Grava as entradas na aba de auditoria, todas de uma vez.
+ *
+ * entradas = [{ linha, sc, campo, de, para }]
+ *
+ * Nunca derruba a operação principal: se o registro falhar, a gravação da
+ * planilha continua valendo e o erro fica só no log do script.
+ */
+function _registrarAuditoria(acao, entradas) {
+  if (!CONFIG.ABA_AUDITORIA || !entradas || !entradas.length) return;
+
+  try {
+    const ss = _abrirPlanilha();
+    const aba = ss.getSheetByName(CONFIG.ABA_AUDITORIA);
+    if (!aba) return;
+
+    const linhaCab = CONFIG.AUDITORIA_HEADER_ROW || 1;
+    const largura = Math.max(aba.getLastColumn(), 1);
+    const titulos = aba.getRange(linhaCab, 1, 1, largura).getDisplayValues()[0];
+
+    const onde = {};
+    titulos.forEach(function (t, i) {
+      const chave = _normalizar(t);
+      if (chave && onde[chave] === undefined) onde[chave] = i;
+    });
+
+    function pos(nome) {
+      const i = onde[_normalizar(nome)];
+      return i === undefined ? -1 : i;
+    }
+
+    const cols = {
+      data: pos(AUD.DATA),
+      usuario: pos(AUD.USUARIO),
+      acao: pos(AUD.ACAO),
+      linha: pos(AUD.LINHA),
+      sc: pos(AUD.SC) >= 0 ? pos(AUD.SC) : pos('SCGAR'),
+      campo: pos(AUD.CAMPO),
+      depara: pos(AUD.DEPARA) >= 0 ? pos(AUD.DEPARA) : pos('De -> Para')
+    };
+
+    const agora = new Date();
+    const usuario = Session.getActiveUser().getEmail() || '';
+
+    const bloco = entradas.map(function (e) {
+      const linha = new Array(largura).fill('');
+      if (cols.data >= 0) linha[cols.data] = agora;
+      if (cols.usuario >= 0) linha[cols.usuario] = usuario;
+      if (cols.acao >= 0) linha[cols.acao] = acao;
+      if (cols.linha >= 0) linha[cols.linha] = e.linha || '';
+      if (cols.sc >= 0) linha[cols.sc] = e.sc || '';
+      if (cols.campo >= 0) linha[cols.campo] = e.campo || '';
+      if (cols.depara >= 0) linha[cols.depara] = _audValor(e.de) + ' → ' + _audValor(e.para);
+      return linha;
+    });
+
+    const inicio = Math.max(aba.getLastRow(), linhaCab) + 1;
+    if (inicio + bloco.length - 1 > aba.getMaxRows()) {
+      aba.insertRowsAfter(aba.getMaxRows(), bloco.length + 100);
+    }
+    aba.getRange(inicio, 1, bloco.length, largura).setValues(bloco);
+  } catch (erro) {
+    console.error('Auditoria não registrada: ' + erro.message);
+  }
 }
 
 /* ================================================================== */
@@ -616,6 +715,16 @@ function salvarLote(linhas, alteracoes) {
 
     const altura = max - min + 1;
     let campos = 0, celulas = 0;
+    const registro = [];
+
+    // Códigos SCGAR das linhas atingidas, para o registro de auditoria
+    const colScgar = _coluna(mapa, { cab: CAB_SCGAR });
+    const scgarPorLinha = {};
+    if (colScgar) {
+      aba.getRange(min, colScgar, altura, 1).getDisplayValues().forEach(function (l, r) {
+        scgarPorLinha[min + r] = String(l[0] || '').trim();
+      });
+    }
 
     Object.keys(alteracoes || {}).forEach(function (id) {
       const item = porId[id];
@@ -626,6 +735,8 @@ function salvarLote(linhas, alteracoes) {
       const faixa = aba.getRange(min, item.col, altura, 1);
       const valores = faixa.getValues();
       const formulas = faixa.getFormulas();
+      const antes = faixa.getDisplayValues();
+      const rotulo = (item.campo.rotulo || item.campo.cab).toUpperCase();
 
       const novos = [];
       for (let r = 0; r < altura; r++) {
@@ -642,10 +753,23 @@ function salvarLote(linhas, alteracoes) {
       if (item.campo.tipo === 'codigo') faixa.setNumberFormat('@');
       faixa.setValues(novos);
       campos++;
+
+      const depois = faixa.getDisplayValues();
+      for (let r = 0; r < altura; r++) {
+        if (!alvo[min + r]) continue;
+        registro.push({
+          linha: min + r,
+          sc: scgarPorLinha[min + r] || '',
+          campo: rotulo,
+          de: antes[r][0],
+          para: depois[r][0]
+        });
+      }
     });
 
     if (celulas) _cacheLimpar('gar_lista_v3');
     SpreadsheetApp.flush();
+    _registrarAuditoria('Edição em lote', registro);
     return { ok: true, campos: campos, celulas: celulas, linhas: Object.keys(alvo).length };
   } finally {
     trava.releaseLock();
@@ -760,15 +884,23 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       porId[_idCampo(item.campo)] = item;
     });
 
+    const scgarLinha = colScgar
+      ? String(aba.getRange(linha, colScgar).getDisplayValue() || '').trim()
+      : String(scgarEsperado || '');
+
     let gravados = 0;
+    const registro = [];
+
     Object.keys(alteracoes || {}).forEach(function (id) {
       const item = porId[id];
       if (!item) return;                       // cabeçalho não existe: ignora
       if (item.campo.tipo === 'formula') return; // coluna de fórmula: não toca
       if (item.campo.auto) return;               // SCGAR e data de abertura: não toca
 
-      const valor = _paraPlanilha(item.campo, alteracoes[id]);
       const celula = aba.getRange(linha, item.col);
+      const antes = String(celula.getDisplayValue() || '');
+
+      const valor = _paraPlanilha(item.campo, alteracoes[id]);
       if (valor === null) {
         celula.clearContent();
       } else {
@@ -776,10 +908,19 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
         celula.setValue(valor);
       }
       gravados++;
+
+      registro.push({
+        linha: linha,
+        sc: scgarLinha,
+        campo: (item.campo.rotulo || item.campo.cab).toUpperCase(),
+        de: antes,
+        para: String(celula.getDisplayValue() || '')
+      });
     });
 
     if (gravados) _cacheLimpar('gar_lista_v3');
     SpreadsheetApp.flush();
+    _registrarAuditoria('Edição', registro);
     return { ok: true, gravados: gravados };
   } finally {
     trava.releaseLock();
@@ -901,6 +1042,31 @@ function criarSolicitacao(dados, arquivos) {
     _cacheLimpar('gar_lista_v3');
     _cacheLimpar('gar_opcoes_v2');
 
+    // Registra a abertura: uma entrada por campo preenchido pelo solicitante
+    const registro = [{
+      linha: linhaNova,
+      sc: scgar,
+      campo: 'ABERTURA DA SOLICITAÇÃO',
+      de: '',
+      para: scgar + (arquivos.length
+        ? ' · ' + arquivos.length + (arquivos.length === 1 ? ' anexo' : ' anexos')
+        : '')
+    }];
+    ativos.forEach(function (item) {
+      const c = item.campo;
+      if (!c.sol || c.auto) return;
+      const v = String((dados || {})[_idCampo(c)] || '').trim();
+      if (!v) return;
+      registro.push({
+        linha: linhaNova,
+        sc: scgar,
+        campo: (c.rotulo || c.cab).toUpperCase(),
+        de: '',
+        para: v
+      });
+    });
+    _registrarAuditoria('Solicitação', registro);
+
     _avisarPorEmail(scgar, dados, ativos, linhaNova, pasta, arquivos);
 
     return {
@@ -978,31 +1144,54 @@ function _nomeSeguro(nome) {
   return limpo.substring(0, 120) || 'arquivo';
 }
 
-/** Próximo código no formato SCGAR-0001, olhando o maior já existente. */
-function _proximoScgar(aba, mapa) {
-  const col = _coluna(mapa, { cab: CAB_SCGAR });
-  let maior = 0;
+/** Monta o código no formato SCGAR-0001 a partir do número. */
+function _formatarScgar(numero) {
+  const txt = String(numero);
+  const zeros = Math.max(0, CONFIG.SCGAR_DIGITOS - txt.length);
+  return CONFIG.SCGAR_PREFIXO + new Array(zeros + 1).join('0') + txt;
+}
 
+/**
+ * Próximo código da sequência.
+ *
+ * A contagem parte de CONFIG.SCGAR_MINIMO e avança de um em um, guardando o
+ * último número entregue nas propriedades do script. Assim a sequência é
+ * SCGAR-5212, SCGAR-5213, SCGAR-5214... independentemente de existirem na
+ * planilha códigos antigos com numeração mais alta, herdados de outros
+ * sistemas. Antes de entregar, confere se o código já está em uso na coluna
+ * SCGAR e pula para o seguinte se estiver.
+ */
+function _proximoScgar(aba, mapa) {
+  const props = PropertiesService.getScriptProperties();
+  let ultimo = Number(props.getProperty('gar_ultimo_scgar') || 0);
+  if (!ultimo || ultimo < CONFIG.SCGAR_MINIMO) ultimo = CONFIG.SCGAR_MINIMO;
+
+  const usados = {};
+  const col = _coluna(mapa, { cab: CAB_SCGAR });
   if (col) {
     const primeira = CONFIG.HEADER_ROW + 1;
     const ultima = aba.getLastRow();
     if (ultima >= primeira) {
-      const valores = aba.getRange(primeira, col, ultima - primeira + 1, 1).getDisplayValues();
-      valores.forEach(function (l) {
-        const m = String(l[0] || '').match(/(\d+)\s*$/);
-        if (m) {
-          const n = parseInt(m[1], 10);
-          if (n > maior) maior = n;
-        }
-      });
+      aba.getRange(primeira, col, ultima - primeira + 1, 1)
+        .getDisplayValues()
+        .forEach(function (l) {
+          const v = String(l[0] || '').trim();
+          if (v) usados[v.toUpperCase()] = true;
+        });
     }
   }
 
-  if (maior < CONFIG.SCGAR_MINIMO) maior = CONFIG.SCGAR_MINIMO;
+  let numero = ultimo + 1;
+  let codigo = _formatarScgar(numero);
+  let voltas = 0;
+  while (usados[codigo.toUpperCase()] && voltas < 100000) {
+    numero++;
+    codigo = _formatarScgar(numero);
+    voltas++;
+  }
 
-  const numero = String(maior + 1);
-  const zeros = Math.max(0, CONFIG.SCGAR_DIGITOS - numero.length);
-  return CONFIG.SCGAR_PREFIXO + new Array(zeros + 1).join('0') + numero;
+  props.setProperty('gar_ultimo_scgar', String(numero));
+  return codigo;
 }
 
 function _avisarPorEmail(scgar, dados, ativos, linhaNova, pasta, arquivos) {
