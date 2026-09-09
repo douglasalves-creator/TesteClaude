@@ -563,3 +563,10 @@ Testado em Chromium com 840 linhas simuladas e os 49 cabeçalhos reais:
 - Validar na cópia da planilha com dados reais.
 - Definir os indicadores do módulo Painel.
 - Renomear o par `Codigo Rastreio / Romaneio RFQ` (opcional).
+
+## Painel — cartões do mesmo tamanho
+Os cartões de gráfico da mesma faixa passaram a ter altura idêntica
+(`align-items:stretch` na grade + o corpo do gráfico ocupando a sobra).
+As linhas dos gráficos de barra e de pontos também ficaram com a mesma
+altura (30 px), para "Acionamentos por status" e "Acionamentos por usina"
+ficarem alinhados lado a lado, mesmo com quantidades diferentes de itens.

@@ -187,12 +187,12 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .sem-dado{padding:26px 6px;text-align:center;font-size:12.5px;color:var(--tinta-3)}
 
 /* pontos (usinas) */
-.pontos{display:flex;flex-direction:column;gap:1px}
+.pontos{display:flex;flex-direction:column;gap:2px}
 .ponto-linha{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;align-items:center;gap:12px;
   padding:5px 6px;border-radius:7px;cursor:pointer;transition:background .12s}
 .ponto-linha:hover{background:var(--sirius)}
 .ponto-linha .nome{font-size:12.5px;font-weight:500;color:var(--tinta-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
-.ponto-trilho{position:relative;height:18px;display:flex;align-items:center}
+.ponto-trilho{position:relative;height:20px;display:flex;align-items:center}
 .ponto-trilho::before{content:'';position:absolute;left:0;right:0;height:1px;background:var(--nevoa)}
 .ponto-haste{position:relative;height:2px;background:var(--cosmos);opacity:.35;border-radius:1px}
 .ponto-bola{position:absolute;width:11px;height:11px;border-radius:50%;background:var(--cosmos);
@@ -226,7 +226,7 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .kpi.destaque .num{color:#fff}
 .kpi.destaque .num em{font-style:normal;color:var(--aurora)}
 
-.graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:18px;align-items:start}
+.graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:18px;align-items:stretch}
 .grafico{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);box-shadow:var(--sombra);
   padding:20px 22px 18px;display:flex;flex-direction:column}
 .grafico-topo{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
@@ -235,6 +235,7 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .grafico .ver-tabela{margin-left:auto;border:none;background:transparent;color:var(--aurora);
   font-size:11.5px;font-weight:700;letter-spacing:.03em;padding:0}
 .grafico .ver-tabela:hover{text-decoration:underline}
+.grafico .barras,.grafico .pontos,.grafico .linha-tempo{flex:1 1 auto}
 
 .barras{display:flex;flex-direction:column;gap:2px}
 .barra-graf{display:grid;grid-template-columns:minmax(90px,34%) 1fr auto;align-items:center;gap:12px;
