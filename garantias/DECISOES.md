@@ -627,3 +627,54 @@ Duas coisas continuam pedindo um ajuste no código:
 
 Renomear uma coluna vale como apagar uma e criar outra (a busca é pelo nome,
 tolerante a acento, caixa e espaço duplo).
+
+## Tela-porta: Garantias e RNC
+Ao abrir o link, a primeira tela tem dois botões — **Garantias** e **RNC**.
+Garantias abre a tela de sempre (Solicitação, Processos, Painel); RNC abre um
+aviso de que o módulo está em desenvolvimento. Ao lado da logo agora está
+escrito "Garantias e RNC". Clicar na logo volta para essa tela-porta, e o
+botão "Início" do menu volta para a tela de Garantias.
+
+## E-mail da nova solicitação
+- O assunto passou a trazer quem abriu, o **responder para** vai para o
+  solicitante e o nome do remetente é o e-mail dele.
+- As datas saem em dd/mm/aaaa e os valores em R$ (antes a data ia como
+  2026-01-15, cru).
+- **Remetente real:** o Google sempre envia pela conta que *executa* o
+  script. Enquanto a implantação estiver como "Executar como: eu", o e-mail
+  sai da conta do Douglas. Para sair da conta de quem preencheu, a
+  implantação tem de ser "Executar como: usuário que acessa o app" — e aí
+  cada pessoa precisa de acesso de edição à planilha e à pasta do Drive, e
+  autoriza o script no primeiro uso. O código já funciona nos dois modos.
+
+## PDF do formulário na pasta do Drive
+Além das evidências, cada solicitação passa a ter na sua pasta um
+`SCGAR-xxxx - Solicitação.pdf` com o mesmo quadro do e-mail. Se o PDF
+falhar, a solicitação é aberta do mesmo jeito (o PDF não bloqueia nada).
+
+## Pasta do Drive
+Trocada para a pasta 1QO87QQHFJflSSnEDr4lr7UgLKHpqfblV.
+
+## Processos — Status logo no começo
+Na edição individual e na edição em lote, "Status Geral do Acionamento" vem
+logo depois de SCGAR e Data de Solicitação. A ordem está amarrada ao **nome**
+do cabeçalho (`CAMPOS_NA_FRENTE`), não à posição da coluna.
+
+## Processos — filtro de período
+O mesmo filtro do Painel (dois campos de data + régua de duas pontas), agora
+dentro do cartão de filtros, sem moldura. Cada módulo tem o seu próprio
+período: filtrar em um não mexe no outro. "Limpar filtros" também zera ele.
+A barra virou uma função reutilizável (`barraPeriodo`), então os dois usam o
+mesmo código.
+
+## Painel — quadros de valor
+Três quadros abaixo dos números do topo, somando sempre o que está na tela
+(filtros, período e escolhas dos gráficos):
+- **Frete estimado** = Envio + Retorno somados; um clique separa os dois e
+  outro junta de novo;
+- **Valor de reparo** = a coluna Valor Reparo;
+- **Fora da garantia** = quantos estão com "Não" em Coberto em Garantia, com
+  o percentual sobre os que já têm resposta; clicar filtra o painel só por
+  eles (e clicar de novo tira).
+Se alguma dessas colunas não existir na planilha, o quadro simplesmente não
+aparece.

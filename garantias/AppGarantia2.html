@@ -84,6 +84,9 @@ body.no-inicio{background:var(--eclipse)}
   letter-spacing:.04em;text-transform:uppercase;color:var(--aurora)}
 .cartao .entrar span{transition:transform .18s}
 .cartao:hover .entrar span{transform:translateX(4px)}
+.cartoes.dois{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:760px}
+.voltar-ini{margin-bottom:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#c9d1d9}
+.voltar-ini:hover{background:rgba(236,110,45,.16);border-color:rgba(236,110,45,.5);color:#fff}
 .cartao.breve{opacity:.62}
 .cartao.breve:hover{transform:none;border-color:rgba(255,255,255,.11);background:rgba(255,255,255,.045)}
 .cartao.breve:hover::after{transform:scaleX(0)}
@@ -184,6 +187,9 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 /* ---------- barra de período (datas + régua de arrastar) ---------- */
 .periodo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--branco);
   border:1px solid var(--nevoa);border-radius:var(--raio);padding:12px 18px;margin-bottom:16px;box-shadow:var(--sombra)}
+/* dentro do cartão de filtros ela não precisa de moldura nem de sombra */
+.periodo.periodo-proc{box-shadow:none;background:transparent;border:none;border-top:1px solid var(--line-2,#eef0ec);
+  border-radius:0;padding:14px 2px 2px;margin:0 0 14px}
 .periodo .rot-per{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tinta-3)}
 .periodo .ate{font-size:11.5px;color:var(--tinta-3)}
 .periodo input[type=date]{background:var(--branco);border:1px solid var(--nevoa);color:var(--tinta);border-radius:8px;
@@ -243,6 +249,17 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .kpi{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);padding:18px 20px;box-shadow:var(--sombra)}
 .kpi .rot{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-3)}
 .kpi .num{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:7px}
+.kpis-valor{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.kpi.clicavel{cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.kpi.clicavel:hover{border-color:rgba(236,110,45,.55);background:var(--aurora-fraco)}
+.kpi.marcado{border-color:var(--aurora);background:var(--aurora-fraco)}
+.kpi .num.dinheiro{font-size:26px}
+.kpi .dica-kpi{margin-top:8px;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--aurora)}
+.kpi .partes{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.kpi .parte{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  font-size:12px;color:var(--tinta-2);border-top:1px solid var(--line-2,#eef0ec);padding-top:5px}
+.kpi .parte b{font-size:13.5px;font-weight:700;color:var(--tinta)}
 .kpi.destaque{background:var(--eclipse);border-color:var(--eclipse)}
 .kpi.destaque .rot{color:#8d959c}
 .kpi.destaque .num{color:#fff}
@@ -499,7 +516,7 @@ td.cel{text-align:center}
   <div class="topo-in">
     <div class="marca" id="marca">
       <div class="nome">Solar<span>Grid</span></div>
-      <div class="sub">Garantias</div>
+      <div class="sub">Garantias e RNC</div>
     </div>
     <nav class="abas oculto" role="tablist" id="abas">
       <button class="btn-voltar" id="btn-inicio-topo"><span>&#8592;</span> Início</button>
@@ -511,9 +528,61 @@ td.cel{text-align:center}
   </div>
 </header>
 
-<section class="inicio" id="mod-inicio">
+<section class="inicio" id="mod-portal">
   <div class="inicio-in">
     <h1>Controle de Acionamentos<br><em>SolarGrid</em></h1>
+    <p class="ola">Escolha o módulo.</p>
+
+    <div class="cartoes dois">
+      <button class="cartao" data-ir="inicio">
+        <div class="num">01</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3l7 3v6c0 4.2-2.9 7.8-7 9-4.1-1.2-7-4.8-7-9V6l7-3z" stroke="#EC6E2D" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Garantias</h2>
+        <p>Solicitação, acompanhamento dos processos e painel de indicadores.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+
+      <button class="cartao" data-ir="rnc">
+        <div class="num">02</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 4l8 15H4l8-15z" stroke="#EC6E2D" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M12 10v4M12 16.5v.5" stroke="#EC6E2D" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>RNC</h2>
+        <p>Registro de não conformidade.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+    </div>
+  </div>
+
+  <div class="rodape-ini">
+    <span>Acesso restrito ao domínio <b>@solargrid.com.br</b></span>
+  </div>
+</section>
+
+<section class="inicio oculto" id="mod-rnc">
+  <div class="inicio-in">
+    <button class="btn-voltar voltar-ini" data-ir="portal"><span>&#8592;</span> Voltar</button>
+    <h1>RNC<br><em>em desenvolvimento</em></h1>
+    <p class="ola">O módulo de Registro de Não Conformidade ainda está sendo construído.<br>
+      Em breve ele abre por aqui.</p>
+  </div>
+
+  <div class="rodape-ini">
+    <span>Acesso restrito ao domínio <b>@solargrid.com.br</b></span>
+  </div>
+</section>
+
+<section class="inicio oculto" id="mod-inicio">
+  <div class="inicio-in">
+    <button class="btn-voltar voltar-ini" data-ir="portal"><span>&#8592;</span> Voltar</button>
+    <h1>Garantias<br><em>SolarGrid</em></h1>
     <p class="ola">Escolha por onde começar.</p>
 
     <div class="cartoes">
@@ -608,6 +677,8 @@ td.cel{text-align:center}
 
       <div class="filtros" id="filtros"></div>
 
+      <div class="periodo periodo-proc" id="processos-periodo"></div>
+
       <div class="barra">
         <div class="busca">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#0A0F14" stroke-width="1.6"/><path d="M11 11l4 4" stroke="#0A0F14" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -642,6 +713,7 @@ td.cel{text-align:center}
 
     <div id="painel-conteudo" class="oculto">
       <div class="kpis" id="painel-kpis"></div>
+      <div class="kpis kpis-valor" id="painel-valores"></div>
       <div class="periodo" id="painel-periodo"></div>
       <div class="selecoes" id="painel-selecoes"></div>
       <div class="graficos" id="painel-graficos"></div>
@@ -809,7 +881,7 @@ function iniciarDeVerdade(dados){
   if (dados.porPagina) POR_PAGINA = dados.porPagina;
 
 
-  irPara('inicio');
+  irPara('portal');
 
   // A lista já foi pedida junto com esta carga, lá no começo do arquivo.
   // Se ela chegou primeiro, é aplicada agora.
@@ -830,20 +902,24 @@ function iniciarDeVerdade(dados){
 document.querySelectorAll('.aba').forEach(function(aba){
   aba.addEventListener('click', function(){ irPara(aba.dataset.mod); });
 });
-document.querySelectorAll('.cartao').forEach(function(c){
+document.querySelectorAll('[data-ir]').forEach(function(c){
   c.addEventListener('click', function(){ irPara(c.dataset.ir); });
 });
 el('btn-inicio-topo').addEventListener('click', function(){ irPara('inicio'); });
 el('marca').style.cursor = 'pointer';
-el('marca').addEventListener('click', function(){ irPara('inicio'); });
+el('marca').addEventListener('click', function(){ irPara('portal'); });
+
+var TELAS_CHEIAS = ['portal', 'inicio', 'rnc'];   // telas escuras, sem o menu de cima
 
 function irPara(mod){
-  var noInicio = (mod === 'inicio');
+  var cheia = TELAS_CHEIAS.indexOf(mod) >= 0;
 
-  document.body.classList.toggle('no-inicio', noInicio);
-  el('mod-inicio').classList.toggle('oculto', !noInicio);
-  el('area-modulos').classList.toggle('oculto', noInicio);
-  el('abas').classList.toggle('oculto', noInicio);
+  document.body.classList.toggle('no-inicio', cheia);
+  TELAS_CHEIAS.forEach(function(t){
+    el('mod-'+t).classList.toggle('oculto', t !== mod);
+  });
+  el('area-modulos').classList.toggle('oculto', cheia);
+  el('abas').classList.toggle('oculto', cheia);
 
   document.querySelectorAll('.aba').forEach(function(a){
     a.setAttribute('aria-selected', a.dataset.mod === mod ? 'true' : 'false');
@@ -1446,6 +1522,7 @@ el('btn-enviar').addEventListener('click', function(){
 var POR_PAGINA = 100;
 var PAGINA = 1;
 var FILTRADOS = [];
+var PERIODO_PROC = { de: '', ate: '' };   // o período do módulo Processos, separado do Painel
 var MULTIS = {};          // filtros de caixinha, por id
 var CONTEUDO = {};        // conteúdo completo das linhas já carregadas
 var MARCADOS = {};        // linhas selecionadas para o lote
@@ -1848,6 +1925,7 @@ el('btn-limpar-filtros').addEventListener('click', function(){
   document.querySelectorAll('#filtros input').forEach(function(i){ i.value = ''; });
   el('busca').value = '';
   BUSCA = '';
+  PERIODO_PROC.de = ''; PERIODO_PROC.ate = '';
   PAGINA = 1;
   aplicarFiltros();
 });
@@ -1890,7 +1968,7 @@ function aplicarLista(r){
   // custa outra ida ao servidor.
   CONTEUDO = r.pagina || {};
   MARCADOS = {};
-  PER_PRONTA = false;          // a régua se refaz com os limites novos
+  esquecerBarrasDePeriodo();   // as réguas se refazem com os limites novos
   atualizarBarraSel();
   definirColunas();
   montarVisoes();
@@ -1959,6 +2037,7 @@ function passaNosFiltros(item, ativos, exceto){
     if (String(item.f[t] || '').toLowerCase().indexOf(ativos.textos[t]) < 0) return false;
   }
   if (BUSCA && item.busca.indexOf(BUSCA) < 0) return false;
+  if (!dentroDoPeriodo(item, PERIODO_PROC)) return false;
   return true;
 }
 
@@ -1987,6 +2066,7 @@ function opcoesEmCascata(id){
 
 function aplicarFiltros(){
   if (!LISTA) return;
+  barraPeriodo('processos-periodo', 'pfp', PERIODO_PROC, aplicarFiltros);
   var ativos = filtrosAtivos();
   FILTRADOS = LISTA.itens.filter(function(i){
     return passaNosFiltros(i, ativos, null);
@@ -2319,14 +2399,15 @@ function pularCelula(tr, td, direcao){
    ================================================================== */
 var TOPO_GRAFICO = 10;
 var SELECAO = {};        // { dimensão: [valores escolhidos] }
-var PERIODO = { de: '', ate: '' };   // datas em AAAA-MM-DD; vazio = sem limite
+var PERIODO = { de: '', ate: '' };   // datas em AAAA-MM-DD; vazio = sem limite (Painel)
 
 var DIMS = {
   fornecedor:  { id: 'fornecedor',            rotulo: 'Fornecedor' },
   equipamento: { id: 'equipamento principal', rotulo: 'Equipamento Principal' },
   status:      { id: '__status',              rotulo: 'Status Geral do Acionamento' },
   usina:       { id: 'ufv de origem',         rotulo: 'UFV de Origem' },
-  mes:         { id: '__mes',                 rotulo: 'Mês da solicitação' }
+  mes:         { id: '__mes',                 rotulo: 'Mês da solicitação' },
+  garantia:    { id: 'coberto em garantia',   rotulo: 'Coberto em Garantia' }
 };
 
 /* ---------- leitura dos valores de cada acionamento ---------- */
@@ -2341,7 +2422,7 @@ function valorDaDim(item, dim){
 
 /** Passa pelas escolhas ativas? `exceto` deixa uma dimensão de fora. */
 function passaNaSelecao(item, exceto){
-  if (!passaNoPeriodo(item)) return false;
+  if (!dentroDoPeriodo(item, PERIODO)) return false;
   for (var dim in SELECAO){
     if (dim === exceto) continue;
     var valor = _normalizar2(valorDaDim(item, dim));
@@ -2352,16 +2433,6 @@ function passaNaSelecao(item, exceto){
     }
     if (!achou) return false;
   }
-  return true;
-}
-
-/** Está dentro do período escolhido? Sem período, tudo passa. */
-function passaNoPeriodo(item){
-  if (!PERIODO.de && !PERIODO.ate) return true;
-  var iso = textoParaISO(item.f['data de solicitacao'] || '');
-  if (!iso) return false;                     // sem data não dá para situar no tempo
-  if (PERIODO.de && iso < PERIODO.de) return false;
-  if (PERIODO.ate && iso > PERIODO.ate) return false;
   return true;
 }
 
@@ -2492,7 +2563,8 @@ function montarPainel(){
            '</div>';
   }).join('');
 
-  montarBarraPeriodo();
+  montarValores();
+  barraPeriodo('painel-periodo', 'per', PERIODO, montarPainel);
   desenharSelecoes();
 
   /* ---------- gráficos ---------- */
@@ -2503,6 +2575,103 @@ function montarPainel(){
   alvo.appendChild(cartaoBarras('equipamento', 'Equipamentos com mais acionamentos'));
   alvo.appendChild(cartaoStatus());
   alvo.appendChild(cartaoPontos('usina', 'Acionamentos por usina'));
+}
+
+/* ==================================================================
+   Quadros de valor
+   ------------------------------------------------------------------
+   Somam o que está na tela (respeitam filtros, período e escolhas):
+   · Frete estimado  = Envio + Retorno. Um clique separa os dois.
+   · Valor de reparo = a coluna Valor Reparo.
+   · Fora da garantia = quantos estão com "Não" em Coberto em Garantia;
+     clicar filtra o painel só por eles.
+   ================================================================== */
+var FRETE_ABERTO = false;    // o quadro do frete está mostrando as duas partes?
+
+var ID_FRETE_ENVIO   = 'valor do frete / envio estimado (envio)';
+var ID_FRETE_RETORNO = 'valor do frete / envio estimado (retorno)';
+var ID_REPARO        = 'valor reparo';
+
+/** Soma uma coluna de dinheiro no que está na tela. */
+function somarColuna(id){
+  var total = 0;
+  LISTA.itens.forEach(function(item){
+    if (!passaNaSelecao(item, null)) return;
+    var n = textoParaNumero(item.f[id] || '');
+    if (n !== '') total += Number(n);
+  });
+  return total;
+}
+
+function dinheiroBR(n){
+  var neg = n < 0, p = Math.abs(n).toFixed(2).split('.');
+  return (neg ? '-R$ ' : 'R$ ') + numeroBR(p[0]) + ',' + p[1];
+}
+
+function montarValores(){
+  var caixa = el('painel-valores');
+  caixa.innerHTML = '';
+
+  var temEnvio   = LISTA.campos.indexOf(ID_FRETE_ENVIO) >= 0;
+  var temRetorno = LISTA.campos.indexOf(ID_FRETE_RETORNO) >= 0;
+  var temReparo  = LISTA.campos.indexOf(ID_REPARO) >= 0;
+  var temGarantia = LISTA.campos.indexOf(DIMS.garantia.id) >= 0;
+
+  /* --- frete: somado, e um clique separa envio e retorno --- */
+  if (temEnvio || temRetorno){
+    var envio = temEnvio ? somarColuna(ID_FRETE_ENVIO) : 0;
+    var retorno = temRetorno ? somarColuna(ID_FRETE_RETORNO) : 0;
+    var q = document.createElement('div');
+    q.className = 'kpi clicavel' + (FRETE_ABERTO ? ' marcado' : '');
+    q.innerHTML =
+      '<div class="rot">Frete estimado</div>' +
+      '<div class="num dinheiro">' + dinheiroBR(envio + retorno) + '</div>' +
+      (FRETE_ABERTO
+        ? '<div class="partes">' +
+            '<div class="parte">Envio <b>' + dinheiroBR(envio) + '</b></div>' +
+            '<div class="parte">Retorno <b>' + dinheiroBR(retorno) + '</b></div>' +
+          '</div>' +
+          '<div class="dica-kpi">Clique para juntar</div>'
+        : '<div class="dica-kpi">Clique para separar envio e retorno</div>');
+    q.addEventListener('click', function(){ FRETE_ABERTO = !FRETE_ABERTO; montarValores(); });
+    caixa.appendChild(q);
+  }
+
+  /* --- valor de reparo --- */
+  if (temReparo){
+    var q2 = document.createElement('div');
+    q2.className = 'kpi';
+    q2.innerHTML = '<div class="rot">Valor de reparo</div>' +
+                   '<div class="num dinheiro">' + dinheiroBR(somarColuna(ID_REPARO)) + '</div>';
+    caixa.appendChild(q2);
+  }
+
+  /* --- fora da garantia --- */
+  if (temGarantia){
+    var fora = 0, comResposta = 0;
+    LISTA.itens.forEach(function(item){
+      if (!passaNaSelecao(item, 'garantia')) return;
+      var v = _normalizar2(item.f[DIMS.garantia.id] || '');
+      if (!v) return;
+      comResposta++;
+      if (v === 'nao') fora++;
+    });
+    var pct = comResposta ? (fora / comResposta) * 100 : 0;
+    var q3 = document.createElement('div');
+    q3.className = 'kpi clicavel' + (escolhido('garantia', 'Não') ? ' marcado' : '');
+    q3.innerHTML =
+      '<div class="rot">Fora da garantia</div>' +
+      '<div class="num">' + numeroBR(fora) + '</div>' +
+      '<div class="dica-kpi">' + pct.toFixed(0) + '% dos que já têm resposta' +
+      (escolhido('garantia', 'Não') ? ' · clique para tirar o filtro' : ' · clique para ver só eles') +
+      '</div>';
+    q3.addEventListener('click', function(ev){
+      escolher('garantia', 'Não', !!(ev.ctrlKey || ev.metaKey || ev.shiftKey));
+    });
+    caixa.appendChild(q3);
+  }
+
+  caixa.classList.toggle('oculto', !caixa.children.length);
 }
 
 /** As escolhas ativas, em marcadores que dá para tirar um a um. */
@@ -2536,17 +2705,14 @@ function desenharSelecoes(){
 }
 
 /* ==================================================================
-   Barra de período
+   Barra de período (usada no Painel e em Processos)
    ------------------------------------------------------------------
    Dois campos de data (inicial e final) e uma régua de arrastar com as
    duas pontas. Os dois andam juntos: mexer em um atualiza o outro.
    A régua trabalha em dias, entre a data mais antiga e a mais nova da
-   planilha, e recorta todos os gráficos e números do painel.
+   planilha. Cada tela tem a sua própria barra e o seu próprio período —
+   filtrar em uma não mexe na outra.
    ================================================================== */
-var PER_LIM = null;        // { min: iso, max: iso } — extremos dos dados
-var PER_PRONTA = false;    // a barra já foi montada?
-var PER_ESPERA = null;     // para não recalcular a cada pixel arrastado
-
 var DIA_MS = 86400000;
 function isoParaDia(iso){
   var p = String(iso).split('-');
@@ -2555,9 +2721,15 @@ function isoParaDia(iso){
 function diaParaIso(n){
   return new Date(n * DIA_MS).toISOString().substring(0, 10);
 }
-function dataBR(iso){
-  var p = String(iso || '').split('-');
-  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : '';
+
+/** Está dentro do período? Sem período, tudo passa. */
+function dentroDoPeriodo(item, per){
+  if (!per || (!per.de && !per.ate)) return true;
+  var iso = textoParaISO(item.f['data de solicitacao'] || '');
+  if (!iso) return false;                     // sem data não dá para situar no tempo
+  if (per.de && iso < per.de) return false;
+  if (per.ate && iso > per.ate) return false;
+  return true;
 }
 
 /** Data mais antiga e mais nova da coluna Data de Solicitação. */
@@ -2572,42 +2744,74 @@ function limitesDoPeriodo(){
   return min ? { min: min, max: max } : null;
 }
 
-function montarBarraPeriodo(){
-  var caixa = el('painel-periodo');
-  if (PER_PRONTA){ atualizarBarraPeriodo(); return; }
+/**
+ * Monta (ou só atualiza) uma barra de período.
+ *   caixaId  — onde ela mora
+ *   pre      — prefixo dos ids, para as duas barras não se confundirem
+ *   estado   — objeto { de, ate } que essa barra controla
+ *   aoMudar  — o que refazer na tela quando o período muda
+ */
+var BARRAS_PER = {};
 
-  PER_LIM = limitesDoPeriodo();
-  if (!PER_LIM){ caixa.classList.add('oculto'); return; }
+function barraPeriodo(caixaId, pre, estado, aoMudar){
+  var caixa = el(caixaId);
+  if (!caixa || !LISTA) return;
+
+  var barra = BARRAS_PER[caixaId];
+  if (barra){ barra.atualizar(); return; }
+
+  var lim = limitesDoPeriodo();
+  if (!lim){ caixa.classList.add('oculto'); return; }
   caixa.classList.remove('oculto');
 
-  var dMin = isoParaDia(PER_LIM.min), dMax = isoParaDia(PER_LIM.max);
+  var dMin = isoParaDia(lim.min), dMax = isoParaDia(lim.max), vao = (dMax - dMin) || 1;
   caixa.innerHTML =
     '<span class="rot-per">Período</span>' +
-    '<input type="date" id="per-de" min="' + PER_LIM.min + '" max="' + PER_LIM.max + '">' +
+    '<input type="date" id="' + pre + '-de" min="' + lim.min + '" max="' + lim.max + '">' +
     '<span class="ate">até</span>' +
-    '<input type="date" id="per-ate" min="' + PER_LIM.min + '" max="' + PER_LIM.max + '">' +
-    '<div class="regua" id="per-regua">' +
-      '<div class="trilha"></div><div class="faixa" id="per-faixa"></div>' +
-      '<input type="range" id="per-r1" min="' + dMin + '" max="' + dMax + '" step="1">' +
-      '<input type="range" id="per-r2" min="' + dMin + '" max="' + dMax + '" step="1">' +
+    '<input type="date" id="' + pre + '-ate" min="' + lim.min + '" max="' + lim.max + '">' +
+    '<div class="regua" id="' + pre + '-regua">' +
+      '<div class="trilha"></div><div class="faixa" id="' + pre + '-faixa"></div>' +
+      '<input type="range" id="' + pre + '-r1" min="' + dMin + '" max="' + dMax + '" step="1">' +
+      '<input type="range" id="' + pre + '-r2" min="' + dMin + '" max="' + dMax + '" step="1">' +
     '</div>' +
-    '<span class="limites" id="per-limites"></span>' +
-    '<button type="button" class="limpa-per" id="per-limpar">Limpar filtro</button>';
+    '<span class="limites" id="' + pre + '-limites"></span>' +
+    '<button type="button" class="limpa-per" id="' + pre + '-limpar">Limpar filtro</button>';
 
-  var de = el('per-de'), ate = el('per-ate'), r1 = el('per-r1'), r2 = el('per-r2');
+  var de = el(pre + '-de'), ate = el(pre + '-ate');
+  var r1 = el(pre + '-r1'), r2 = el(pre + '-r2');
+  var espera = null;
+
+  function pintar(a, b){
+    var faixa = el(pre + '-faixa');
+    var i = (a - dMin) / vao, f = (b - dMin) / vao, larg = Math.max(0, f - i);
+    // em % do próprio trilho, descontando a bolinha (15px)
+    faixa.style.left  = 'calc(' + (i * 100) + '% - ' + (i * 15 - 7.5) + 'px)';
+    faixa.style.width = 'calc(' + (larg * 100) + '% - ' + (larg * 15) + 'px)';
+    el(pre + '-limites').textContent = dataBR(diaParaIso(a)) + '  ·  ' + dataBR(diaParaIso(b));
+  }
+
+  function atualizar(){
+    var a = estado.de ? isoParaDia(estado.de) : dMin;
+    var b = estado.ate ? isoParaDia(estado.ate) : dMax;
+    de.value = estado.de || lim.min;
+    ate.value = estado.ate || lim.max;
+    r1.value = a; r2.value = b;
+    pintar(a, b);
+    el(pre + '-limpar').classList.toggle('oculto', !estado.de && !estado.ate);
+  }
 
   function mudouCampos(){
     var a = de.value, b = ate.value;
     if (a && b && a > b){ var t = a; a = b; b = t; }
     // nunca deixa sair dos extremos que existem na planilha
-    if (a && a < PER_LIM.min) a = PER_LIM.min;
-    if (a && a > PER_LIM.max) a = PER_LIM.max;
-    if (b && b > PER_LIM.max) b = PER_LIM.max;
-    if (b && b < PER_LIM.min) b = PER_LIM.min;
-    PERIODO.de = a || '';
-    PERIODO.ate = b || '';
-    PER_PRONTA = true;
-    montarPainel();
+    if (a && a < lim.min) a = lim.min;
+    if (a && a > lim.max) a = lim.max;
+    if (b && b > lim.max) b = lim.max;
+    if (b && b < lim.min) b = lim.min;
+    estado.de = a || '';
+    estado.ate = b || '';
+    aoMudar();
   }
   de.addEventListener('change', mudouCampos);
   ate.addEventListener('change', mudouCampos);
@@ -2615,19 +2819,20 @@ function montarBarraPeriodo(){
   function mudouRegua(){
     var a = Number(r1.value), b = Number(r2.value);
     if (a > b){ var t = a; a = b; b = t; }
-    PERIODO.de  = (a === dMin) ? '' : diaParaIso(a);
-    PERIODO.ate = (b === dMax) ? '' : diaParaIso(b);
-    pintarRegua(a, b);
-    de.value = PERIODO.de || PER_LIM.min;
-    ate.value = PERIODO.ate || PER_LIM.max;
-    if (PER_ESPERA) clearTimeout(PER_ESPERA);
-    PER_ESPERA = setTimeout(function(){ PER_ESPERA = null; montarPainel(); }, 130);
+    estado.de  = (a === dMin) ? '' : diaParaIso(a);
+    estado.ate = (b === dMax) ? '' : diaParaIso(b);
+    pintar(a, b);
+    de.value = estado.de || lim.min;
+    ate.value = estado.ate || lim.max;
+    el(pre + '-limpar').classList.toggle('oculto', !estado.de && !estado.ate);
+    if (espera) clearTimeout(espera);
+    espera = setTimeout(function(){ espera = null; aoMudar(); }, 130);
   }
   r1.addEventListener('input', mudouRegua);
   r2.addEventListener('input', mudouRegua);
 
   // com as duas pontas juntas, pega a que estiver mais perto do clique
-  el('per-regua').addEventListener('mousedown', function(ev){
+  el(pre + '-regua').addEventListener('mousedown', function(ev){
     var cx = this.getBoundingClientRect();
     var alvo = dMin + ((ev.clientX - cx.left) / (cx.width || 1)) * (dMax - dMin);
     var perto = Math.abs(alvo - Number(r1.value)) <= Math.abs(alvo - Number(r2.value)) ? r1 : r2;
@@ -2635,41 +2840,17 @@ function montarBarraPeriodo(){
     r2.style.zIndex = (perto === r2) ? 4 : 3;
   }, true);
 
-  el('per-limpar').addEventListener('click', function(){
-    PERIODO.de = ''; PERIODO.ate = '';
-    montarPainel();
+  el(pre + '-limpar').addEventListener('click', function(){
+    estado.de = ''; estado.ate = '';
+    aoMudar();
   });
 
-  PER_PRONTA = true;
-  atualizarBarraPeriodo();
+  BARRAS_PER[caixaId] = { atualizar: atualizar };
+  atualizar();
 }
 
-function pintarRegua(a, b){
-  if (!PER_LIM) return;
-  var dMin = isoParaDia(PER_LIM.min), dMax = isoParaDia(PER_LIM.max);
-  var vao = (dMax - dMin) || 1;
-  // em % do próprio trilho, descontando a bolinha (15px) — assim a faixa
-  // acompanha a régua em qualquer largura de tela
-  var faixa = el('per-faixa');
-  var i = (a - dMin) / vao, f = (b - dMin) / vao, larg = Math.max(0, f - i);
-  faixa.style.left  = 'calc(' + (i * 100) + '% - ' + (i * 15 - 7.5) + 'px)';
-  faixa.style.width = 'calc(' + (larg * 100) + '% - ' + (larg * 15) + 'px)';
-  el('per-limites').textContent = dataBR(diaParaIso(a)) + '  ·  ' + dataBR(diaParaIso(b));
-}
-
-/** Só reflete o estado atual; não remonta nada (para não atrapalhar o arrasto). */
-function atualizarBarraPeriodo(){
-  if (!PER_PRONTA || !PER_LIM) return;
-  var dMin = isoParaDia(PER_LIM.min), dMax = isoParaDia(PER_LIM.max);
-  var a = PERIODO.de ? isoParaDia(PERIODO.de) : dMin;
-  var b = PERIODO.ate ? isoParaDia(PERIODO.ate) : dMax;
-  el('per-de').value = PERIODO.de || PER_LIM.min;
-  el('per-ate').value = PERIODO.ate || PER_LIM.max;
-  el('per-r1').value = a;
-  el('per-r2').value = b;
-  pintarRegua(a, b);
-  el('per-limpar').classList.toggle('oculto', !PERIODO.de && !PERIODO.ate);
-}
+/** As barras se refazem quando a lista é recarregada (os extremos mudam). */
+function esquecerBarrasDePeriodo(){ BARRAS_PER = {}; }
 
 /* ---------- moldura comum dos cartões ---------- */
 function molduraCartao(titulo, subtitulo, largo){
@@ -3076,10 +3257,20 @@ el('btn-salvar-lote').addEventListener('click', function(){
  * (A ordem da lista CAMPOS serve para o formulário de solicitação, que é
  * outra sequência; aqui o que vale é a leitura da planilha.)
  */
+/* Estes vêm sempre primeiro, nesta ordem, dentro do grupo em que estiverem —
+   o Status é o que o usuário mais mexe, então fica logo à mão. Amarrado ao
+   nome do cabeçalho, não à posição da coluna. */
+var CAMPOS_NA_FRENTE = ['scgar', 'data de solicitacao', ID_STATUS];
+
 function camposDoGrupo(grupo){
   return INICIO.campos
     .filter(function(c){ return c.grupo === grupo; })
-    .sort(function(a, b){ return (a.coluna || 0) - (b.coluna || 0); });
+    .sort(function(a, b){
+      var pa = CAMPOS_NA_FRENTE.indexOf(a.id), pb = CAMPOS_NA_FRENTE.indexOf(b.id);
+      if (pa < 0) pa = 99;
+      if (pb < 0) pb = 99;
+      return pa - pb || (a.coluna || 0) - (b.coluna || 0);
+    });
 }
 
 /* ==================================================================

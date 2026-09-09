@@ -77,7 +77,7 @@ const CONFIG = {
   // ---------------- Anexos no Google Drive ----------------
   // Pasta-mãe onde será criada uma subpasta por solicitação, com o nome do
   // SCGAR (ex.: SCGAR-5212). É o trecho depois de /folders/ no endereço.
-  PASTA_DRIVE_ID: '1IUG089u2h0i3VEHRADwY_HuZTT9pRIVc',
+  PASTA_DRIVE_ID: '1QO87QQHFJflSSnEDr4lr7UgLKHpqfblV',
 
   // Anexar arquivo é obrigatório para abrir a solicitação.
   ANEXO_OBRIGATORIO: true,
@@ -191,7 +191,7 @@ const CAMPOS = [
   { cab: 'Nota Fiscal Retorno',       tipo: 'texto', grupo: 'Supply' },
 
   // --- Envio ---------------------------------------------------------
-  { cab: 'Valor do Frete / Envio Estimado (Envio)', tipo: 'moeda',  grupo: 'Fornecedor' },
+  { cab: 'Valor do Frete / Envio Estimado (Envio)', tipo: 'moeda',  grupo: 'Fornecedor', indice: true },
   { cab: 'Via / Veiculo',                 tipo: 'texto',  grupo: 'Fornecedor' },
   { cab: 'Aprov Marcella (Envio)',                      tipo: 'data', grupo: 'Fornecedor' },
   { cab: 'Aprov Felipe (Envio)',                        tipo: 'data', grupo: 'Fornecedor' },
@@ -201,13 +201,13 @@ const CAMPOS = [
   { cab: 'Comentarios',                   tipo: 'area',   grupo: 'Fornecedor' },
 
   // --- Análise / Reparo ----------------------------------------------
-  { cab: 'Coberto em Garantia',      tipo: 'select', opcoes: SIM_NAO,   grupo: 'Fornecedor', lista: true },
-  { cab: 'Valor Reparo',             tipo: 'moeda',  grupo: 'Fornecedor' },
+  { cab: 'Coberto em Garantia',      tipo: 'select', opcoes: SIM_NAO,   grupo: 'Fornecedor', lista: true, indice: true },
+  { cab: 'Valor Reparo',             tipo: 'moeda',  grupo: 'Fornecedor', indice: true },
   { cab: 'Aprov Marcella (Reparo)',                     tipo: 'data', grupo: 'Fornecedor' },
   { cab: 'Aprov Felipe (Reparo)',                       tipo: 'data', grupo: 'Fornecedor' },
 
   // --- Retorno -------------------------------------------------------
-  { cab: 'Valor do Frete / Envio Estimado (Retorno)', tipo: 'moeda',  grupo: 'Fornecedor' },
+  { cab: 'Valor do Frete / Envio Estimado (Retorno)', tipo: 'moeda',  grupo: 'Fornecedor', indice: true },
   { cab: 'Via',                                tipo: 'texto',  grupo: 'Fornecedor' },
   { cab: 'Aprov Marcella (Retorno)',                    tipo: 'data', grupo: 'Fornecedor' },
   { cab: 'Aprov Felipe (Retorno)',                      tipo: 'data', grupo: 'Fornecedor' },
@@ -1281,6 +1281,14 @@ function criarSolicitacao(dados, arquivos) {
         : '')
     }]);
 
+    // PDF do formulário na mesma pasta das evidências
+    const pdf = _guardarPdfDaSolicitacao(
+      scgar, dados, ativos,
+      Session.getActiveUser().getEmail() || '(não identificado)',
+      linhaNova, pasta
+    );
+    if (pdf && pasta) (pasta.arquivos = pasta.arquivos || []).push(pdf);
+
     _avisarPorEmail(scgar, dados, ativos, linhaNova, pasta, arquivos);
 
     return {
@@ -1408,52 +1416,126 @@ function _proximoScgar(aba, mapa) {
   return codigo;
 }
 
+/** Mostra cada valor como gente lê: data em dd/mm/aaaa e dinheiro em R$. */
+function _valorLegivel(campo, valor) {
+  const bruto = String(valor == null ? '' : valor).trim();
+  if (!bruto) return '—';
+
+  if (campo.tipo === 'data') {
+    const m = bruto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return m[3] + '/' + m[2] + '/' + m[1];
+    return bruto;
+  }
+
+  if (campo.tipo === 'moeda') {
+    let txt = String(bruto).replace(/[^\d,.-]/g, '');
+    // com vírgula, o ponto é separador de milhar ("1.234,56"); sem vírgula, o
+    // ponto é o decimal ("1234.56")
+    txt = txt.indexOf(',') >= 0 ? txt.replace(/\./g, '').replace(',', '.') : txt;
+    const n = Number(txt);
+    if (isNaN(n)) return bruto;
+    const partes = Math.abs(n).toFixed(2).split('.');
+    const inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (n < 0 ? '-R$ ' : 'R$ ') + inteiro + ',' + partes[1];
+  }
+
+  return bruto;
+}
+
+/**
+ * O "quadrinho" da solicitação, em HTML. É o mesmo conteúdo do e-mail e do
+ * PDF que fica na pasta do Drive — assim os dois nunca ficam diferentes.
+ */
+function _quadroDaSolicitacao(scgar, dados, ativos, solicitante, linhaNova, pasta, paraPdf) {
+  const linhas = ativos
+    .filter(function (i) { return i.campo.sol; })
+    .map(function (i) {
+      const rotulo = i.campo.rotulo || i.campo.cab;
+      const valor = _valorLegivel(i.campo, (dados || {})[_idCampo(i.campo)]);
+      return '<tr><td style="padding:6px 12px;border-bottom:1px solid #D8D8D8;color:#5b6670">' + rotulo +
+             '</td><td style="padding:6px 12px;border-bottom:1px solid #D8D8D8;font-weight:600">' + valor + '</td></tr>';
+    }).join('');
+
+  let blocoPasta = '';
+  if (pasta) {
+    const nomes = (pasta.arquivos || []).map(function (a) {
+      return '<li style="margin:2px 0">' + a.nome + '</li>';
+    }).join('');
+    blocoPasta =
+      '<div style="padding:14px 12px 0">' +
+        (paraPdf
+          ? '<div style="font-size:12.5px;color:#5b6670"><b>Pasta no Drive:</b> ' + pasta.nome + '</div>'
+          : '<a href="' + pasta.url + '" style="display:inline-block;background:#EC6E2D;color:#fff;' +
+            'text-decoration:none;font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px">' +
+            'Abrir a pasta ' + pasta.nome + ' no Drive</a>') +
+        '<ul style="margin:12px 0 0;padding-left:20px;font-size:12.5px;color:#5b6670">' + nomes + '</ul>' +
+      '</div>';
+  }
+
+  const rodape = paraPdf
+    ? 'Aberta por ' + solicitante + ' em ' + _agoraLegivel() + ' — linha ' + linhaNova +
+      ' da aba ' + CONFIG.SHEET_NAME + '.'
+    : 'Aberta por ' + solicitante + ' — linha ' + linhaNova + ' da aba ' + CONFIG.SHEET_NAME + '.';
+
+  return '' +
+    '<div style="font-family:Arial,Helvetica,sans-serif;color:#0A0F14;max-width:620px">' +
+      '<div style="background:#EC6E2D;color:#fff;padding:18px 20px;border-radius:12px 12px 0 0">' +
+        '<div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85">SolarGrid — Garantias</div>' +
+        '<div style="font-size:19px;font-weight:700;margin-top:2px">Nova solicitação ' + scgar + '</div>' +
+      '</div>' +
+      '<div style="border:1px solid #D8D8D8;border-top:none;border-radius:0 0 12px 12px;padding:8px 0 14px">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:13px">' + linhas + '</table>' +
+        blocoPasta +
+        '<p style="padding:12px 12px 0;margin:0;font-size:12px;color:#5b6670">' + rodape + '</p>' +
+      '</div>' +
+    '</div>';
+}
+
+function _agoraLegivel() {
+  const fuso = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone() || 'America/Sao_Paulo';
+  return Utilities.formatDate(new Date(), fuso, 'dd/MM/yyyy HH:mm');
+}
+
+/**
+ * Guarda na pasta da solicitação um PDF com o que foi preenchido no
+ * formulário — o mesmo quadro do e-mail.
+ */
+function _guardarPdfDaSolicitacao(scgar, dados, ativos, solicitante, linhaNova, pasta) {
+  if (!pasta || !pasta.id) return null;
+  try {
+    const html = '<html><head><meta charset="utf-8"></head><body style="margin:24px">' +
+      _quadroDaSolicitacao(scgar, dados, ativos, solicitante, linhaNova, pasta, true) +
+      '</body></html>';
+    const pdf = Utilities.newBlob(html, 'text/html', scgar + ' - Solicitação.html')
+      .getAs('application/pdf')
+      .setName(scgar + ' - Solicitação.pdf');
+    const arq = DriveApp.getFolderById(pasta.id).createFile(pdf);
+    return { nome: arq.getName(), url: arq.getUrl() };
+  } catch (e) {
+    // O PDF não pode impedir a abertura da solicitação.
+    console.error('Falha ao gerar o PDF da solicitação: ' + e.message);
+    return null;
+  }
+}
+
 function _avisarPorEmail(scgar, dados, ativos, linhaNova, pasta, arquivos) {
   if (!CONFIG.EMAIL_NOVA_SOLICITACAO) return;
   try {
     const solicitante = Session.getActiveUser().getEmail() || '(não identificado)';
-    const linhas = ativos
-      .filter(function (i) { return i.campo.sol; })
-      .map(function (i) {
-        const rotulo = i.campo.rotulo || i.campo.cab;
-        const valor = String((dados || {})[_idCampo(i.campo)] || '—');
-        return '<tr><td style="padding:6px 12px;border-bottom:1px solid #D8D8D8;color:#5b6670">' + rotulo +
-               '</td><td style="padding:6px 12px;border-bottom:1px solid #D8D8D8;font-weight:600">' + valor + '</td></tr>';
-      }).join('');
+    const html = _quadroDaSolicitacao(scgar, dados, ativos, solicitante, linhaNova, pasta, false);
 
-    let blocoPasta = '';
-    if (pasta) {
-      const nomes = (pasta.arquivos || []).map(function (a) {
-        return '<li style="margin:2px 0">' + a.nome + '</li>';
-      }).join('');
-      blocoPasta =
-        '<div style="padding:14px 12px 0">' +
-          '<a href="' + pasta.url + '" style="display:inline-block;background:#EC6E2D;color:#fff;' +
-          'text-decoration:none;font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px">' +
-          'Abrir a pasta ' + pasta.nome + ' no Drive</a>' +
-          '<ul style="margin:12px 0 0;padding-left:20px;font-size:12.5px;color:#5b6670">' + nomes + '</ul>' +
-        '</div>';
-    }
-
-    const html =
-      '<div style="font-family:Montserrat,Arial,sans-serif;color:#0A0F14;max-width:620px">' +
-        '<div style="background:#EC6E2D;color:#fff;padding:18px 20px;border-radius:12px 12px 0 0">' +
-          '<div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85">SolarGrid — Garantias</div>' +
-          '<div style="font-size:19px;font-weight:700;margin-top:2px">Nova solicitação ' + scgar + '</div>' +
-        '</div>' +
-        '<div style="border:1px solid #D8D8D8;border-top:none;border-radius:0 0 12px 12px;padding:8px 0 14px">' +
-          '<table style="width:100%;border-collapse:collapse;font-size:13px">' + linhas + '</table>' +
-          blocoPasta +
-          '<p style="padding:12px 12px 0;margin:0;font-size:12px;color:#5b6670">Aberta por ' + solicitante +
-          ' — linha ' + linhaNova + ' da aba ' + CONFIG.SHEET_NAME + '.</p>' +
-        '</div>' +
-      '</div>';
-
-    MailApp.sendEmail({
+    // Quem abriu a solicitação vai como remetente quando a implantação estiver
+    // como "Executar como: usuário que acessa". Nos outros casos o Google manda
+    // pela conta que roda o script, e aí o "responder para" leva ao solicitante.
+    const envio = {
       to: CONFIG.EMAIL_NOVA_SOLICITACAO,
-      subject: '[Garantias] Nova solicitação ' + scgar,
-      htmlBody: html
-    });
+      subject: '[Garantias] Nova solicitação ' + scgar + ' — ' + solicitante,
+      htmlBody: html,
+      name: solicitante
+    };
+    if (solicitante.indexOf('@') > 0) envio.replyTo = solicitante;
+
+    MailApp.sendEmail(envio);
   } catch (e) {
     // O e-mail não pode impedir a abertura da solicitação.
     console.error('Falha ao enviar o aviso: ' + e.message);
