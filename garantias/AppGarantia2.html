@@ -732,10 +732,22 @@ function dataBR(iso){
 /* ==================================================================
    Início
    ================================================================== */
+var LISTA_ADIANTADA = null;   // resposta da lista, se ela chegar antes do resto
+
 if (typeof google === 'undefined' || !google.script || !google.script.run) {
   mostrarErroJS('A ponte com o Google não carregou. Abra a tela pelo link do app da Web (termina em /exec), não pelo botão de pré-visualização do editor.');
 } else {
+  // Os DOIS pedidos saem ao mesmo tempo. Antes o segundo só saía depois de o
+  // primeiro voltar, e a espera era a soma dos dois; agora é a do mais demorado.
   google.script.run.withSuccessHandler(aoIniciar).withFailureHandler(falhaGrave).gar_carregarInicio();
+
+  google.script.run
+    .withSuccessHandler(function(r){
+      if (!INICIO){ LISTA_ADIANTADA = r; return; }   // chegou primeiro: espera a vez
+      aplicarLista(r);
+    })
+    .withFailureHandler(function(e){ recado(e.message, true); })
+    .gar_listarProcessos(false);
 }
 
 function falhaGrave(erro){
@@ -776,9 +788,12 @@ function iniciarDeVerdade(dados){
 
   irPara('inicio');
 
-  // Enquanto a pessoa lê a tela de início, os processos já vão sendo
-  // buscados. Quando ela clicar em Processos, a tabela abre na hora.
-  carregarLista(false);
+  // A lista já foi pedida junto com esta carga, lá no começo do arquivo.
+  // Se ela chegou primeiro, é aplicada agora.
+  if (LISTA_ADIANTADA){
+    aplicarLista(LISTA_ADIANTADA);
+    LISTA_ADIANTADA = null;
+  }
 
   montarFormulario();
 
@@ -1831,6 +1846,37 @@ el('busca').addEventListener('input', function(){
 });
 
 /* ---------- carga do índice ---------- */
+/**
+ * O índice vem em formato de tabela (lista de listas) para viajar leve.
+ * Aqui ele volta a ser a lista de objetos que o resto da tela usa.
+ */
+function remontarItens(r){
+  var campos = r.campos || [];
+  var ultimo = campos.length + 3;   // linha, scgar, status, campos..., busca
+  return (r.linhas || []).map(function(reg){
+    var f = {};
+    for (var i = 0; i < campos.length; i++) f[campos[i]] = reg[3 + i];
+    return { linha: reg[0], scgar: reg[1], status: reg[2], f: f, busca: reg[ultimo] };
+  });
+}
+
+function aplicarLista(r){
+  LISTA = r;
+  LISTA.itens = remontarItens(r);
+  // A primeira página já vem junto da lista: entrar em Processos não
+  // custa outra ida ao servidor.
+  CONTEUDO = r.pagina || {};
+  MARCADOS = {};
+  atualizarBarraSel();
+  definirColunas();
+  montarVisoes();
+  montarFiltros();
+  PAGINA = 1;
+  aplicarFiltros();
+  el('cartao-processos-sub').textContent = LISTA.itens.length + ' acionamentos.';
+  if (!el('mod-painel').classList.contains('oculto')) montarPainel();
+}
+
 function carregarLista(forcar){
   el('processos-carregando').classList.remove('oculto');
   el('processos-tabela-caixa').classList.add('oculto');
@@ -1838,21 +1884,7 @@ function carregarLista(forcar){
   el('paginacao').classList.add('oculto');
 
   google.script.run
-    .withSuccessHandler(function(r){
-      LISTA = r;
-      // A primeira página já vem junto da lista: entrar em Processos não
-      // custa outra ida ao servidor.
-      CONTEUDO = r.pagina || {};
-      MARCADOS = {};
-      atualizarBarraSel();
-      definirColunas();
-      montarVisoes();
-      montarFiltros();
-      PAGINA = 1;
-      aplicarFiltros();
-      el('cartao-processos-sub').textContent = LISTA.itens.length + ' acionamentos.';
-      if (!el('mod-painel').classList.contains('oculto')) montarPainel();
-    })
+    .withSuccessHandler(aplicarLista)
     .withFailureHandler(function(e){
       el('processos-carregando').classList.add('oculto');
       recado(e.message, true);
@@ -2093,6 +2125,30 @@ function pintarTabela(fatia, total, paginas){
   if (el('pg-ant'))    el('pg-ant').addEventListener('click',    function(){ irParaPagina(PAGINA - 1); });
   if (el('pg-prox'))   el('pg-prox').addEventListener('click',   function(){ irParaPagina(PAGINA + 1); });
   if (el('pg-fim'))    el('pg-fim').addEventListener('click',    function(){ irParaPagina(paginas); });
+
+  // Adianta a página seguinte, sem pressa e sem travar a tela
+  setTimeout(adiantarProximaPagina, 400);
+}
+
+/**
+ * Busca a página seguinte em segundo plano, enquanto a pessoa olha a atual.
+ * Quando ela clicar em "Próxima", já está pronto.
+ */
+var BUSCANDO_ADIANTE = false;
+function adiantarProximaPagina(){
+  if (BUSCANDO_ADIANTE || !LISTA) return;
+  var proxima = FILTRADOS.slice(PAGINA * POR_PAGINA, (PAGINA + 1) * POR_PAGINA);
+  var faltando = proxima.filter(function(i){ return !CONTEUDO[i.linha]; }).map(function(i){ return i.linha; });
+  if (!faltando.length) return;
+
+  BUSCANDO_ADIANTE = true;
+  google.script.run
+    .withSuccessHandler(function(r){
+      for (var k in r) CONTEUDO[k] = r[k];
+      BUSCANDO_ADIANTE = false;
+    })
+    .withFailureHandler(function(){ BUSCANDO_ADIANTE = false; })
+    .gar_paginaProcessos(faltando);
 }
 
 function rolarTopoTabela(){

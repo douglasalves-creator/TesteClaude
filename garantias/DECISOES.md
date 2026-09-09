@@ -193,18 +193,35 @@ e **não deixar a pessoa esperando por elas**. Foi essa a estratégia.
 
 | Ação | Antes | Agora |
 |---|---|---|
-| Abrir o link | 1 ida | 1 ida (tela de início aparece na hora) |
-| Entrar em Processos | 2 idas | **nenhuma** — a lista é buscada em segundo plano enquanto a pessoa lê a tela de início, e a primeira página já vem junto dela |
+| Abrir o link | 2 idas em fila | **2 idas ao mesmo tempo** — a espera é a da mais demorada, não a soma |
+| Entrar em Processos | 2 idas | **nenhuma** — a lista já foi buscada na abertura e a primeira página vem junto dela |
+| Trocar de página | 1 ida | **nenhuma** — a página seguinte é buscada de véspera, em segundo plano |
 | Abrir um acionamento | 1 ida | **nenhuma** — o conteúdo da página exibida já está na tela |
 | Salvar | 2 idas (gravar + recarregar a lista) | **nenhuma espera** — a tela mostra o valor novo na hora e grava em segundo plano |
 
-Medido em navegador com 700 ms simulados por ida e volta: entrar em Processos
-425 ms, abrir um acionamento 135 ms, salvar e fechar 102 ms.
+Medido em navegador com **800 ms simulados** por ida e volta:
+
+| Ação | Tempo |
+|---|---|
+| lista pronta ao abrir | 842 ms (era ~1 600 ms, a soma das duas idas) |
+| entrar em Processos | 505 ms |
+| trocar para a página 2 | 506 ms |
+| abrir um acionamento | 92 ms |
+| abrir o Painel | 110 ms |
 
 Outros cuidados:
 - A lista traz só as colunas de filtro de todas as linhas; o conteúdo completo
   vem apenas da página exibida.
-- Fica em cache por alguns minutos; gravações limpam o cache.
+- O resultado fica guardado por **30 minutos** (`CACHE_LISTA_SEG`). A leitura da
+  planilha inteira é a parte mais cara de tudo; guardando por esse tempo, ela
+  acontece uma vez e os acessos seguintes são instantâneos. Gravar **pelo
+  sistema** limpa o guardado na hora, então o que o time faz aparece na mesma
+  hora; só alteração feita **direto na planilha** pode levar até 30 minutos para
+  aparecer, e o botão **Atualizar** força na hora.
+- O índice viaja em **formato de tabela** (uma lista de listas) em vez de uma
+  lista de objetos: são os mesmos dados sem repetir o nome de cada campo em
+  todas as linhas. Caiu de 560 KB para 413 KB, e a tela remonta os objetos
+  instantaneamente.
 - Gravação sempre pontual (célula ou linha), nunca reescrita da aba.
 - `salvarProcesso` lê a linha inteira uma vez antes e uma vez depois, em vez de
   ler duas vezes por campo alterado.

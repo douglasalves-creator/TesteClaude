@@ -59,7 +59,13 @@ const CONFIG = {
   SCGAR_MINIMO: 5211,
 
   // Segundos que a lista fica guardada em memória (deixa a tela rápida).
-  CACHE_LISTA_SEG: 180,
+  //
+  // A leitura da planilha inteira é a parte mais cara de todas; guardando por
+  // 30 minutos, ela acontece uma vez e todos os acessos seguintes são
+  // instantâneos. Gravar pelo sistema limpa o guardado na hora, então o que
+  // você faz aqui aparece na mesma hora. Só alteração feita DIRETO na planilha
+  // pode demorar até esse tempo para aparecer — o botão Atualizar força.
+  CACHE_LISTA_SEG: 1800,
 
   // Quantos acionamentos por página no módulo Processos.
   POR_PAGINA: 100,
@@ -712,6 +718,10 @@ function listarProcessos(forcar) {
   const colStatus = _coluna(mapa, { cab: CAB_STATUS });
   const colScgar = _coluna(mapa, { cab: CAB_SCGAR });
 
+  // O índice vai em formato de TABELA (uma lista de listas) em vez de uma
+  // lista de objetos. São os mesmos dados, mas sem repetir o nome de cada
+  // campo 840 vezes — o transporte cai a quase metade e a tela remonta os
+  // objetos num piscar de olhos.
   const saida = {
     colunas: colunas,
     // Só os de filtro aparecem como caixinha na tela
@@ -719,10 +729,12 @@ function listarProcessos(forcar) {
       return { id: _idCampo(i.campo), rotulo: i.campo.rotulo || i.campo.cab, tipo: i.campo.tipo };
     }),
     opcoes: {},
-    itens: []
+    campos: filtraveis.map(function (i) { return _idCampo(i.campo); }),
+    linhas: []
   };
 
   if (ultima < primeira) {
+    saida.pagina = {};
     _cacheGravar(chave, JSON.stringify(saida), CONFIG.CACHE_LISTA_SEG);
     return saida;
   }
@@ -749,25 +761,24 @@ function listarProcessos(forcar) {
     }
     if (!temConteudo) return;
 
-    const item = {
-      linha: primeira + idx,
-      scgar: colScgar ? String(linha[colScgar - 1] || '').trim() : '',
-      status: colStatus ? String(linha[colStatus - 1] || '').trim() : '',
-      f: {},
-      busca: ''
-    };
+    // [ linha, scgar, status, valor de cada campo do índice..., texto da busca ]
+    const registro = [
+      primeira + idx,
+      colScgar ? String(linha[colScgar - 1] || '').trim() : '',
+      colStatus ? String(linha[colStatus - 1] || '').trim() : ''
+    ];
 
     filtraveis.forEach(function (i) {
       const id = _idCampo(i.campo);
       const v = String(linha[i.col - 1] || '').trim();
-      item.f[id] = v;
+      registro.push(v);
       if (v && i.campo.tipo !== 'data' && i.campo.tipo !== 'texto') vistos[id][v] = true;
       if (v && i.campo.tipo === 'select') vistos[id][v] = true;
     });
 
     // Texto usado pela busca livre: toda a linha
-    item.busca = linha.join(' ').toLowerCase();
-    saida.itens.push(item);
+    registro.push(linha.join(' ').toLowerCase());
+    saida.linhas.push(registro);
   });
 
   // Opções que existem de fato, para as caixinhas de filtro
@@ -780,26 +791,20 @@ function listarProcessos(forcar) {
     });
   });
 
-  const contagem = {};
-  saida.itens.forEach(function (i) { contagem[i.status] = (contagem[i.status] || 0) + 1; });
-  saida.contagemStatus = contagem;
-
   // Mesma ordem das linhas da planilha (sem inverter)
 
   // A PRIMEIRA PÁGINA JÁ VAI JUNTO. Assim, entrar no módulo Processos não
   // precisa de uma segunda ida ao servidor — que é o que mais custa tempo.
   saida.pagina = {};
-  const naPrimeira = saida.itens.slice(0, CONFIG.POR_PAGINA);
+  const naPrimeira = saida.linhas.slice(0, CONFIG.POR_PAGINA);
   if (naPrimeira.length) {
-    const de = naPrimeira[0].linha;
-    const ate = naPrimeira[naPrimeira.length - 1].linha;
-    const recorte = bloco.slice(de - primeira, ate - primeira + 1);
-    naPrimeira.forEach(function (item) {
-      const linha = recorte[item.linha - de];
+    const de = naPrimeira[0][0];
+    naPrimeira.forEach(function (reg) {
+      const linha = bloco[reg[0] - primeira];
       if (!linha) return;
       const o = {};
       ativos.forEach(function (i) { o[_idCampo(i.campo)] = String(linha[i.col - 1] || ''); });
-      saida.pagina[item.linha] = o;
+      saida.pagina[reg[0]] = o;
     });
   }
 
