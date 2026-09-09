@@ -594,15 +594,11 @@ Observação: com período ativo, linhas sem data de solicitação ficam de fora
 A barra é um cartão branco, igual aos outros da página (o fundo escuro que
 tinha antes destoava do layout).
 
-## Painel — status em colunas em pé
-"Acionamentos por status" é um gráfico de colunas em pé, uma coluna por
-status, na **ordem do fluxo** — a mesma ordem da lista suspensa da planilha,
-então mexer na lista muda a ordem do gráfico sem tocar no código. Todas as
-colunas em laranja, como os outros dois gráficos de barras: aqui a cor não
-precisa dizer nada, quem diz é a altura. A quantidade fica em cima de cada
-coluna e o nome do status embaixo, quebrado em até 3 linhas para caber.
+## Painel — status em barras deitadas
+"Acionamentos por status" é um gráfico de barras deitadas, igual aos outros
+dois rankings: mesma altura de linha, nome à direita, barra e quantidade.
+Aparecem todos os status em uso, do maior para o menor, **todos em laranja**
+(a cor não precisa dizer nada aqui; quem diz é o tamanho da barra).
 Clique e Ctrl+clique funcionam como nos outros gráficos.
 
-Tentamos antes um funil e foi descartado: cada acionamento está em um status
-por vez, então a figura alargava no meio em vez de estreitar, e ficou ruim de
-ler.
+Testamos um funil e colunas em pé; os dois foram descartados por leitura ruim.
