@@ -411,16 +411,24 @@ de solicitação, que é outra.
 | Visão | O que mostra |
 |---|---|
 | **Completa** | **todas** as colunas da aba, sempre |
-| **Reunião** | 12 colunas, recorte da reunião semanal (definido em 09/09/2026) |
+| **Reunião** | as 18 colunas listadas abaixo (definido em 09/09/2026) |
 
 O recorte vale **só para a visão Reunião**. A Completa nunca esconde coluna, e a
 tela de tratamento (individual e lote) também mostra todas.
 
-Colunas da visão Reunião: `Data de Solicitação` · `RMA / OS (Nº)` ·
-`Status Geral do Acionamento` · `UFV de Origem` · `Fornecedor` ·
-`Material/Equipamento` · `Qtd` · `Coberto em Garantia` · `Data envio/Coleta` ·
-`Data Saida / Coleta Fornecedor (Real)` · `Data Chegada na usina` ·
-`FUP - Comentarios`
+Colunas da visão Reunião, nesta ordem:
+
+`Data de Solicitação` · `RMA / OS (Nº)` · `Tipo de Acionamento` ·
+`Responsável Atual` · `Status Geral do Acionamento` · `UFV de Origem` ·
+`Fornecedor` · `Material/Equipamento` · `Qtd` · `NS` · `Data envio/Coleta` ·
+`Codigo Rastreio / Romaneio RFQ (envio)` · `Coberto em Garantia` ·
+`Data Saida / Coleta Fornecedor (Real)` ·
+`Codigo Rastreio / Romaneio RFQ (retorno)` · `Data Chegada na usina` ·
+`FUP - Comentarios` · `FUP - Ações Futuras (TROCA EM AVANÇO)`
+
+As duas colunas de rastreio têm o mesmo título na planilha; na lista `VISOES`
+elas são escritas como `Codigo Rastreio / Romaneio RFQ` (a primeira, de envio) e
+`Codigo Rastreio / Romaneio RFQ#2` (a segunda, de retorno).
 
 Para criar ou mudar uma visão, basta editar a lista de cabeçalhos em `VISOES`.
 Cabeçalho que não existir na aba é ignorado sem erro. A visão escolhida fica

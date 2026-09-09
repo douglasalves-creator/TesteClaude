@@ -102,16 +102,22 @@ const VISOES = [
     colunas: [
       'Data de Solicitação',
       'RMA / OS (Nº)',
+      'Tipo de Acionamento',
+      'Responsável Atual',
       'Status Geral do Acionamento',
       'UFV de Origem',
       'Fornecedor',
       'Material/Equipamento',
       'Qtd',
-      'Coberto em Garantia',
+      'NS',
       'Data  envio/Coleta',
+      'Codigo Rastreio / Romaneio RFQ',          // a de envio
+      'Coberto em Garantia',
       'Data Saida / Coleta  Fornecedor (Real)',
+      'Codigo Rastreio / Romaneio RFQ#2',        // a de retorno
       'Data Chegada na usina',
-      'FUP - Comentarios'
+      'FUP - Comentarios',
+      'FUP -  Ações Futuras (TROCA EM AVANÇO)'
     ]
   }
 ];
