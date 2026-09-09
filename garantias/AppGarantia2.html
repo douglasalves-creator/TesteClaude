@@ -180,6 +180,31 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
   font-size:12px;font-weight:600;color:var(--tinta-2)}
 .limpa-sel:hover{background:var(--sirius)}
 
+/* ---------- barra de período (datas + régua de arrastar) ---------- */
+.periodo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--eclipse);
+  border-radius:var(--raio);padding:12px 18px;margin-bottom:16px;box-shadow:var(--sombra)}
+.periodo .rot-per{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8d959c}
+.periodo .ate{font-size:11.5px;color:#8d959c}
+.periodo input[type=date]{background:#16202b;border:1px solid #2b3947;color:#fff;border-radius:8px;
+  padding:6px 9px;font-family:var(--fonte);font-size:12.5px;font-weight:600}
+.periodo input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.7);cursor:pointer}
+.periodo .limites{font-size:11.5px;color:#6f7883;white-space:nowrap;min-width:152px;text-align:right}
+.periodo .limpa-per{border:none;background:transparent;color:var(--aurora);font-size:11.5px;
+  font-weight:700;letter-spacing:.03em;padding:0;margin-left:auto}
+.periodo .limpa-per:hover{text-decoration:underline}
+.regua{position:relative;flex:1 1 220px;min-width:180px;height:26px;display:flex;align-items:center}
+.regua .trilha{position:absolute;left:7px;right:7px;height:4px;background:rgba(255,255,255,.16);border-radius:2px}
+.regua .faixa{position:absolute;height:4px;background:var(--aurora);border-radius:2px}
+.regua input[type=range]{position:absolute;left:0;width:100%;height:26px;margin:0;padding:0;
+  background:none;border:none;-webkit-appearance:none;appearance:none;pointer-events:none}
+.regua input[type=range]:focus{outline:none}
+.regua input[type=range]::-webkit-slider-runnable-track{height:26px;background:none;border:none}
+.regua input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;
+  width:15px;height:15px;border-radius:50%;background:var(--aurora);border:2px solid var(--eclipse);cursor:pointer}
+.regua input[type=range]::-moz-range-track{height:26px;background:none;border:none}
+.regua input[type=range]::-moz-range-thumb{pointer-events:auto;width:15px;height:15px;border-radius:50%;
+  background:var(--aurora);border:2px solid var(--eclipse);cursor:pointer}
+
 .grafico.largo{grid-column:1/-1}
 .grafico .selecionavel{cursor:pointer}
 .apagado{opacity:.28}
@@ -620,6 +645,7 @@ td.cel{text-align:center}
 
     <div id="painel-conteudo" class="oculto">
       <div class="kpis" id="painel-kpis"></div>
+      <div class="periodo" id="painel-periodo"></div>
       <div class="selecoes" id="painel-selecoes"></div>
       <div class="graficos" id="painel-graficos"></div>
     </div>
@@ -1867,6 +1893,7 @@ function aplicarLista(r){
   // custa outra ida ao servidor.
   CONTEUDO = r.pagina || {};
   MARCADOS = {};
+  PER_PRONTA = false;          // a régua se refaz com os limites novos
   atualizarBarraSel();
   definirColunas();
   montarVisoes();
@@ -2285,9 +2312,17 @@ function pularCelula(tr, td, direcao){
    como no Power BI. Cada gráfico continua mostrando as opções da sua própria
    dimensão, com as não escolhidas apagadas — assim dá para trocar a escolha
    sem precisar limpar tudo.
+
+   Clique simples troca a escolha. Ctrl+clique (ou Shift+clique) SOMA a
+   categoria às que já estavam escolhidas, em qualquer gráfico. Todo gráfico
+   novo ganha isso de graça: basta usar ligarEscolha() nos seus itens.
+
+   Além disso, a barra de período no topo recorta tudo por data de
+   solicitação: dois campos de data e uma régua para arrastar.
    ================================================================== */
 var TOPO_GRAFICO = 10;
-var SELECAO = {};        // { dimensão: valor escolhido }
+var SELECAO = {};        // { dimensão: [valores escolhidos] }
+var PERIODO = { de: '', ate: '' };   // datas em AAAA-MM-DD; vazio = sem limite
 
 var DIMS = {
   fornecedor:  { id: 'fornecedor',            rotulo: 'Fornecedor' },
@@ -2309,10 +2344,27 @@ function valorDaDim(item, dim){
 
 /** Passa pelas escolhas ativas? `exceto` deixa uma dimensão de fora. */
 function passaNaSelecao(item, exceto){
+  if (!passaNoPeriodo(item)) return false;
   for (var dim in SELECAO){
     if (dim === exceto) continue;
-    if (_normalizar2(valorDaDim(item, dim)) !== _normalizar2(SELECAO[dim])) return false;
+    var valor = _normalizar2(valorDaDim(item, dim));
+    var escolhidos = SELECAO[dim];
+    var achou = false;
+    for (var i = 0; i < escolhidos.length; i++){
+      if (_normalizar2(escolhidos[i]) === valor){ achou = true; break; }
+    }
+    if (!achou) return false;
   }
+  return true;
+}
+
+/** Está dentro do período escolhido? Sem período, tudo passa. */
+function passaNoPeriodo(item){
+  if (!PERIODO.de && !PERIODO.ate) return true;
+  var iso = textoParaISO(item.f['data de solicitacao'] || '');
+  if (!iso) return false;                     // sem data não dá para situar no tempo
+  if (PERIODO.de && iso < PERIODO.de) return false;
+  if (PERIODO.ate && iso > PERIODO.ate) return false;
   return true;
 }
 
@@ -2372,14 +2424,46 @@ function distintosComFiltro(dim){
 }
 
 /* ---------- clique numa categoria ---------- */
-function escolher(dim, nome){
-  if (SELECAO[dim] && _normalizar2(SELECAO[dim]) === _normalizar2(nome)) delete SELECAO[dim];
-  else SELECAO[dim] = nome;
+/**
+ * `somar` (Ctrl, Cmd ou Shift) acrescenta/retira a categoria da lista;
+ * sem ele, o clique passa a escolher só aquela — e clicar de novo na mesma
+ * limpa a dimensão.
+ */
+function escolher(dim, nome, somar){
+  var lista = SELECAO[dim] ? SELECAO[dim].slice() : [];
+  var onde = -1;
+  for (var i = 0; i < lista.length; i++){
+    if (_normalizar2(lista[i]) === _normalizar2(nome)){ onde = i; break; }
+  }
+  if (somar){
+    if (onde >= 0) lista.splice(onde, 1);
+    else lista.push(nome);
+  } else {
+    lista = (onde >= 0 && lista.length === 1) ? [] : [nome];
+  }
+  if (lista.length) SELECAO[dim] = lista; else delete SELECAO[dim];
   montarPainel();
 }
 
+/** Liga o clique de um item de gráfico. Todo gráfico novo deve usar isto. */
+function ligarEscolha(elemento, dim, nome){
+  elemento.addEventListener('click', function(ev){
+    escolher(dim, nome, !!(ev.ctrlKey || ev.metaKey || ev.shiftKey));
+  });
+}
+
 function escolhido(dim, nome){
-  return SELECAO[dim] && _normalizar2(SELECAO[dim]) === _normalizar2(nome);
+  var lista = SELECAO[dim];
+  if (!lista) return false;
+  for (var i = 0; i < lista.length; i++){
+    if (_normalizar2(lista[i]) === _normalizar2(nome)) return true;
+  }
+  return false;
+}
+
+/** Alguma escolha nessa dimensão? (para apagar as não escolhidas) */
+function temEscolha(dim){
+  return !!(SELECAO[dim] && SELECAO[dim].length);
 }
 
 /* ================================================================== */
@@ -2395,7 +2479,7 @@ function montarPainel(){
   el('painel-conteudo').classList.remove('oculto');
 
   var total = totalFiltrado();
-  var temFiltro = Object.keys(SELECAO).length > 0;
+  var temFiltro = Object.keys(SELECAO).length > 0 || !!PERIODO.de || !!PERIODO.ate;
 
   /* ---------- números do topo ---------- */
   var kpis = [
@@ -2411,6 +2495,7 @@ function montarPainel(){
            '</div>';
   }).join('');
 
+  montarBarraPeriodo();
   desenharSelecoes();
 
   /* ---------- gráficos ---------- */
@@ -2428,21 +2513,22 @@ function desenharSelecoes(){
   var caixa = el('painel-selecoes');
   var dims = Object.keys(SELECAO);
   if (!dims.length){
-    caixa.innerHTML = '<span class="titulo-sel">Clique em qualquer categoria para cruzar os gráficos</span>';
+    caixa.innerHTML = '<span class="titulo-sel">Clique para filtrar · Ctrl+clique para escolher mais de um</span>';
     return;
   }
   caixa.innerHTML = '<span class="titulo-sel">Filtrando por</span>';
   dims.forEach(function(dim){
-    var m = document.createElement('span');
-    m.className = 'marca-sel';
-    m.innerHTML = '<span class="dim">' + esc(DIMS[dim].rotulo) + ':</span> ' +
-                  esc(dim === 'mes' ? mesLegivel(SELECAO[dim]) : SELECAO[dim]) +
-                  '<button type="button" class="x" title="Remover">&times;</button>';
-    m.querySelector('.x').addEventListener('click', function(){
-      delete SELECAO[dim];
-      montarPainel();
+    SELECAO[dim].forEach(function(valor){
+      var m = document.createElement('span');
+      m.className = 'marca-sel';
+      m.innerHTML = '<span class="dim">' + esc(DIMS[dim].rotulo) + ':</span> ' +
+                    esc(dim === 'mes' ? mesLegivel(valor) : valor) +
+                    '<button type="button" class="x" title="Remover">&times;</button>';
+      m.querySelector('.x').addEventListener('click', function(){
+        escolher(dim, valor, true);
+      });
+      caixa.appendChild(m);
     });
-    caixa.appendChild(m);
   });
   var limpa = document.createElement('button');
   limpa.type = 'button';
@@ -2450,6 +2536,142 @@ function desenharSelecoes(){
   limpa.textContent = 'Limpar tudo';
   limpa.addEventListener('click', function(){ SELECAO = {}; montarPainel(); });
   caixa.appendChild(limpa);
+}
+
+/* ==================================================================
+   Barra de período
+   ------------------------------------------------------------------
+   Dois campos de data (inicial e final) e uma régua de arrastar com as
+   duas pontas. Os dois andam juntos: mexer em um atualiza o outro.
+   A régua trabalha em dias, entre a data mais antiga e a mais nova da
+   planilha, e recorta todos os gráficos e números do painel.
+   ================================================================== */
+var PER_LIM = null;        // { min: iso, max: iso } — extremos dos dados
+var PER_PRONTA = false;    // a barra já foi montada?
+var PER_ESPERA = null;     // para não recalcular a cada pixel arrastado
+
+var DIA_MS = 86400000;
+function isoParaDia(iso){
+  var p = String(iso).split('-');
+  return Math.round(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2])) / DIA_MS);
+}
+function diaParaIso(n){
+  return new Date(n * DIA_MS).toISOString().substring(0, 10);
+}
+function dataBR(iso){
+  var p = String(iso || '').split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : '';
+}
+
+/** Data mais antiga e mais nova da coluna Data de Solicitação. */
+function limitesDoPeriodo(){
+  var min = '', max = '';
+  LISTA.itens.forEach(function(item){
+    var iso = textoParaISO(item.f['data de solicitacao'] || '');
+    if (!iso) return;
+    if (!min || iso < min) min = iso;
+    if (!max || iso > max) max = iso;
+  });
+  return min ? { min: min, max: max } : null;
+}
+
+function montarBarraPeriodo(){
+  var caixa = el('painel-periodo');
+  if (PER_PRONTA){ atualizarBarraPeriodo(); return; }
+
+  PER_LIM = limitesDoPeriodo();
+  if (!PER_LIM){ caixa.classList.add('oculto'); return; }
+  caixa.classList.remove('oculto');
+
+  var dMin = isoParaDia(PER_LIM.min), dMax = isoParaDia(PER_LIM.max);
+  caixa.innerHTML =
+    '<span class="rot-per">Período</span>' +
+    '<input type="date" id="per-de" min="' + PER_LIM.min + '" max="' + PER_LIM.max + '">' +
+    '<span class="ate">até</span>' +
+    '<input type="date" id="per-ate" min="' + PER_LIM.min + '" max="' + PER_LIM.max + '">' +
+    '<div class="regua" id="per-regua">' +
+      '<div class="trilha"></div><div class="faixa" id="per-faixa"></div>' +
+      '<input type="range" id="per-r1" min="' + dMin + '" max="' + dMax + '" step="1">' +
+      '<input type="range" id="per-r2" min="' + dMin + '" max="' + dMax + '" step="1">' +
+    '</div>' +
+    '<span class="limites" id="per-limites"></span>' +
+    '<button type="button" class="limpa-per" id="per-limpar">Limpar filtro</button>';
+
+  var de = el('per-de'), ate = el('per-ate'), r1 = el('per-r1'), r2 = el('per-r2');
+
+  function mudouCampos(){
+    var a = de.value, b = ate.value;
+    if (a && b && a > b){ var t = a; a = b; b = t; }
+    // nunca deixa sair dos extremos que existem na planilha
+    if (a && a < PER_LIM.min) a = PER_LIM.min;
+    if (a && a > PER_LIM.max) a = PER_LIM.max;
+    if (b && b > PER_LIM.max) b = PER_LIM.max;
+    if (b && b < PER_LIM.min) b = PER_LIM.min;
+    PERIODO.de = a || '';
+    PERIODO.ate = b || '';
+    PER_PRONTA = true;
+    montarPainel();
+  }
+  de.addEventListener('change', mudouCampos);
+  ate.addEventListener('change', mudouCampos);
+
+  function mudouRegua(){
+    var a = Number(r1.value), b = Number(r2.value);
+    if (a > b){ var t = a; a = b; b = t; }
+    PERIODO.de  = (a === dMin) ? '' : diaParaIso(a);
+    PERIODO.ate = (b === dMax) ? '' : diaParaIso(b);
+    pintarRegua(a, b);
+    de.value = PERIODO.de || PER_LIM.min;
+    ate.value = PERIODO.ate || PER_LIM.max;
+    if (PER_ESPERA) clearTimeout(PER_ESPERA);
+    PER_ESPERA = setTimeout(function(){ PER_ESPERA = null; montarPainel(); }, 130);
+  }
+  r1.addEventListener('input', mudouRegua);
+  r2.addEventListener('input', mudouRegua);
+
+  // com as duas pontas juntas, pega a que estiver mais perto do clique
+  el('per-regua').addEventListener('mousedown', function(ev){
+    var cx = this.getBoundingClientRect();
+    var alvo = dMin + ((ev.clientX - cx.left) / (cx.width || 1)) * (dMax - dMin);
+    var perto = Math.abs(alvo - Number(r1.value)) <= Math.abs(alvo - Number(r2.value)) ? r1 : r2;
+    r1.style.zIndex = (perto === r1) ? 4 : 3;
+    r2.style.zIndex = (perto === r2) ? 4 : 3;
+  }, true);
+
+  el('per-limpar').addEventListener('click', function(){
+    PERIODO.de = ''; PERIODO.ate = '';
+    montarPainel();
+  });
+
+  PER_PRONTA = true;
+  atualizarBarraPeriodo();
+}
+
+function pintarRegua(a, b){
+  if (!PER_LIM) return;
+  var dMin = isoParaDia(PER_LIM.min), dMax = isoParaDia(PER_LIM.max);
+  var vao = (dMax - dMin) || 1;
+  // em % do próprio trilho, descontando a bolinha (15px) — assim a faixa
+  // acompanha a régua em qualquer largura de tela
+  var faixa = el('per-faixa');
+  var i = (a - dMin) / vao, f = (b - dMin) / vao, larg = Math.max(0, f - i);
+  faixa.style.left  = 'calc(' + (i * 100) + '% - ' + (i * 15 - 7.5) + 'px)';
+  faixa.style.width = 'calc(' + (larg * 100) + '% - ' + (larg * 15) + 'px)';
+  el('per-limites').textContent = dataBR(diaParaIso(a)) + '  ·  ' + dataBR(diaParaIso(b));
+}
+
+/** Só reflete o estado atual; não remonta nada (para não atrapalhar o arrasto). */
+function atualizarBarraPeriodo(){
+  if (!PER_PRONTA || !PER_LIM) return;
+  var dMin = isoParaDia(PER_LIM.min), dMax = isoParaDia(PER_LIM.max);
+  var a = PERIODO.de ? isoParaDia(PERIODO.de) : dMin;
+  var b = PERIODO.ate ? isoParaDia(PERIODO.ate) : dMax;
+  el('per-de').value = PERIODO.de || PER_LIM.min;
+  el('per-ate').value = PERIODO.ate || PER_LIM.max;
+  el('per-r1').value = a;
+  el('per-r2').value = b;
+  pintarRegua(a, b);
+  el('per-limpar').classList.toggle('oculto', !PERIODO.de && !PERIODO.ate);
 }
 
 /* ---------- moldura comum dos cartões ---------- */
@@ -2506,13 +2728,13 @@ function cartaoBarras(dim, titulo){
   visiveis.forEach(function(d){
     var linha = document.createElement('div');
     linha.className = 'barra-graf selecionavel' +
-      (SELECAO[dim] && !escolhido(dim, d.nome) ? ' apagado' : '');
+      (temEscolha(dim) && !escolhido(dim, d.nome) ? ' apagado' : '');
     linha.innerHTML =
       '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
       '<div class="trilho"><div class="preenche" style="width:' +
         Math.max(2, (d.qtd / maior) * 100) + '%"></div></div>' +
       '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
-    linha.addEventListener('click', function(){ escolher(dim, d.nome); });
+    ligarEscolha(linha, dim, d.nome);
     ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
     caixa.appendChild(linha);
   });
@@ -2538,13 +2760,13 @@ function cartaoStatus(){
   dados.forEach(function(d){
     var linha = document.createElement('div');
     linha.className = 'barra-graf st ' + classeStatus(d.nome) + ' selecionavel' +
-      (SELECAO.status && !escolhido('status', d.nome) ? ' apagado' : '');
+      (temEscolha('status') && !escolhido('status', d.nome) ? ' apagado' : '');
     linha.innerHTML =
       '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
       '<div class="trilho"><div class="preenche" style="width:' +
         Math.max(2, (d.qtd / maior) * 100) + '%"></div></div>' +
       '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
-    linha.addEventListener('click', function(){ escolher('status', d.nome); });
+    ligarEscolha(linha, 'status', d.nome);
     ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
     caixa.appendChild(linha);
   });
@@ -2572,13 +2794,13 @@ function cartaoPontos(dim, titulo){
     var pos = Math.max(3, (d.qtd / maior) * 100);
     var linha = document.createElement('div');
     linha.className = 'ponto-linha selecionavel' +
-      (SELECAO[dim] && !escolhido(dim, d.nome) ? ' apagado' : '');
+      (temEscolha(dim) && !escolhido(dim, d.nome) ? ' apagado' : '');
     linha.innerHTML =
       '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
       '<div class="ponto-trilho"><div class="ponto-haste" style="width:' + pos + '%"></div>' +
         '<div class="ponto-bola" style="left:calc(' + pos + '% - 5px)"></div></div>' +
       '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
-    linha.addEventListener('click', function(){ escolher(dim, d.nome); });
+    ligarEscolha(linha, dim, d.nome);
     ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
     caixa.appendChild(linha);
   });
@@ -2649,7 +2871,7 @@ function cartaoLinhaDoTempo(){
   });
 
   dados.forEach(function(d, i){
-    var apagado = (SELECAO.mes && !escolhido('mes', d.nome)) ? ' apagado' : '';
+    var apagado = (temEscolha('mes') && !escolhido('mes', d.nome)) ? ' apagado' : '';
     svg.push('<circle class="lt-ponto' + apagado + '" cx="' + px(i) + '" cy="' + py(d.qtd) + '" r="4.5"/>');
     // alvo largo e invisível, para o mouse pegar fácil
     svg.push('<rect class="lt-alvo" data-i="' + i + '" x="' + (px(i) - largura / (dados.length * 2) - 6) +
@@ -2667,7 +2889,7 @@ function cartaoLinhaDoTempo(){
   caixa.querySelectorAll('.lt-alvo').forEach(function(alvo){
     var d = dados[Number(alvo.dataset.i)];
     alvo.style.cursor = 'pointer';
-    alvo.addEventListener('click', function(){ escolher('mes', d.nome); });
+    ligarEscolha(alvo, 'mes', d.nome);
     ligarDica(alvo, mesLegivel(d.nome), d.qtd, (d.qtd / somaMes) * 100);
   });
 

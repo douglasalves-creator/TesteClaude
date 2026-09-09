@@ -570,3 +570,23 @@ Os cartões de gráfico da mesma faixa passaram a ter altura idêntica
 As linhas dos gráficos de barra e de pontos também ficaram com a mesma
 altura (30 px), para "Acionamentos por status" e "Acionamentos por usina"
 ficarem alinhados lado a lado, mesmo com quantidades diferentes de itens.
+
+## Painel — escolher mais de uma categoria (Ctrl+clique)
+Clique simples troca a escolha (e clicar de novo na mesma limpa).
+**Ctrl+clique** (ou Cmd, ou Shift) **soma** a categoria às que já estavam
+escolhidas, em qualquer gráfico e em qualquer combinação de gráficos.
+Cada escolha vira um marcador em "Filtrando por", que dá para tirar um a um.
+Por dentro, `SELECAO` passou a guardar uma lista de valores por dimensão.
+Todo gráfico novo ganha isso de graça: basta ligar o clique dos itens com
+`ligarEscolha(elemento, dimensao, nome)`.
+
+## Painel — filtro de período
+Uma barra no topo do painel recorta tudo (números e os cinco gráficos) pela
+coluna **Data de Solicitação**, de duas formas ligadas entre si:
+1. dois campos de data — inicial e final;
+2. uma régua com duas pontas para arrastar.
+Mexer em um atualiza o outro. Os extremos da régua são a data mais antiga e
+a mais nova que existem na planilha, e datas fora disso são trazidas para
+dentro. "Limpar filtro" volta ao período todo. Enquanto a régua é
+arrastada, os gráficos são recalculados a cada 130 ms, para não travar.
+Observação: com período ativo, linhas sem data de solicitação ficam de fora.
