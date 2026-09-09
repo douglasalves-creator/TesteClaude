@@ -238,18 +238,13 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .lt-guia{stroke:var(--nevoa);stroke-width:1}
 .lt-alvo{fill:transparent;cursor:crosshair}
 
-/* funil de status: as cores são as mesmas das pílulas da tabela */
-.funil svg{display:block;width:100%;height:auto;font-family:var(--fonte)}
-.funil .faixa{cursor:pointer;transition:opacity .15s}
-.funil .nome{fill:var(--tinta-2);font-size:12px;font-weight:500}
-.funil .qtd{fill:var(--tinta);font-size:12px;font-weight:700}
-.funil .pct{fill:var(--tinta-3);font-size:10.5px}
-.funil .f-vazio{fill:var(--nevoa)}
-.funil .f-pendente{fill:#EC6E2D}
-.funil .f-andamento{fill:#0D3459}
-.funil .f-transito{fill:#8a9a2e}
-.funil .f-concluido{fill:#1b6b41}
-.funil .f-cancelado{fill:#8c2f22}
+/* colunas em pé (status) */
+.colunas svg{display:block;width:100%;height:auto;font-family:var(--fonte)}
+.colunas .col{cursor:pointer;transition:opacity .15s}
+.colunas .barra{fill:var(--aurora)}
+.colunas .qtd{fill:var(--tinta);font-size:11.5px;font-weight:700}
+.colunas .nome{fill:var(--tinta-2);font-size:9.5px;font-weight:500}
+.colunas .base{stroke:var(--nevoa);stroke-width:1}
 
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
 .kpi{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);padding:18px 20px;box-shadow:var(--sombra)}
@@ -2513,7 +2508,7 @@ function montarPainel(){
   alvo.appendChild(cartaoLinhaDoTempo());
   alvo.appendChild(cartaoBarras('fornecedor', 'Fornecedores mais acionados'));
   alvo.appendChild(cartaoBarras('equipamento', 'Equipamentos com mais acionamentos'));
-  alvo.appendChild(cartaoFunil());
+  alvo.appendChild(cartaoColunas());
   alvo.appendChild(cartaoPontos('usina', 'Acionamentos por usina'));
 }
 
@@ -2753,22 +2748,22 @@ function cartaoBarras(dim, titulo){
   return cartao;
 }
 
-/* ================= funil de status =================
-   Os status vêm na ordem do fluxo (a mesma ordem da lista da planilha),
-   e a largura de cada faixa é a quantidade de acionamentos parados nela.
-   As cores são as mesmas das pílulas da tabela, então significam algo.
+/* ================= colunas em pé (status) =================
+   Uma coluna por status, na ordem do fluxo (a mesma ordem da lista suspensa
+   da planilha). Todas laranja, como os outros dois gráficos de barras: aqui
+   a cor não precisa dizer nada, quem diz é a altura.
    ================================================================== */
-function cartaoFunil(){
+function cartaoColunas(){
   var dados = contar('status');
   var cartao = molduraCartao('Acionamentos por status',
     dados.length ? dados.length + ' status em uso · na ordem do fluxo' : '—');
 
   if (!dados.length){ semDado(cartao, 'Nada a mostrar com esse filtro.'); return cartao; }
 
-  // ordem do fluxo: a da lista suspensa da planilha; o que não estiver nela vai ao fim
+  // ordem do fluxo: a da lista da planilha; o que não estiver nela vai ao fim
   var ordem = (INICIO && INICIO.status) ? INICIO.status : [];
   var posicao = {};
-  ordem.forEach(function(nome, i){ posicao[_normalizar2(nome)] = i; });
+  ordem.forEach(function(nome, k){ posicao[_normalizar2(nome)] = k; });
   dados = dados.slice().sort(function(a, b){
     var pa = posicao[a.chave], pb = posicao[b.chave];
     if (pa === undefined) pa = 999;
@@ -2779,43 +2774,46 @@ function cartaoFunil(){
   var maior = dados.reduce(function(m, d){ return Math.max(m, d.qtd); }, 0) || 1;
   var soma  = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
 
-  var W = 620, PASSO = 34, ALTURA = 30, TOPO = 4;
-  var H = dados.length * PASSO + TOPO * 2;
-  var CX = 366, MEIA = 190;                 // centro e meia-largura máxima do funil
-  function meia(qtd){ return Math.max(2.5, (qtd / maior) * MEIA); }
+  var W = 620, L = 10, R = 10, TOPO = 20, ALTURA = 176, LINHA = 11;
+  var Y0 = TOPO + ALTURA;                        // linha de base
+  var vaga = (W - L - R) / dados.length;
+  var larg = Math.min(34, Math.max(10, vaga - 12));
+  var nomes = dados.map(function(d){ return quebrarRotulo(d.nome, Math.max(10, Math.floor(vaga / 5.2))); });
+  var linhas = nomes.reduce(function(m, n){ return Math.max(m, n.length); }, 1);
+  var H = Y0 + 10 + linhas * LINHA + 4;
 
   var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" role="img">'];
+  svg.push('<line class="base" x1="' + L + '" y1="' + Y0 + '" x2="' + (W - R) + '" y2="' + Y0 + '"/>');
 
-  dados.forEach(function(d, i){
-    var y = TOPO + i * PASSO;
-    var a = meia(d.qtd);
-    var b = (i < dados.length - 1) ? meia(dados[i + 1].qtd) : a;   // afunila até o próximo
-    var pct = (d.qtd / soma) * 100;
-    var nome = d.nome.length > 27 ? d.nome.substring(0, 26) + '…' : d.nome;
+  dados.forEach(function(d, k){
+    var cx = L + vaga * k + vaga / 2;
+    var alt = Math.max(3, (d.qtd / maior) * ALTURA);
+    var x = cx - larg / 2, y = Y0 - alt;
 
-    svg.push('<g class="faixa' + (temEscolha('status') && !escolhido('status', d.nome) ? ' apagado' : '') +
-             '" data-i="' + i + '">');
-    svg.push('<text class="nome" x="168" y="' + (y + ALTURA / 2 + 4) + '" text-anchor="end">' + esc(nome) + '</text>');
-    svg.push('<polygon class="' + classeFunil(d.nome) + '" points="' +
-             (CX - a) + ',' + y + ' ' + (CX + a) + ',' + y + ' ' +
-             (CX + b) + ',' + (y + ALTURA) + ' ' + (CX - b) + ',' + (y + ALTURA) + '"/>');
-    svg.push('<text class="qtd" x="' + (W - 46) + '" y="' + (y + ALTURA / 2 + 4) + '" text-anchor="end">' +
+    svg.push('<g class="col' + (temEscolha('status') && !escolhido('status', d.nome) ? ' apagado' : '') +
+             '" data-i="' + k + '">');
+    svg.push('<rect x="' + x + '" y="' + y + '" width="' + larg + '" height="' + alt +
+             '" rx="4" class="barra"/>');
+    svg.push('<text class="qtd" x="' + cx + '" y="' + (y - 6) + '" text-anchor="middle">' +
              numeroBR(d.qtd) + '</text>');
-    svg.push('<text class="pct" x="' + W + '" y="' + (y + ALTURA / 2 + 4) + '" text-anchor="end">' +
-             pct.toFixed(0) + '%</text>');
-    // alvo invisível: a faixa inteira aceita o clique, não só o desenho
-    svg.push('<rect x="0" y="' + y + '" width="' + W + '" height="' + ALTURA + '" fill="transparent"/>');
+    nomes[k].forEach(function(txt, li){
+      svg.push('<text class="nome" x="' + cx + '" y="' + (Y0 + 14 + li * LINHA) +
+               '" text-anchor="middle">' + esc(txt) + '</text>');
+    });
+    // alvo invisível: a coluna inteira aceita o clique, não só o retângulo
+    svg.push('<rect x="' + (cx - vaga / 2) + '" y="' + TOPO + '" width="' + vaga +
+             '" height="' + (H - TOPO) + '" fill="transparent"/>');
     svg.push('</g>');
   });
 
   svg.push('</svg>');
 
   var caixa = document.createElement('div');
-  caixa.className = 'funil';
+  caixa.className = 'colunas';
   caixa.innerHTML = svg.join('');
   cartao.appendChild(caixa);
 
-  caixa.querySelectorAll('.faixa').forEach(function(g){
+  caixa.querySelectorAll('.col').forEach(function(g){
     var d = dados[Number(g.dataset.i)];
     ligarEscolha(g, 'status', d.nome);
     ligarDica(g, d.nome, d.qtd, (d.qtd / soma) * 100);
@@ -2825,10 +2823,22 @@ function cartaoFunil(){
   return cartao;
 }
 
-/** Mesma cor da pílula da tabela, para o status querer dizer a mesma coisa. */
-function classeFunil(nome){
-  var c = classeStatus(nome);
-  return c ? 'f-' + c.substring(2) : 'f-vazio';
+/** Parte o nome do status em até 3 linhas, para caber embaixo da coluna. */
+function quebrarRotulo(texto, porLinha){
+  var palavras = String(texto).split(/\s+/), linhas = [], atual = '';
+  palavras.forEach(function(p){
+    if (!atual) atual = p;
+    else if ((atual + ' ' + p).length <= porLinha) atual += ' ' + p;
+    else { linhas.push(atual); atual = p; }
+  });
+  if (atual) linhas.push(atual);
+  if (linhas.length > 3){
+    linhas = linhas.slice(0, 3);
+    linhas[2] = linhas[2].substring(0, Math.max(1, porLinha - 1)) + '…';
+  }
+  return linhas.map(function(l){
+    return l.length > porLinha + 3 ? l.substring(0, porLinha + 2) + '…' : l;
+  });
 }
 
 /* ================= pontos (ranking com nomes longos) ================= */

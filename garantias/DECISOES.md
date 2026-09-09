@@ -594,15 +594,15 @@ Observação: com período ativo, linhas sem data de solicitação ficam de fora
 A barra é um cartão branco, igual aos outros da página (o fundo escuro que
 tinha antes destoava do layout).
 
-## Painel — status em funil
-"Acionamentos por status" virou um funil: uma faixa por status, na **ordem do
-fluxo** (a mesma ordem da lista suspensa da planilha, então mexer na lista
-muda a ordem do funil sem tocar no código), com a largura proporcional à
-quantidade e a mesma cor das pílulas da tabela. Cada faixa mostra a
-quantidade e o percentual, aceita clique e Ctrl+clique como os outros
-gráficos, e "Ver todos" segue com a lista completa.
+## Painel — status em colunas em pé
+"Acionamentos por status" é um gráfico de colunas em pé, uma coluna por
+status, na **ordem do fluxo** — a mesma ordem da lista suspensa da planilha,
+então mexer na lista muda a ordem do gráfico sem tocar no código. Todas as
+colunas em laranja, como os outros dois gráficos de barras: aqui a cor não
+precisa dizer nada, quem diz é a altura. A quantidade fica em cima de cada
+coluna e o nome do status embaixo, quebrado em até 3 linhas para caber.
+Clique e Ctrl+clique funcionam como nos outros gráficos.
 
-Ressalva registrada: cada acionamento está em **um** status por vez, então
-o funil mostra quanto está parado em cada etapa hoje — não quanto passou por
-ela. Por isso a figura pode alargar no meio, em vez de só estreitar, quando
-uma etapa mais adiante tem mais acionamentos do que a anterior.
+Tentamos antes um funil e foi descartado: cada acionamento está em um status
+por vez, então a figura alargava no meio em vez de estreitar, e ficou ruim de
+ler.
