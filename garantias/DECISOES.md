@@ -575,7 +575,8 @@ ficarem alinhados lado a lado, mesmo com quantidades diferentes de itens.
 Clique simples troca a escolha (e clicar de novo na mesma limpa).
 **Ctrl+clique** (ou Cmd, ou Shift) **soma** a categoria às que já estavam
 escolhidas, em qualquer gráfico e em qualquer combinação de gráficos.
-Cada escolha vira um marcador em "Filtrando por", que dá para tirar um a um.
+Cada escolha vira um marcador branco em "Filtrando por" — no mesmo estilo dos
+cartões da página, com qualquer quantidade de marcadores — e dá para tirar um a um.
 Por dentro, `SELECAO` passou a guardar uma lista de valores por dimensão.
 Todo gráfico novo ganha isso de graça: basta ligar o clique dos itens com
 `ligarEscolha(elemento, dimensao, nome)`.
