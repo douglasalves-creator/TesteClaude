@@ -101,7 +101,11 @@ body.no-inicio{background:var(--eclipse)}
 
 /* ================= Estrutura ================= */
 .corpo{max-width:1360px;margin:0 auto;padding:26px 24px 80px}
+/* No módulo Processos a TABELA usa a largura toda da tela, mas o cabeçalho
+   (título, visões, filtros e busca) fica na medida de leitura, centralizado —
+   como era antes de a tabela crescer. */
 .corpo.largo{max-width:none}
+.corpo.largo .cabeca-mod{max-width:1360px;margin:0 auto}
 .titulo{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px}
 .legenda{font-size:13px;color:var(--tinta-2);margin:0 0 22px}
 .painel{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);box-shadow:var(--sombra)}
@@ -134,7 +138,7 @@ select.entrada{appearance:none;background-image:url("data:image/svg+xml;charset=
 
 /* ================= Processos ================= */
 .barra{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.busca{position:relative;flex:1 1 260px;min-width:220px;max-width:560px}
+.busca{position:relative;flex:1;min-width:240px}
 .busca .entrada{padding-left:36px}
 .busca svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45}
 
@@ -558,24 +562,26 @@ td.cel{text-align:center}
 
   <!-- ============ PROCESSOS ============ -->
   <section id="mod-processos" class="oculto">
-    <h1 class="titulo">Processos</h1>
-    <p class="legenda" id="legenda-processos">Todos os acionamentos, em qualquer status.</p>
+    <div class="cabeca-mod">
+      <h1 class="titulo">Processos</h1>
+      <p class="legenda" id="legenda-processos">Todos os acionamentos, em qualquer status.</p>
 
-    <div class="linha-visao">
-      <div class="visoes" id="visoes"></div>
-      <span class="desc" id="visao-desc"></span>
-    </div>
-
-    <div class="filtros" id="filtros"></div>
-
-    <div class="barra">
-      <div class="busca">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#0A0F14" stroke-width="1.6"/><path d="M11 11l4 4" stroke="#0A0F14" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <input class="entrada" id="busca" placeholder="Buscar em qualquer campo…" autocomplete="off">
+      <div class="linha-visao">
+        <div class="visoes" id="visoes"></div>
+        <span class="desc" id="visao-desc"></span>
       </div>
-      <button class="btn btn-sm" id="btn-limpar-filtros">Limpar filtros</button>
-      <button class="btn btn-sm" id="btn-atualizar">Atualizar</button>
-      <button class="btn btn-sm" id="btn-redefinir-colunas" title="Volta as colunas ao tamanho padrão">Redefinir colunas</button>
+
+      <div class="filtros" id="filtros"></div>
+
+      <div class="barra">
+        <div class="busca">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#0A0F14" stroke-width="1.6"/><path d="M11 11l4 4" stroke="#0A0F14" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input class="entrada" id="busca" placeholder="Buscar em qualquer campo…" autocomplete="off">
+        </div>
+        <button class="btn btn-sm" id="btn-limpar-filtros">Limpar filtros</button>
+        <button class="btn btn-sm" id="btn-atualizar">Atualizar</button>
+        <button class="btn btn-sm" id="btn-redefinir-colunas" title="Volta as colunas ao tamanho padrão">Redefinir colunas</button>
+      </div>
     </div>
 
     <div class="painel">

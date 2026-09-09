@@ -408,31 +408,27 @@ Dentro de cada bloco os campos seguem a **ordem das colunas da planilha**, não 
 ordem da lista `CAMPOS` — essa continua servindo para a sequência do formulário
 de solicitação, que é outra.
 
-As colunas do módulo foram fechadas em 08/09/2026. **Só estas 18 aparecem**,
-mesmo que a aba tenha outras:
-
-`Data de Solicitação` · `RMA / OS (Nº)` · `Tipo de Acionamento` ·
-`Responsável Atual` · `Status Geral do Acionamento` · `UFV de Origem` ·
-`Fornecedor` · `Material/Equipamento` · `Qtd` · `NS` · `Data envio/Coleta` ·
-`Codigo Rastreio / Romaneio RFQ (envio)` · `Coberto em Garantia` ·
-`Data Saida / Coleta Fornecedor (Real)` ·
-`Codigo Rastreio / Romaneio RFQ (retorno)` · `Data Chegada na usina` ·
-`FUP - Comentarios` · `FUP - Ações Futuras (TROCA EM AVANÇO)`
-
 | Visão | O que mostra |
 |---|---|
-| **Completa** | as 18 colunas acima |
-| **Reunião** | 12 dessas, recorte da reunião semanal |
+| **Completa** | **todas** as colunas da aba, sempre |
+| **Reunião** | 12 colunas, recorte da reunião semanal (definido em 09/09/2026) |
 
-A tela de tratamento (individual e lote) continua com **todas** as colunas da
-aba, divididas nos blocos — o recorte vale só para a tabela.
+O recorte vale **só para a visão Reunião**. A Completa nunca esconde coluna, e a
+tela de tratamento (individual e lote) também mostra todas.
+
+Colunas da visão Reunião: `Data de Solicitação` · `RMA / OS (Nº)` ·
+`Status Geral do Acionamento` · `UFV de Origem` · `Fornecedor` ·
+`Material/Equipamento` · `Qtd` · `Coberto em Garantia` · `Data envio/Coleta` ·
+`Data Saida / Coleta Fornecedor (Real)` · `Data Chegada na usina` ·
+`FUP - Comentarios`
 
 Para criar ou mudar uma visão, basta editar a lista de cabeçalhos em `VISOES`.
 Cabeçalho que não existir na aba é ignorado sem erro. A visão escolhida fica
 guardada no navegador de cada pessoa.
 
-A tabela de Processos usa a **largura toda da tela**; os outros módulos ficam
-na medida de leitura confortável (1360px).
+A **tabela** de Processos usa a largura toda da tela, mas o **cabeçalho do
+módulo** — título, seletor de visão, filtros e busca — fica na medida de leitura
+de 1360px, centralizado na página. Os outros módulos ficam todos nessa medida.
 
 **Edição direto na célula** funciona nas visões recortadas (não na Completa,
 onde as 51 colunas fariam o clique atrapalhar a leitura):
