@@ -602,3 +602,28 @@ Aparecem todos os status em uso, do maior para o menor, **todos em laranja**
 Clique e Ctrl+clique funcionam como nos outros gráficos.
 
 Testamos um funil e colunas em pé; os dois foram descartados por leitura ruim.
+
+## Limpeza de colunas na planilha — o que acontece sozinho
+Teste feito apagando colunas do mock (cenários com "Coberto em Garantia",
+"Codigo Rastreio / Romaneio RFQ", "Observação Interna", "Aprov Felipe
+(Retorno)", "Pasta Drive", "Ação", "FUP - Comentarios", e até "SCGAR" e
+"Status Geral do Acionamento"):
+
+- as colunas apagadas **saem sozinhas** de Processos, da visão Reunião
+  (que fica só com as que sobraram), da tela de edição e do formulário;
+- colunas novas também entram sozinhas, no fim da visão Completa;
+- nada quebra: criar solicitação, editar, anexar e os gráficos seguem
+  funcionando em todos os cenários.
+
+Duas coisas continuam pedindo um ajuste no código:
+1. o aviso amarelo do topo lista as colunas apagadas que estavam mapeadas
+   em `CAMPOS` (com grupo e tipo). É só um aviso, mas para tirá-lo é preciso
+   remover a linha correspondente de `CAMPOS`;
+2. cinco colunas sustentam recursos específicos — Data de Solicitação
+   (filtro de período e gráfico por mês), Status Geral do Acionamento
+   (pílula, filtro e gráfico de status), Fornecedor, Equipamento Principal
+   e UFV de Origem (um gráfico cada), além de SCGAR (o código) e Pasta Drive
+   (o link da pasta de anexos). Sem elas o recurso simplesmente não aparece.
+
+Renomear uma coluna vale como apagar uma e criar outra (a busca é pelo nome,
+tolerante a acento, caixa e espaço duplo).
