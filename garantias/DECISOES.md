@@ -426,9 +426,17 @@ Para criar ou mudar uma visão, basta editar a lista de cabeçalhos em `VISOES`.
 Cabeçalho que não existir na aba é ignorado sem erro. A visão escolhida fica
 guardada no navegador de cada pessoa.
 
-A **tabela** de Processos usa a largura toda da tela, mas o **cabeçalho do
-módulo** — título, seletor de visão, filtros e busca — fica na medida de leitura
-de 1360px, centralizado na página. Os outros módulos ficam todos nessa medida.
+No módulo Processos, **tudo usa a largura da tela**. Os filtros ficam num
+painel único, com as bordas alinhadas às da tabela (decisão de 09/09/2026):
+
+- **topo do painel**: seletor de visão e a contagem de colunas à esquerda; os
+  botões *Limpar filtros*, *Atualizar* e *Redefinir colunas* à direita;
+- **meio**: os filtros num grid `auto-fit` com faixas de `1fr` — eles esticam e
+  preenchem a largura toda, sejam 4 ou 9, e quebram sozinhos para uma segunda
+  linha em telas estreitas;
+- **pé**: a busca livre ocupando a largura inteira.
+
+Os outros módulos seguem na medida de leitura de 1360px.
 
 **Edição direto na célula** funciona nas visões recortadas (não na Completa,
 onde as 51 colunas fariam o clique atrapalhar a leitura):
