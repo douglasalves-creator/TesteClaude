@@ -590,3 +590,5 @@ a mais nova que existem na planilha, e datas fora disso são trazidas para
 dentro. "Limpar filtro" volta ao período todo. Enquanto a régua é
 arrastada, os gráficos são recalculados a cada 130 ms, para não travar.
 Observação: com período ativo, linhas sem data de solicitação ficam de fora.
+A barra é um cartão branco, igual aos outros da página (o fundo escuro que
+tinha antes destoava do layout).
