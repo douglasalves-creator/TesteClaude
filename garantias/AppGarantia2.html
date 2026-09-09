@@ -238,13 +238,19 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .lt-guia{stroke:var(--nevoa);stroke-width:1}
 .lt-alvo{fill:transparent;cursor:crosshair}
 
-/* barras de status, com a cor de cada status */
-.barra-graf.st .preenche{background:var(--nevoa)}
-.barra-graf.st.s-pendente .preenche{background:#EC6E2D}
-.barra-graf.st.s-andamento .preenche{background:#0D3459}
-.barra-graf.st.s-transito .preenche{background:#8a9a2e}
-.barra-graf.st.s-concluido .preenche{background:#1b6b41}
-.barra-graf.st.s-cancelado .preenche{background:#8c2f22}
+/* funil de status: as cores são as mesmas das pílulas da tabela */
+.funil svg{display:block;width:100%;height:auto;font-family:var(--fonte)}
+.funil .faixa{cursor:pointer;transition:opacity .15s}
+.funil .nome{fill:var(--tinta-2);font-size:12px;font-weight:500}
+.funil .qtd{fill:var(--tinta);font-size:12px;font-weight:700}
+.funil .pct{fill:var(--tinta-3);font-size:10.5px}
+.funil .f-vazio{fill:var(--nevoa)}
+.funil .f-pendente{fill:#EC6E2D}
+.funil .f-andamento{fill:#0D3459}
+.funil .f-transito{fill:#8a9a2e}
+.funil .f-concluido{fill:#1b6b41}
+.funil .f-cancelado{fill:#8c2f22}
+
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
 .kpi{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);padding:18px 20px;box-shadow:var(--sombra)}
 .kpi .rot{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-3)}
@@ -2507,7 +2513,7 @@ function montarPainel(){
   alvo.appendChild(cartaoLinhaDoTempo());
   alvo.appendChild(cartaoBarras('fornecedor', 'Fornecedores mais acionados'));
   alvo.appendChild(cartaoBarras('equipamento', 'Equipamentos com mais acionamentos'));
-  alvo.appendChild(cartaoStatus());
+  alvo.appendChild(cartaoFunil());
   alvo.appendChild(cartaoPontos('usina', 'Acionamentos por usina'));
 }
 
@@ -2747,36 +2753,82 @@ function cartaoBarras(dim, titulo){
   return cartao;
 }
 
-/* ================= barras de status (cor com significado) ================= */
-function cartaoStatus(){
+/* ================= funil de status =================
+   Os status vêm na ordem do fluxo (a mesma ordem da lista da planilha),
+   e a largura de cada faixa é a quantidade de acionamentos parados nela.
+   As cores são as mesmas das pílulas da tabela, então significam algo.
+   ================================================================== */
+function cartaoFunil(){
   var dados = contar('status');
   var cartao = molduraCartao('Acionamentos por status',
-    dados.length + (dados.length === 1 ? ' status em uso' : ' status em uso'));
+    dados.length ? dados.length + ' status em uso · na ordem do fluxo' : '—');
 
   if (!dados.length){ semDado(cartao, 'Nada a mostrar com esse filtro.'); return cartao; }
 
-  var maior = dados[0].qtd;
-  var soma = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
-  var caixa = document.createElement('div');
-  caixa.className = 'barras';
-
-  dados.forEach(function(d){
-    var linha = document.createElement('div');
-    linha.className = 'barra-graf st ' + classeStatus(d.nome) + ' selecionavel' +
-      (temEscolha('status') && !escolhido('status', d.nome) ? ' apagado' : '');
-    linha.innerHTML =
-      '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
-      '<div class="trilho"><div class="preenche" style="width:' +
-        Math.max(2, (d.qtd / maior) * 100) + '%"></div></div>' +
-      '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
-    ligarEscolha(linha, 'status', d.nome);
-    ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
-    caixa.appendChild(linha);
+  // ordem do fluxo: a da lista suspensa da planilha; o que não estiver nela vai ao fim
+  var ordem = (INICIO && INICIO.status) ? INICIO.status : [];
+  var posicao = {};
+  ordem.forEach(function(nome, i){ posicao[_normalizar2(nome)] = i; });
+  dados = dados.slice().sort(function(a, b){
+    var pa = posicao[a.chave], pb = posicao[b.chave];
+    if (pa === undefined) pa = 999;
+    if (pb === undefined) pb = 999;
+    return pa - pb || b.qtd - a.qtd;
   });
 
+  var maior = dados.reduce(function(m, d){ return Math.max(m, d.qtd); }, 0) || 1;
+  var soma  = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
+
+  var W = 620, PASSO = 34, ALTURA = 30, TOPO = 4;
+  var H = dados.length * PASSO + TOPO * 2;
+  var CX = 366, MEIA = 190;                 // centro e meia-largura máxima do funil
+  function meia(qtd){ return Math.max(2.5, (qtd / maior) * MEIA); }
+
+  var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" role="img">'];
+
+  dados.forEach(function(d, i){
+    var y = TOPO + i * PASSO;
+    var a = meia(d.qtd);
+    var b = (i < dados.length - 1) ? meia(dados[i + 1].qtd) : a;   // afunila até o próximo
+    var pct = (d.qtd / soma) * 100;
+    var nome = d.nome.length > 27 ? d.nome.substring(0, 26) + '…' : d.nome;
+
+    svg.push('<g class="faixa' + (temEscolha('status') && !escolhido('status', d.nome) ? ' apagado' : '') +
+             '" data-i="' + i + '">');
+    svg.push('<text class="nome" x="168" y="' + (y + ALTURA / 2 + 4) + '" text-anchor="end">' + esc(nome) + '</text>');
+    svg.push('<polygon class="' + classeFunil(d.nome) + '" points="' +
+             (CX - a) + ',' + y + ' ' + (CX + a) + ',' + y + ' ' +
+             (CX + b) + ',' + (y + ALTURA) + ' ' + (CX - b) + ',' + (y + ALTURA) + '"/>');
+    svg.push('<text class="qtd" x="' + (W - 46) + '" y="' + (y + ALTURA / 2 + 4) + '" text-anchor="end">' +
+             numeroBR(d.qtd) + '</text>');
+    svg.push('<text class="pct" x="' + W + '" y="' + (y + ALTURA / 2 + 4) + '" text-anchor="end">' +
+             pct.toFixed(0) + '%</text>');
+    // alvo invisível: a faixa inteira aceita o clique, não só o desenho
+    svg.push('<rect x="0" y="' + y + '" width="' + W + '" height="' + ALTURA + '" fill="transparent"/>');
+    svg.push('</g>');
+  });
+
+  svg.push('</svg>');
+
+  var caixa = document.createElement('div');
+  caixa.className = 'funil';
+  caixa.innerHTML = svg.join('');
   cartao.appendChild(caixa);
+
+  caixa.querySelectorAll('.faixa').forEach(function(g){
+    var d = dados[Number(g.dataset.i)];
+    ligarEscolha(g, 'status', d.nome);
+    ligarDica(g, d.nome, d.qtd, (d.qtd / soma) * 100);
+  });
+
   anexarTabela(cartao, DIMS.status.rotulo, dados);
   return cartao;
+}
+
+/** Mesma cor da pílula da tabela, para o status querer dizer a mesma coisa. */
+function classeFunil(nome){
+  var c = classeStatus(nome);
+  return c ? 'f-' + c.substring(2) : 'f-vazio';
 }
 
 /* ================= pontos (ranking com nomes longos) ================= */

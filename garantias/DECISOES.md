@@ -593,3 +593,16 @@ arrastada, os gráficos são recalculados a cada 130 ms, para não travar.
 Observação: com período ativo, linhas sem data de solicitação ficam de fora.
 A barra é um cartão branco, igual aos outros da página (o fundo escuro que
 tinha antes destoava do layout).
+
+## Painel — status em funil
+"Acionamentos por status" virou um funil: uma faixa por status, na **ordem do
+fluxo** (a mesma ordem da lista suspensa da planilha, então mexer na lista
+muda a ordem do funil sem tocar no código), com a largura proporcional à
+quantidade e a mesma cor das pílulas da tabela. Cada faixa mostra a
+quantidade e o percentual, aceita clique e Ctrl+clique como os outros
+gráficos, e "Ver todos" segue com a lista completa.
+
+Ressalva registrada: cada acionamento está em **um** status por vez, então
+o funil mostra quanto está parado em cada etapa hoje — não quanto passou por
+ela. Por isso a figura pode alargar no meio, em vez de só estreitar, quando
+uma etapa mais adiante tem mais acionamentos do que a anterior.
