@@ -168,9 +168,10 @@ como no Power BI. Regras:
 
 - Quantidade escrita na ponta de cada barra; balão ao passar o mouse com o nome
   completo, a quantidade e o percentual.
-- Cada gráfico tem **Ver todos**, que abre a lista completa em tabela.
-- Quando há mais categorias do que as mostradas, uma linha no pé informa quantas
-  são e quanto somam.
+- Cada gráfico tem **Ver todos**, que abre a lista completa em tabela — é por
+  onde se vê o que ficou fora dos 10 primeiros. O subtítulo já diz o total
+  ("Os 10 primeiros de 144"), então o rodapé com a contagem das restantes foi
+  removido em 09/09/2026 por ser repetido.
 - **Grafias diferentes do mesmo nome são somadas.** `Huawei` e `HUAWEI` contam
   como um só, e aparece a grafia mais frequente.
 

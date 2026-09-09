@@ -245,7 +245,6 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .barra-graf .preenche{height:20px;background:var(--aurora);border-radius:0 4px 4px 0;min-width:3px;transition:width .25s}
 .barra-graf .qtd{font-family:var(--fonte);font-size:12.5px;font-weight:700;color:var(--tinta);min-width:34px;text-align:right}
 
-.grafico .cauda{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-2,#eef0ec);font-size:11.5px;color:var(--tinta-3)}
 .tabela-grafico{margin-top:14px;max-height:260px;overflow-y:auto;border:1px solid var(--nevoa);border-radius:8px}
 .tabela-grafico table{width:100%;border-collapse:collapse;min-width:0}
 .tabela-grafico th,.tabela-grafico td{padding:7px 12px;font-size:12px;text-align:left;white-space:nowrap}
@@ -2482,16 +2481,6 @@ function anexarTabela(cartao, rotulo, dados){
   });
 }
 
-function rodapeResto(cartao, resto){
-  if (!resto.length) return;
-  var soma = resto.reduce(function(t, d){ return t + d.qtd; }, 0);
-  var p = document.createElement('p');
-  p.className = 'cauda';
-  p.textContent = 'Mais ' + resto.length + (resto.length === 1 ? ' categoria' : ' categorias') +
-    ' somando ' + numeroBR(soma) + (soma === 1 ? ' acionamento' : ' acionamentos') + '.';
-  cartao.appendChild(p);
-}
-
 function semDado(cartao, texto){
   var p = document.createElement('div');
   p.className = 'sem-dado';
@@ -2503,7 +2492,6 @@ function semDado(cartao, texto){
 function cartaoBarras(dim, titulo){
   var dados = contar(dim);
   var visiveis = dados.slice(0, TOPO_GRAFICO);
-  var resto = dados.slice(TOPO_GRAFICO);
   var cartao = molduraCartao(titulo,
     visiveis.length ? 'Os ' + visiveis.length + ' primeiros de ' + dados.length : '—');
 
@@ -2529,7 +2517,6 @@ function cartaoBarras(dim, titulo){
   });
 
   cartao.appendChild(caixa);
-  rodapeResto(cartao, resto);
   anexarTabela(cartao, DIMS[dim].rotulo, dados);
   return cartao;
 }
@@ -2570,7 +2557,6 @@ function cartaoStatus(){
 function cartaoPontos(dim, titulo){
   var dados = contar(dim);
   var visiveis = dados.slice(0, TOPO_GRAFICO);
-  var resto = dados.slice(TOPO_GRAFICO);
   var cartao = molduraCartao(titulo,
     visiveis.length ? 'As ' + visiveis.length + ' primeiras de ' + dados.length : '—');
 
@@ -2597,7 +2583,6 @@ function cartaoPontos(dim, titulo){
   });
 
   cartao.appendChild(caixa);
-  rodapeResto(cartao, resto);
   anexarTabela(cartao, DIMS[dim].rotulo, dados);
   return cartao;
 }
