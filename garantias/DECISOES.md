@@ -720,3 +720,18 @@ Quatro gráficos de barras, todos laranja: por usina (UFV), por fornecedor,
 por Status - RNC e por Status Tratativa, com os mesmos números do topo e o
 mesmo cruzamento por clique / Ctrl+clique do painel de Garantias. O painel
 do RNC é independente do de Garantias.
+
+## RNC — e-mail, campo Atualização e evidências na gaveta
+- Toda RNC aberta manda um aviso para supplychain.eng@solargrid.com.br, nos
+  mesmos moldes de Garantias: assunto com o número e quem abriu, responder
+  para o solicitante, a tabela com tudo o que foi preenchido e o botão da
+  pasta no Drive. Falha no e-mail não impede a abertura.
+- Na gaveta, **ATUALIZAÇÃO** virou caixa de texto com ~4x a altura de um
+  campo comum e ocupando a largura de dois campos. Resumo da Ocorrência
+  também virou caixa de texto.
+- Abaixo dela aparecem as **fotos da pasta daquela RNC**. A tela recebe só o
+  endereço das miniaturas (`drive.google.com/thumbnail`) e quem baixa a
+  imagem é o navegador, direto do Drive — nada de imagem trafega pelo Apps
+  Script, então não pesa. Só é buscado quando a gaveta abre, no máximo 40
+  arquivos. Sem link da pasta na linha, procura a pasta pelo número da RNC.
+- Nº RNC passou a ser a primeira coluna da tabela.

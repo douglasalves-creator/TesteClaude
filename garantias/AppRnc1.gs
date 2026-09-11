@@ -15,7 +15,8 @@ var GAR_RNC = (function () {
     NUMERO_MINIMO: 254,          // a última RNC emitida; a próxima será 255
     COL_LINK_PASTA: 'RNC',       // coluna que recebe o link da pasta no Drive
     COL_STATUS: 'Status - RNC',  // coluna que recebe "Emitida"
-    STATUS_NOVO: 'Emitida'
+    STATUS_NOVO: 'Emitida',
+    EMAIL_NOVA_RNC: 'supplychain.eng@solargrid.com.br'
   };
 
   var ASSUNTOS = ['QUALIDADE', 'MEIO AMBIENTE', 'SAÚDE E SEG. TRABALHO'];
@@ -377,6 +378,110 @@ var GAR_RNC = (function () {
     }
   }
 
+  /* ---------------- aviso por e-mail ---------------- */
+
+  function _avisarPorEmail(dados, pasta) {
+    if (!CFG.EMAIL_NOVA_RNC) return;
+    try {
+      var quem = Session.getActiveUser().getEmail() || '(não identificado)';
+      var html =
+        '<div style="font-family:Arial,Helvetica,sans-serif;color:#0A0F14;max-width:660px">' +
+          '<div style="background:#EC6E2D;color:#fff;padding:18px 20px;border-radius:12px 12px 0 0">' +
+            '<div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85">SolarGrid — RNC</div>' +
+            '<div style="font-size:19px;font-weight:700;margin-top:2px">Nova RNC ' + _esc(dados.n_rnc) + '</div>' +
+          '</div>' +
+          '<div style="border:1px solid #D8D8D8;border-top:none;border-radius:0 0 12px 12px;padding:14px">' +
+            _quadroDaSolicitacao(dados) +
+            (pasta ? '<div style="padding:14px 0 0">' +
+              '<a href="' + pasta.url + '" style="display:inline-block;background:#EC6E2D;color:#fff;' +
+              'text-decoration:none;font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px">' +
+              'Abrir a pasta ' + _esc(pasta.nome) + ' no Drive</a>' +
+              '<ul style="margin:12px 0 0;padding-left:20px;font-size:12.5px;color:#5b6670">' +
+              (pasta.arquivos || []).map(function (a) {
+                return '<li style="margin:2px 0">' + _esc(a.nome) + '</li>';
+              }).join('') + '</ul></div>' : '') +
+            '<p style="margin:14px 0 0;font-size:12px;color:#5b6670">Aberta por ' + _esc(quem) + '.</p>' +
+          '</div>' +
+        '</div>';
+
+      var envio = {
+        to: CFG.EMAIL_NOVA_RNC,
+        subject: '[RNC] Nova RNC ' + dados.n_rnc + ' — ' + quem,
+        htmlBody: html,
+        name: quem
+      };
+      if (quem.indexOf('@') > 0) envio.replyTo = quem;
+      MailApp.sendEmail(envio);
+    } catch (e) {
+      console.error('Falha ao enviar o aviso da RNC: ' + e.message);
+    }
+  }
+
+  /** Tabelinha com o que foi preenchido, para o corpo do e-mail. */
+  function _quadroDaSolicitacao(dados) {
+    return '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+      PERGUNTAS.map(function (p) {
+        var v = String(dados[p.id] == null ? '' : dados[p.id]).trim();
+        if (!v) return '';
+        if (p.tipo === 'data') v = _dataBR(v);
+        return '<tr><td style="padding:6px 10px;border-bottom:1px solid #E6E6E6;color:#5b6670;width:38%">' +
+               _esc(p.rotulo) + '</td><td style="padding:6px 10px;border-bottom:1px solid #E6E6E6;font-weight:600">' +
+               _quebras(v) + '</td></tr>';
+      }).join('') + '</table>';
+  }
+
+  /* ---------------- evidências de uma RNC já aberta ---------------- */
+
+  /**
+   * Fotos da pasta daquela linha. Devolve só os endereços das miniaturas —
+   * quem baixa a imagem é o navegador, direto do Drive, então a tela não
+   * carrega nada pesado pelo Apps Script.
+   */
+  function evidencias(linha) {
+    try {
+      var aba = _aba();
+      var mapa = _mapa(aba);
+      var colLink = mapa[_norm(CFG.COL_LINK_PASTA)];
+      var colNum = mapa[_norm('Nº RNC')];
+      var link = colLink ? String(aba.getRange(linha, colLink.col).getDisplayValue() || '').trim() : '';
+      var numero = colNum ? String(aba.getRange(linha, colNum.col).getDisplayValue() || '').trim() : '';
+
+      var pasta = null;
+      var m = link.match(/folders\/([A-Za-z0-9_-]+)/);
+      if (m) {
+        try { pasta = DriveApp.getFolderById(m[1]); } catch (e) { pasta = null; }
+      }
+      if (!pasta && numero) {
+        // linha antiga, sem o link: procura a pasta pelo número da RNC
+        var mae = DriveApp.getFolderById(CFG.PASTA_DRIVE_ID);
+        var it = mae.getFolders();
+        while (it.hasNext()) {
+          var f = it.next();
+          if (_norm(f.getName()).indexOf(_norm(numero)) >= 0) { pasta = f; break; }
+        }
+      }
+      if (!pasta) return { ok: false, motivo: 'sem pasta', arquivos: [] };
+
+      var arquivos = [];
+      var fs = pasta.getFiles();
+      while (fs.hasNext() && arquivos.length < 40) {
+        var arq = fs.next();
+        var tipo = String(arq.getMimeType() || '');
+        var id = arq.getId();
+        arquivos.push({
+          id: id,
+          nome: arq.getName(),
+          imagem: tipo.indexOf('image/') === 0,
+          mini: 'https://drive.google.com/thumbnail?id=' + id + '&sz=w800',
+          url: arq.getUrl()
+        });
+      }
+      return { ok: true, pastaUrl: pasta.getUrl(), pastaNome: pasta.getName(), arquivos: arquivos };
+    } catch (e) {
+      return { ok: false, motivo: e.message, arquivos: [] };
+    }
+  }
+
   /* ---------------- gravação ---------------- */
 
   function _paraCelula(tipo, valor) {
@@ -449,6 +554,8 @@ var GAR_RNC = (function () {
       faixa.setValues([valores]);
       SpreadsheetApp.flush();
 
+      _avisarPorEmail(dados, pasta);
+
       return { ok: true, linha: nova, numero: dados.n_rnc, pastaUrl: pasta.url,
                pastaNome: pasta.nome, anexos: arquivos.length };
     } finally {
@@ -476,7 +583,7 @@ var GAR_RNC = (function () {
     }
   }
 
-  return { inicio: inicio, listar: listar, criar: criar, salvar: salvar };
+  return { inicio: inicio, listar: listar, criar: criar, salvar: salvar, evidencias: evidencias };
 })();
 
 /* Pontes para a tela */
@@ -484,3 +591,4 @@ function rnc_inicio() { return GAR_RNC.inicio(); }
 function rnc_listar() { return GAR_RNC.listar(); }
 function rnc_criar(dados, arquivos) { return GAR_RNC.criar(dados, arquivos); }
 function rnc_salvar(linha, alteracoes) { return GAR_RNC.salvar(linha, alteracoes); }
+function rnc_evidencias(linha) { return GAR_RNC.evidencias(linha); }

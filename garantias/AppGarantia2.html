@@ -84,6 +84,24 @@ body.no-inicio{background:var(--eclipse)}
   letter-spacing:.04em;text-transform:uppercase;color:var(--aurora)}
 .cartao .entrar span{transition:transform .18s}
 .cartao:hover .entrar span{transform:translateX(4px)}
+.campo-alto{grid-column:span 2}
+.campo-alto textarea.entrada{min-height:160px}
+@media(max-width:760px){ .campo-alto{grid-column:auto} }
+.evid-rnc{margin-top:26px;border-top:1px solid var(--nevoa);padding-top:18px}
+.evid-rnc h3{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:11px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-3)}
+.evid-rnc h3 .cnt{background:var(--sirius);border-radius:999px;padding:2px 9px;font-size:10px;color:var(--tinta-2)}
+.evid-rnc h3 .abrir-pasta{margin-left:auto;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--aurora)}
+.evid-rnc .sem-evid{margin:0;font-size:12.5px;color:var(--tinta-3)}
+.fotos-rnc{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.fotos-rnc a{display:block;text-decoration:none;border:1px solid var(--nevoa);border-radius:10px;
+  overflow:hidden;background:var(--branco);transition:border-color .15s,transform .15s}
+.fotos-rnc a:hover{border-color:var(--aurora);transform:translateY(-2px)}
+.fotos-rnc img{display:block;width:100%;height:130px;object-fit:cover;background:var(--sirius)}
+.fotos-rnc span{display:block;padding:7px 9px;font-size:11px;color:var(--tinta-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.outros-rnc{margin:12px 0 0;padding-left:18px;font-size:12.5px;color:var(--tinta-2)}
+.outros-rnc a{color:var(--aurora)}
 .bloco-rnc{margin-bottom:8px}
 .bloco-rnc h3{margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   color:var(--tinta-3);border-bottom:1px solid var(--nevoa);padding-bottom:7px}
@@ -3657,7 +3675,7 @@ function camposRnc(){
 }
 
 /** Status Tratativa e Status - RNC vêm primeiro; o resto segue a planilha. */
-var RNC_NA_FRENTE = ['status tratativa', 'status - rnc'];
+var RNC_NA_FRENTE = ['nº rnc', 'status tratativa', 'status - rnc'];
 
 function ordenarColunasRnc(campos){
   return campos.slice().sort(function(a, b){
@@ -4134,6 +4152,10 @@ function cartaoRnc(dim){
   return cartao;
 }
 
+/* Campos que merecem caixa de texto grande na gaveta. */
+var RNC_AREAS = ['atualizacao', 'resumo da ocorrencia'];
+var RNC_ALTO  = 'atualizacao';
+
 function abrirGavetaRnc(linha){
   var item = RNC.lista.linhas.filter(function(l){ return l.linha === linha; })[0];
   if (!item) return;
@@ -4146,11 +4168,21 @@ function abrirGavetaRnc(linha){
   grade.className = 'grade';
   camposRnc().forEach(function(c){
     var valor = item.v[c.id] || '';
-    if (c.tipo === 'data') valor = textoParaISO(valor);
     RNC.original[c.id] = valor;
-    grade.appendChild(criarCampo({ id: c.id, rotulo: c.rotulo, tipo: c.tipo }, valor, 'rnced-'));
+    var tipo = RNC_AREAS.indexOf(c.id) >= 0 ? 'area' : c.tipo;
+    var caixa = criarCampo({ id: c.id, rotulo: c.rotulo, tipo: tipo }, valor, 'rnced-');
+    if (c.id === RNC_ALTO) caixa.classList.add('campo-alto');
+    grade.appendChild(caixa);
   });
   corpo.appendChild(grade);
+
+  // as fotos da pasta daquela RNC, logo abaixo
+  var evid = document.createElement('div');
+  evid.className = 'evid-rnc';
+  evid.innerHTML = '<h3>Evidências</h3><div class="carregando" style="padding:18px">' +
+                   '<span class="giro"></span> Buscando na pasta do Drive…</div>';
+  corpo.appendChild(evid);
+  buscarEvidenciasRnc(linha, evid);
 
   var cs = camposRnc();
   el('rnc-gaveta-cod').textContent =
@@ -4160,6 +4192,47 @@ function abrirGavetaRnc(linha){
   el('cortina').classList.add('abre');
   el('gaveta-rnc').classList.add('abre');
   el('gaveta-rnc').setAttribute('aria-hidden', 'false');
+}
+
+/**
+ * As imagens não passam pelo Apps Script: vem só o endereço da miniatura e
+ * quem baixa é o navegador, direto do Drive. Por isso não pesa.
+ */
+function buscarEvidenciasRnc(linha, caixa){
+  google.script.run
+    .withSuccessHandler(function(r){
+      if (RNC.atual && RNC.atual.linha !== linha) return;   // já abriu outra
+      var fotos = (r.arquivos || []).filter(function(a){ return a.imagem; });
+      var outros = (r.arquivos || []).filter(function(a){ return !a.imagem; });
+
+      if (!r.ok || !r.arquivos.length){
+        caixa.innerHTML = '<h3>Evidências</h3>' +
+          '<p class="sem-evid">Nenhum arquivo encontrado na pasta desta RNC.</p>';
+        return;
+      }
+
+      var html = '<h3>Evidências <span class="cnt">' + fotos.length +
+        (fotos.length === 1 ? ' foto' : ' fotos') + '</span>' +
+        '<a class="abrir-pasta" href="' + esc(r.pastaUrl) + '" target="_blank" rel="noopener">Abrir a pasta</a></h3>';
+
+      if (fotos.length){
+        html += '<div class="fotos-rnc">' + fotos.map(function(a){
+          return '<a href="' + esc(a.url) + '" target="_blank" rel="noopener" title="' + esc(a.nome) + '">' +
+                 '<img src="' + esc(a.mini) + '" alt="' + esc(a.nome) + '" loading="lazy">' +
+                 '<span>' + esc(a.nome) + '</span></a>';
+        }).join('') + '</div>';
+      }
+      if (outros.length){
+        html += '<ul class="outros-rnc">' + outros.map(function(a){
+          return '<li><a href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(a.nome) + '</a></li>';
+        }).join('') + '</ul>';
+      }
+      caixa.innerHTML = html;
+    })
+    .withFailureHandler(function(){
+      caixa.innerHTML = '<h3>Evidências</h3><p class="sem-evid">Não foi possível ler a pasta.</p>';
+    })
+    .rnc_evidencias(linha);
 }
 
 function fecharGavetaRnc(){
