@@ -520,9 +520,11 @@ td.cel{text-align:center}
     </div>
     <nav class="abas oculto" role="tablist" id="abas">
       <button class="btn-voltar" id="btn-inicio-topo"><span>&#8592;</span> Início</button>
-      <button class="aba" role="tab" aria-selected="false" data-mod="solicitacao">Solicitação</button>
-      <button class="aba" role="tab" aria-selected="false" data-mod="processos">Processos</button>
-      <button class="aba" role="tab" aria-selected="false" data-mod="painel">Painel</button>
+      <button class="aba aba-gar" role="tab" aria-selected="false" data-mod="solicitacao">Solicitação</button>
+      <button class="aba aba-gar" role="tab" aria-selected="false" data-mod="processos">Processos</button>
+      <button class="aba aba-gar" role="tab" aria-selected="false" data-mod="painel">Painel</button>
+      <button class="aba aba-rnc oculto" role="tab" aria-selected="false" data-mod="rncform">Formulário</button>
+      <button class="aba aba-rnc oculto" role="tab" aria-selected="false" data-mod="rncproc">Processos</button>
     </nav>
     <div class="usuario" id="usuario"></div>
   </div>
@@ -569,9 +571,34 @@ td.cel{text-align:center}
 <section class="inicio oculto" id="mod-rnc">
   <div class="inicio-in">
     <button class="btn-voltar voltar-ini" data-ir="portal"><span>&#8592;</span> Voltar</button>
-    <h1>RNC<br><em>em desenvolvimento</em></h1>
-    <p class="ola">O módulo de Registro de Não Conformidade ainda está sendo construído.<br>
-      Em breve ele abre por aqui.</p>
+    <h1>RNC<br><em>SolarGrid</em></h1>
+    <p class="ola">Registro de não conformidade. Escolha por onde começar.</p>
+
+    <div class="cartoes dois">
+      <button class="cartao" data-ir="rncform">
+        <div class="num">01</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#EC6E2D" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>Formulário</h2>
+        <p>Registrar uma nova não conformidade.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+
+      <button class="cartao" data-ir="rncproc">
+        <div class="num">02</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16M4 12h16M4 18h10" stroke="#EC6E2D" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>Processos</h2>
+        <p id="cartao-rnc-sub">Acompanhar e tratar as RNCs.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+    </div>
   </div>
 
   <div class="rodape-ini">
@@ -720,7 +747,60 @@ td.cel{text-align:center}
     </div>
   </section>
 
+  <!-- ============ RNC — FORMULÁRIO ============ -->
+  <section id="mod-rncform" class="oculto">
+    <h1 class="titulo" style="margin-bottom:22px">Nova RNC</h1>
+    <div class="painel" style="padding:24px">
+      <div class="grade" id="rnc-form"></div>
+      <div class="rodape-form">
+        <button class="btn btn-aurora" id="rnc-enviar">Enviar RNC</button>
+        <button class="btn" id="rnc-limpar">Limpar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RNC — PROCESSOS ============ -->
+  <section id="mod-rncproc" class="oculto">
+    <h1 class="titulo">Processos — RNC</h1>
+    <p class="legenda" id="rnc-legenda">Todas as RNCs da planilha.</p>
+
+    <div class="painel-filtros">
+      <div class="barra">
+        <div class="busca">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#0A0F14" stroke-width="1.6"/><path d="M11 11l4 4" stroke="#0A0F14" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input class="entrada" id="rnc-busca" placeholder="Buscar em qualquer campo…">
+        </div>
+        <button class="btn btn-sm" id="rnc-atualizar">Atualizar</button>
+      </div>
+    </div>
+
+    <div id="rnc-carregando" class="carregando"><span class="giro"></span> Carregando…</div>
+    <div class="painel oculto" id="rnc-painel" style="padding:0">
+      <div class="tabela-caixa">
+        <table>
+          <thead><tr id="rnc-cabecalho"></tr></thead>
+          <tbody id="rnc-corpo"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
 </main>
+
+<aside class="gaveta" id="gaveta-rnc" aria-hidden="true">
+  <div class="gaveta-topo">
+    <div>
+      <div class="cod" id="rnc-gaveta-cod">RNC</div>
+      <div class="met" id="rnc-gaveta-met"></div>
+    </div>
+    <button class="fechar" id="rnc-fechar" title="Fechar">&times;</button>
+  </div>
+  <div class="gaveta-corpo" id="rnc-gaveta-corpo"></div>
+  <div class="gaveta-pe">
+    <button class="btn btn-aurora" id="rnc-salvar">Salvar alterações</button>
+    <span class="dica" id="rnc-gaveta-dica"></span>
+  </div>
+</aside>
 
 <!-- ============ Gaveta de tratamento ============ -->
 <div class="cortina" id="cortina"></div>
@@ -905,11 +985,12 @@ document.querySelectorAll('.aba').forEach(function(aba){
 document.querySelectorAll('[data-ir]').forEach(function(c){
   c.addEventListener('click', function(){ irPara(c.dataset.ir); });
 });
-el('btn-inicio-topo').addEventListener('click', function(){ irPara('inicio'); });
+el('btn-inicio-topo').addEventListener('click', function(){ irPara(VOLTA_PARA); });
 el('marca').style.cursor = 'pointer';
 el('marca').addEventListener('click', function(){ irPara('portal'); });
 
 var TELAS_CHEIAS = ['portal', 'inicio', 'rnc'];   // telas escuras, sem o menu de cima
+var VOLTA_PARA = 'inicio';                       // para onde o botão Início volta
 
 function irPara(mod){
   var cheia = TELAS_CHEIAS.indexOf(mod) >= 0;
@@ -924,9 +1005,15 @@ function irPara(mod){
   document.querySelectorAll('.aba').forEach(function(a){
     a.setAttribute('aria-selected', a.dataset.mod === mod ? 'true' : 'false');
   });
-  ['solicitacao','processos','painel'].forEach(function(m){
+  ['solicitacao','processos','painel','rncform','rncproc'].forEach(function(m){
     el('mod-'+m).classList.toggle('oculto', m !== mod);
   });
+
+  // cada família mostra só as suas abas
+  var ehRnc = (mod === 'rncform' || mod === 'rncproc');
+  document.querySelectorAll('.aba-gar').forEach(function(a){ a.classList.toggle('oculto', ehRnc); });
+  document.querySelectorAll('.aba-rnc').forEach(function(a){ a.classList.toggle('oculto', !ehRnc); });
+  VOLTA_PARA = ehRnc ? 'rnc' : 'inicio';
 
   // O módulo Processos aproveita a largura toda da tela; os outros ficam
   // na medida de leitura confortável.
@@ -941,6 +1028,7 @@ function irPara(mod){
 
   if (mod === 'processos' && !LISTA) carregarLista(false);
   if (mod === 'painel') montarPainel();
+  if (mod === 'rncform' || mod === 'rncproc') abrirRnc(mod);
   window.scrollTo(0,0);
 }
 
@@ -3360,7 +3448,10 @@ function fecharGaveta(){
   ATUAL = null;
 }
 el('btn-fechar').addEventListener('click', fecharGaveta);
-el('cortina').addEventListener('click', fecharGaveta);
+el('cortina').addEventListener('click', function(){
+  if (el('gaveta-rnc').classList.contains('abre')) fecharGavetaRnc();
+  else fecharGaveta();
+});
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharGaveta(); });
 
 el('btn-salvar').addEventListener('click', function(){
@@ -3468,6 +3559,182 @@ function atualizarLinhaNaTela(linha){
   });
   posicionarTravadas();
 }
+/* ==================================================================
+   RNC — formulário e processos (planilha própria, aba Lista EP)
+   ================================================================== */
+var RNC = { ini: null, lista: null, filtrados: [], busca: '', atual: null, original: {} };
+
+function abrirRnc(mod){
+  if (!RNC.ini){
+    google.script.run
+      .withSuccessHandler(function(r){ RNC.ini = r; montarFormRnc(); if (RNC.lista) desenharRnc(); })
+      .withFailureHandler(function(e){ mostrarErroJS('RNC: ' + e.message); })
+      .rnc_inicio();
+  }
+  if (mod === 'rncproc' && !RNC.lista) carregarRnc();
+}
+
+function carregarRnc(){
+  el('rnc-carregando').classList.remove('oculto');
+  el('rnc-painel').classList.add('oculto');
+  google.script.run
+    .withSuccessHandler(function(r){
+      RNC.lista = r;
+      el('rnc-carregando').classList.add('oculto');
+      el('rnc-painel').classList.remove('oculto');
+      el('cartao-rnc-sub').textContent = r.linhas.length + ' RNCs.';
+      desenharRnc();
+    })
+    .withFailureHandler(function(e){
+      el('rnc-carregando').classList.add('oculto');
+      mostrarErroJS('RNC: ' + e.message);
+    })
+    .rnc_listar();
+}
+
+function camposRnc(){
+  return (RNC.ini && RNC.ini.campos) ? RNC.ini.campos : ((RNC.lista && RNC.lista.campos) || []);
+}
+
+function montarFormRnc(){
+  var alvo = el('rnc-form');
+  if (!alvo || !RNC.ini) return;
+  alvo.innerHTML = '';
+  RNC.ini.campos.filter(function(c){ return !c.extra; }).forEach(function(c){
+    var campo = { id: c.id, rotulo: c.rotulo, tipo: c.tipo, opcoes: (RNC.ini.opcoes || {})[c.id] || [] };
+    alvo.appendChild(criarCampo(campo, '', 'rncn-'));
+  });
+}
+
+function valoresDoFormRnc(){
+  var d = {};
+  camposRnc().filter(function(c){ return !c.extra; }).forEach(function(c){
+    var e = el('rncn-' + slug(c.id));
+    if (e) d[c.id] = e.value || '';
+  });
+  return d;
+}
+
+el('rnc-limpar').addEventListener('click', montarFormRnc);
+
+el('rnc-enviar').addEventListener('click', function(){
+  var b = this;
+  var dados = valoresDoFormRnc();
+  var vazio = Object.keys(dados).every(function(k){ return !String(dados[k]).trim(); });
+  if (vazio){ recado('Preencha ao menos um campo.', true); return; }
+  b.disabled = true; b.textContent = 'Enviando…';
+  google.script.run
+    .withSuccessHandler(function(){
+      b.disabled = false; b.textContent = 'Enviar RNC';
+      recado('RNC registrada.');
+      montarFormRnc();
+      RNC.lista = null;
+      if (!el('mod-rncproc').classList.contains('oculto')) carregarRnc();
+    })
+    .withFailureHandler(function(e){
+      b.disabled = false; b.textContent = 'Enviar RNC';
+      recado(e.message, true);
+    })
+    .rnc_criar(dados);
+});
+
+el('rnc-busca').addEventListener('input', function(){
+  RNC.busca = this.value.trim().toLowerCase();
+  desenharRnc();
+});
+
+el('rnc-atualizar').addEventListener('click', carregarRnc);
+
+function desenharRnc(){
+  if (!RNC.lista) return;
+  var campos = RNC.lista.campos;
+  el('rnc-cabecalho').innerHTML = campos.map(function(c){
+    return '<th>' + esc(c.rotulo) + '</th>';
+  }).join('');
+
+  RNC.filtrados = RNC.lista.linhas.filter(function(l){
+    return !RNC.busca || l.busca.indexOf(RNC.busca) >= 0;
+  });
+
+  el('rnc-corpo').innerHTML = RNC.filtrados.map(function(l){
+    return '<tr data-linha="' + l.linha + '">' + campos.map(function(c, i){
+      var v = l.v[c.id] || '';
+      return '<td class="' + (i === 0 ? 'cod' : 'cel') + (v ? '' : ' vazio') + '" title="' + esc(v) + '">' +
+             (esc(v) || '—') + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+
+  el('rnc-corpo').querySelectorAll('tr').forEach(function(tr){
+    tr.addEventListener('click', function(){ abrirGavetaRnc(Number(tr.dataset.linha)); });
+  });
+
+  el('rnc-legenda').textContent = RNC.filtrados.length + ' de ' + RNC.lista.linhas.length + ' RNCs';
+}
+
+function abrirGavetaRnc(linha){
+  var item = RNC.lista.linhas.filter(function(l){ return l.linha === linha; })[0];
+  if (!item) return;
+  RNC.atual = item;
+  RNC.original = {};
+
+  var corpo = el('rnc-gaveta-corpo');
+  corpo.innerHTML = '';
+  var grade = document.createElement('div');
+  grade.className = 'grade';
+  camposRnc().forEach(function(c){
+    var valor = item.v[c.id] || '';
+    if (c.tipo === 'data') valor = textoParaISO(valor);
+    RNC.original[c.id] = valor;
+    var campo = { id: c.id, rotulo: c.rotulo, tipo: c.tipo, opcoes: ((RNC.ini && RNC.ini.opcoes) || {})[c.id] || [] };
+    grade.appendChild(criarCampo(campo, valor, 'rnced-'));
+  });
+  corpo.appendChild(grade);
+
+  var cs = camposRnc();
+  el('rnc-gaveta-cod').textContent =
+    (cs[1] && item.v[cs[1].id]) || (cs[0] && item.v[cs[0].id]) || ('Linha ' + linha);
+  el('rnc-gaveta-met').textContent = 'Linha ' + linha + ' da aba Lista EP';
+  el('rnc-gaveta-dica').textContent = '';
+  el('cortina').classList.add('abre');
+  el('gaveta-rnc').classList.add('abre');
+  el('gaveta-rnc').setAttribute('aria-hidden', 'false');
+}
+
+function fecharGavetaRnc(){
+  el('cortina').classList.remove('abre');
+  el('gaveta-rnc').classList.remove('abre');
+  el('gaveta-rnc').setAttribute('aria-hidden', 'true');
+  RNC.atual = null;
+}
+el('rnc-fechar').addEventListener('click', fecharGavetaRnc);
+
+el('rnc-salvar').addEventListener('click', function(){
+  if (!RNC.atual) return;
+  var b = this, mudou = {};
+  camposRnc().forEach(function(c){
+    var e = el('rnced-' + slug(c.id));
+    if (!e) return;
+    var v = e.value || '';
+    if (v !== RNC.original[c.id]) mudou[c.id] = v;
+  });
+  if (!Object.keys(mudou).length){ el('rnc-gaveta-dica').textContent = 'Nada mudou.'; return; }
+
+  b.disabled = true; b.textContent = 'Salvando…';
+  var linha = RNC.atual.linha;
+  google.script.run
+    .withSuccessHandler(function(r){
+      b.disabled = false; b.textContent = 'Salvar alterações';
+      recado(r.gravados + (r.gravados === 1 ? ' campo gravado.' : ' campos gravados.'));
+      fecharGavetaRnc();
+      carregarRnc();
+    })
+    .withFailureHandler(function(e){
+      b.disabled = false; b.textContent = 'Salvar alterações';
+      recado(e.message, true);
+    })
+    .rnc_salvar(linha, mudou);
+});
+
 </script>
 </body>
 </html>

@@ -111,3 +111,9 @@ Script. Fora da caixa existem apenas estas funções, todas com prefixo próprio
 A única exceção é o `doGet`, que o Google exige com esse nome exato para abrir o
 link do app da Web. **Se o projeto já tiver outra função `doGet`**, as duas
 precisam ser unificadas — nesse caso, avise para fazermos o ajuste.
+
+## Módulo RNC
+Arquivo novo: **AppRnc1** (tipo *Script*). Cole o conteúdo de `AppRnc1.gs`.
+Lê a planilha `10XC9wnG3g9oaZVcja77ogyVVnLtKUBTLLoGQZgSQ1tE`, aba
+`Lista EP ( Para conciliação)`, cabeçalho na **linha 9**. Na primeira
+execução o Google pede autorização de novo, porque é outra planilha.
