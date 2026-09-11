@@ -11,7 +11,11 @@ var GAR_RNC = (function () {
     ABA: 'Lista EP ( Para conciliação)',
     HEADER_ROW: 9,
     PASTA_DRIVE_ID: '1TjVagrbktvQwpTy0GO94M91Hhwvky-hR',
-    ANEXO_MAX_MB: 25
+    ANEXO_MAX_MB: 25,
+    NUMERO_MINIMO: 254,          // a última RNC emitida; a próxima será 255
+    COL_LINK_PASTA: 'RNC',       // coluna que recebe o link da pasta no Drive
+    COL_STATUS: 'Status - RNC',  // coluna que recebe "Emitida"
+    STATUS_NOVO: 'Emitida'
   };
 
   var ASSUNTOS = ['QUALIDADE', 'MEIO AMBIENTE', 'SAÚDE E SEG. TRABALHO'];
@@ -25,8 +29,8 @@ var GAR_RNC = (function () {
    *   daColuna = de onde vêm as opções da lista, quando a lista é da planilha
    */
   var PERGUNTAS = [
-    { id: 'data_rnc',    rotulo: 'Data da RNC',            tipo: 'data',   bloco: 'topo',      planilha: 'Data de Emissão', obrig: true },
-    { id: 'n_rnc',       rotulo: 'N° RNC',                 tipo: 'texto',  bloco: 'topo',      planilha: 'Nº RNC',          obrig: true },
+    { id: 'data_rnc',    rotulo: 'Data da RNC',            tipo: 'data',   bloco: 'topo',      planilha: 'Data de Emissão', auto: true },
+    { id: 'n_rnc',       rotulo: 'N° RNC',                 tipo: 'texto',  bloco: 'topo',      planilha: 'Nº RNC',          auto: true },
     { id: 'ufv',         rotulo: 'UFV',                    tipo: 'select', bloco: 'topo',      planilha: 'UFV',             daColuna: 'UFV', obrig: true },
 
     { id: 'assunto',     rotulo: 'Assunto relacionado',    tipo: 'select', bloco: 'marcar',    opcoes: ASSUNTOS, obrig: true },
@@ -153,8 +157,11 @@ var GAR_RNC = (function () {
       usuario: Session.getActiveUser().getEmail() || '',
       blocos: BLOCOS,
       perguntas: PERGUNTAS.map(function (p) {
-        return { id: p.id, rotulo: p.rotulo, tipo: p.tipo, bloco: p.bloco, obrig: !!p.obrig };
+        return { id: p.id, rotulo: p.rotulo, tipo: p.tipo, bloco: p.bloco,
+                 obrig: !!p.obrig, auto: !!p.auto };
       }),
+      hoje: Utilities.formatDate(new Date(), _fuso(), 'yyyy-MM-dd'),
+      proximoNumero: _verProximoNumero(),
       opcoes: opcoes,
       anexoMaxMb: CFG.ANEXO_MAX_MB
     };
@@ -166,6 +173,43 @@ var GAR_RNC = (function () {
       campos: r.colunas.map(function (c) { return { id: c.id, rotulo: c.rotulo, tipo: 'texto' }; }),
       linhas: r.linhas
     };
+  }
+
+  /* ---------------- número da RNC ---------------- */
+
+  function _fuso() {
+    try { return SpreadsheetApp.openById(CFG.SPREADSHEET_ID).getSpreadsheetTimeZone() || 'America/Sao_Paulo'; }
+    catch (e) { return 'America/Sao_Paulo'; }
+  }
+
+  /** Só para mostrar na tela; quem vale é o _proximoNumero() da gravação. */
+  function _verProximoNumero() {
+    var ultimo = Number(PropertiesService.getScriptProperties().getProperty('rnc_ultimo_numero') || 0);
+    if (!ultimo || ultimo < CFG.NUMERO_MINIMO) ultimo = CFG.NUMERO_MINIMO;
+    return String(ultimo + 1);
+  }
+
+  /**
+   * Contador próprio, guardado no projeto. Nunca repete, mesmo com duas
+   * pessoas enviando ao mesmo tempo, e pula o que já existir na planilha.
+   */
+  function _proximoNumero(linhas, mapa) {
+    var props = PropertiesService.getScriptProperties();
+    var ultimo = Number(props.getProperty('rnc_ultimo_numero') || 0);
+    if (!ultimo || ultimo < CFG.NUMERO_MINIMO) ultimo = CFG.NUMERO_MINIMO;
+
+    var usados = {};
+    var idNum = _norm('Nº RNC');
+    (linhas || []).forEach(function (l) {
+      var t = String(l.v[idNum] || '').trim();
+      var n = Number(t.replace(/[^0-9]/g, ''));
+      if (n) usados[n] = true;
+    });
+
+    var numero = ultimo + 1;
+    while (usados[numero]) numero++;
+    props.setProperty('rnc_ultimo_numero', String(numero));
+    return String(numero);
   }
 
   /* ---------------- PDF no layout do modelo em Word ---------------- */
@@ -356,8 +400,13 @@ var GAR_RNC = (function () {
     if (!arquivos.length) throw new Error('Anexe ao menos uma evidência.');
     _conferirTamanho(arquivos);
 
+    // O número e a data são do sistema, não do formulário.
+    var r0 = _ler();
+    dados.n_rnc = _proximoNumero(r0.linhas, r0.mapa);
+    dados.data_rnc = Utilities.formatDate(new Date(), _fuso(), 'yyyy-MM-dd');
+
     // Pasta e arquivos primeiro: assim nenhuma linha fica sem as evidências.
-    var nomePasta = _nomeSeguro(dados.n_rnc || ('RNC ' + _dataBR(dados.data_rnc)));
+    var nomePasta = _nomeSeguro('RNC ' + dados.n_rnc);
     var pasta = _pasta(nomePasta, arquivos);
 
     try {
@@ -386,6 +435,12 @@ var GAR_RNC = (function () {
         valores[alvo.col - 1] = _paraCelula(p.tipo, dados[p.id]);
       });
 
+      // link da pasta das evidências e status inicial
+      var colLink = mapa[_norm(CFG.COL_LINK_PASTA)];
+      if (colLink) valores[colLink.col - 1] = pasta.url;
+      var colStatus = mapa[_norm(CFG.COL_STATUS)];
+      if (colStatus) valores[colStatus.col - 1] = CFG.STATUS_NOVO;
+
       var faixa = aba.getRange(nova, 1, 1, largura);
       var formulas = faixa.getFormulas()[0];
       for (var i = 0; i < largura; i++) {
@@ -394,7 +449,8 @@ var GAR_RNC = (function () {
       faixa.setValues([valores]);
       SpreadsheetApp.flush();
 
-      return { ok: true, linha: nova, pastaUrl: pasta.url, pastaNome: pasta.nome, anexos: arquivos.length };
+      return { ok: true, linha: nova, numero: dados.n_rnc, pastaUrl: pasta.url,
+               pastaNome: pasta.nome, anexos: arquivos.length };
     } finally {
       trava.releaseLock();
     }

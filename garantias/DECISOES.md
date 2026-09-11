@@ -697,3 +697,26 @@ Anexar evidência é obrigatório; o limite é 25 MB por envio.
 Na planilha vão, por enquanto, só as colunas que já existem lá: Data de
 Emissão, Nº RNC, UFV, Etapa, Nome do Fornecedor e Resumo da Ocorrência. O
 resto fica só no PDF até definirmos.
+
+## RNC — número, data, link e status automáticos
+- **N° RNC** é gerado pelo sistema, contador próprio guardado no projeto
+  (`rnc_ultimo_numero`), com piso em 254: a próxima é 255. Ele ainda pula
+  qualquer número que já exista na coluna Nº RNC, então nunca repete.
+- **Data da RNC** é sempre o dia de hoje. Os dois aparecem preenchidos e
+  travados no formulário.
+- A coluna **RNC** recebe o link da pasta do Drive com as evidências (na
+  tabela ela vira o link "abrir pasta").
+- A coluna **Status - RNC** recebe **Emitida** na abertura.
+
+## RNC — Processos
+Status Tratativa e Status - RNC passaram a ser as duas primeiras colunas.
+Colunas ajustáveis pelo arrasto (duplo clique volta ao padrão, e a largura
+fica guardada por usuário, igual em Garantias) e filtros em cascata para
+Nº Documento, Nº RNC, UFV, Etapa, Nome do Fornecedor, Status - RNC e
+Status Tratativa.
+
+## RNC — Painel
+Quatro gráficos de barras, todos laranja: por usina (UFV), por fornecedor,
+por Status - RNC e por Status Tratativa, com os mesmos números do topo e o
+mesmo cruzamento por clique / Ctrl+clique do painel de Garantias. O painel
+do RNC é independente do de Garantias.

@@ -127,6 +127,7 @@ body.no-inicio{background:var(--eclipse)}
 }
 .entrada:hover{border-color:#bfc5ca}
 .entrada:focus{outline:none;border-color:var(--aurora);box-shadow:0 0 0 3px var(--aurora-fraco)}
+.entrada.travado{background:var(--sirius);color:var(--tinta-2);font-weight:600}
 .entrada[readonly],.entrada:disabled{background:var(--sirius);color:var(--tinta-2);font-weight:500}
 textarea.entrada{min-height:76px;resize:vertical;line-height:1.5}
 select.entrada{appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235b6670' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
@@ -528,6 +529,7 @@ td.cel{text-align:center}
       <button class="aba aba-gar" role="tab" aria-selected="false" data-mod="painel">Painel</button>
       <button class="aba aba-rnc oculto" role="tab" aria-selected="false" data-mod="rncform">Formulário</button>
       <button class="aba aba-rnc oculto" role="tab" aria-selected="false" data-mod="rncproc">Processos</button>
+      <button class="aba aba-rnc oculto" role="tab" aria-selected="false" data-mod="rncpainel">Painel</button>
     </nav>
     <div class="usuario" id="usuario"></div>
   </div>
@@ -577,7 +579,7 @@ td.cel{text-align:center}
     <h1>RNC<br><em>SolarGrid</em></h1>
     <p class="ola">Registro de não conformidade. Escolha por onde começar.</p>
 
-    <div class="cartoes dois">
+    <div class="cartoes">
       <button class="cartao" data-ir="rncform">
         <div class="num">01</div>
         <div class="icone">
@@ -599,6 +601,18 @@ td.cel{text-align:center}
         </div>
         <h2>Processos</h2>
         <p id="cartao-rnc-sub">Acompanhar e tratar as RNCs.</p>
+        <div class="entrar">Abrir <span>&#8594;</span></div>
+      </button>
+
+      <button class="cartao" data-ir="rncpainel">
+        <div class="num">03</div>
+        <div class="icone">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M5 19V10M12 19V5M19 19v-6" stroke="#EC6E2D" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>Painel</h2>
+        <p>Indicadores das não conformidades.</p>
         <div class="entrar">Abrir <span>&#8594;</span></div>
       </button>
     </div>
@@ -781,23 +795,47 @@ td.cel{text-align:center}
     <p class="legenda" id="rnc-legenda">Todas as RNCs da planilha.</p>
 
     <div class="painel-filtros">
+      <div class="pf-topo">
+        <span class="desc" id="rnc-desc"></span>
+        <div class="pf-acoes">
+          <button class="btn btn-sm" id="rnc-limpar-filtros">Limpar filtros</button>
+          <button class="btn btn-sm" id="rnc-atualizar">Atualizar</button>
+          <button class="btn btn-sm" id="rnc-redefinir-colunas" title="Volta as colunas ao tamanho padrão">Redefinir colunas</button>
+        </div>
+      </div>
+
+      <div class="filtros" id="rnc-filtros"></div>
+
       <div class="barra">
         <div class="busca">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#0A0F14" stroke-width="1.6"/><path d="M11 11l4 4" stroke="#0A0F14" stroke-width="1.6" stroke-linecap="round"/></svg>
           <input class="entrada" id="rnc-busca" placeholder="Buscar em qualquer campo…">
         </div>
-        <button class="btn btn-sm" id="rnc-atualizar">Atualizar</button>
       </div>
     </div>
 
     <div id="rnc-carregando" class="carregando"><span class="giro"></span> Carregando…</div>
     <div class="painel oculto" id="rnc-painel" style="padding:0">
-      <div class="tabela-caixa">
+      <div class="tabela-caixa" id="rnc-tabela-caixa">
         <table>
+          <colgroup id="rnc-colgroup"></colgroup>
           <thead><tr id="rnc-cabecalho"></tr></thead>
           <tbody id="rnc-corpo"></tbody>
         </table>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ RNC — PAINEL ============ -->
+  <section id="mod-rncpainel" class="oculto">
+    <h1 class="titulo">Painel — RNC</h1>
+    <p class="legenda">Indicadores para acompanhamento.</p>
+
+    <div id="rncp-carregando" class="carregando"><span class="giro"></span> Calculando…</div>
+    <div id="rncp-conteudo" class="oculto">
+      <div class="kpis" id="rncp-kpis"></div>
+      <div class="selecoes" id="rncp-selecoes"></div>
+      <div class="graficos" id="rncp-graficos"></div>
     </div>
   </section>
 
@@ -1021,19 +1059,19 @@ function irPara(mod){
   document.querySelectorAll('.aba').forEach(function(a){
     a.setAttribute('aria-selected', a.dataset.mod === mod ? 'true' : 'false');
   });
-  ['solicitacao','processos','painel','rncform','rncproc'].forEach(function(m){
+  ['solicitacao','processos','painel','rncform','rncproc','rncpainel'].forEach(function(m){
     el('mod-'+m).classList.toggle('oculto', m !== mod);
   });
 
   // cada família mostra só as suas abas
-  var ehRnc = (mod === 'rncform' || mod === 'rncproc');
+  var ehRnc = (mod === 'rncform' || mod === 'rncproc' || mod === 'rncpainel');
   document.querySelectorAll('.aba-gar').forEach(function(a){ a.classList.toggle('oculto', ehRnc); });
   document.querySelectorAll('.aba-rnc').forEach(function(a){ a.classList.toggle('oculto', !ehRnc); });
   VOLTA_PARA = ehRnc ? 'rnc' : 'inicio';
 
   // O módulo Processos aproveita a largura toda da tela; os outros ficam
   // na medida de leitura confortável.
-  el('area-modulos').classList.toggle('largo', mod === 'processos');
+  el('area-modulos').classList.toggle('largo', mod === 'processos' || mod === 'rncproc');
 
   // A barra de seleção pertence ao módulo Processos; sai de cena nos outros.
   if (mod !== 'processos'){
@@ -1044,7 +1082,7 @@ function irPara(mod){
 
   if (mod === 'processos' && !LISTA) carregarLista(false);
   if (mod === 'painel') montarPainel();
-  if (mod === 'rncform' || mod === 'rncproc') abrirRnc(mod);
+  if (ehRnc) abrirRnc(mod);
   window.scrollTo(0,0);
 }
 
@@ -1488,7 +1526,8 @@ function criarCampo(campo, valor, prefixo){
   var id = prefixo + slug(campo.id);
   var rot = document.createElement('label');
   rot.setAttribute('for', id);
-  rot.innerHTML = esc(campo.rotulo) + (campo.obrig && prefixo === 'sol-' ? ' <b>*</b>' : '');
+  var marcaObrig = campo.obrig && (prefixo === 'sol-' || prefixo === 'rncn-');
+  rot.innerHTML = esc(campo.rotulo) + (marcaObrig ? ' <b>*</b>' : '');
   caixa.appendChild(rot);
 
   // Lista suspensa: usa o seletor próprio, igual para todos os campos
@@ -1871,7 +1910,9 @@ function ligarPuxadores(){
 }
 
 /* ---------- caixinha de seleção múltipla ---------- */
-function criarMulti(id, rotulo, obterOpcoes){
+function criarMulti(id, rotulo, obterOpcoes, aoMudar){
+  // sem aoMudar, mexe na tabela de Garantias (é o uso original)
+  aoMudar = aoMudar || function(){ PAGINA = 1; aplicarFiltros(); };
   var caixa = document.createElement('div');
   caixa.className = 'f-item';
   caixa.innerHTML = '<span>' + esc(rotulo) + '</span>';
@@ -1925,8 +1966,7 @@ function criarMulti(id, rotulo, obterOpcoes){
       cx.addEventListener('change', function(){
         if (cx.checked) escolhidos[o] = true; else delete escolhidos[o];
         contar();
-        PAGINA = 1;
-        aplicarFiltros();
+        aoMudar();
       });
       lb.appendChild(cx);
       var t = document.createElement('span');
@@ -1948,7 +1988,7 @@ function criarMulti(id, rotulo, obterOpcoes){
     b.addEventListener('click', function(){
       if (b.dataset.a === 'todos') obterOpcoes().forEach(function(o){ escolhidos[o] = true; });
       else escolhidos = {};
-      contar(); desenhar(); PAGINA = 1; aplicarFiltros();
+      contar(); desenhar(); aoMudar();
     });
   });
 
@@ -3578,16 +3618,17 @@ function atualizarLinhaNaTela(linha){
 /* ==================================================================
    RNC — formulário e processos (planilha própria, aba Lista EP)
    ================================================================== */
-var RNC = { ini: null, lista: null, filtrados: [], busca: '', atual: null, original: {} };
+var RNC = { ini: null, lista: null, colunas: null, filtrados: [], busca: '', atual: null, original: {} };
 
 function abrirRnc(mod){
   if (!RNC.ini){
     google.script.run
-      .withSuccessHandler(function(r){ RNC.ini = r; montarFormRnc(); if (RNC.lista) desenharRnc(); })
+      .withSuccessHandler(function(r){ RNC.ini = r; montarFormRnc(); })
       .withFailureHandler(function(e){ mostrarErroJS('RNC: ' + e.message); })
       .rnc_inicio();
   }
-  if (mod === 'rncproc' && !RNC.lista) carregarRnc();
+  if ((mod === 'rncproc' || mod === 'rncpainel') && !RNC.lista) carregarRnc();
+  else if (mod === 'rncpainel') montarPainelRnc();
 }
 
 function carregarRnc(){
@@ -3596,10 +3637,13 @@ function carregarRnc(){
   google.script.run
     .withSuccessHandler(function(r){
       RNC.lista = r;
+      RNC.colunas = ordenarColunasRnc(r.campos);
       el('rnc-carregando').classList.add('oculto');
       el('rnc-painel').classList.remove('oculto');
       el('cartao-rnc-sub').textContent = r.linhas.length + ' RNCs.';
+      montarFiltrosRnc();
       desenharRnc();
+      montarPainelRnc();
     })
     .withFailureHandler(function(e){
       el('rnc-carregando').classList.add('oculto');
@@ -3610,6 +3654,18 @@ function carregarRnc(){
 
 function camposRnc(){
   return (RNC.lista && RNC.lista.campos) || [];
+}
+
+/** Status Tratativa e Status - RNC vêm primeiro; o resto segue a planilha. */
+var RNC_NA_FRENTE = ['status tratativa', 'status - rnc'];
+
+function ordenarColunasRnc(campos){
+  return campos.slice().sort(function(a, b){
+    var pa = RNC_NA_FRENTE.indexOf(a.id), pb = RNC_NA_FRENTE.indexOf(b.id);
+    if (pa < 0) pa = 99;
+    if (pb < 0) pb = 99;
+    return pa - pb;
+  });
 }
 
 /* ---- formulário: as perguntas do modelo, em blocos ---- */
@@ -3630,7 +3686,18 @@ function montarFormRnc(){
         id: p.id, rotulo: p.rotulo, tipo: p.tipo, obrig: p.obrig,
         opcoes: (RNC.ini.opcoes || {})[p.id] || []
       };
-      grade.appendChild(criarCampo(campo, '', 'rncn-'));
+      var caixa = criarCampo(campo, '', 'rncn-');
+      if (p.auto){
+        // número e data são do sistema: aparecem preenchidos e travados
+        var e = caixa.querySelector('input, textarea');
+        if (e){
+          e.value = (p.id === 'data_rnc') ? RNC.ini.hoje : RNC.ini.proximoNumero;
+          e.readOnly = true;
+          e.classList.add('travado');
+          e.title = 'Preenchido automaticamente';
+        }
+      }
+      grade.appendChild(caixa);
     });
     sec.appendChild(grade);
     alvo.appendChild(sec);
@@ -3731,10 +3798,12 @@ el('rnc-enviar').addEventListener('click', function(){
     google.script.run
       .withSuccessHandler(function(r){
         b.disabled = false; b.textContent = 'Enviar RNC';
-        recado('RNC registrada · pasta ' + r.pastaNome + ' no Drive.');
+        recado('RNC ' + r.numero + ' registrada · pasta ' + r.pastaNome + ' no Drive.');
+        RNC.ini.proximoNumero = String(Number(r.numero) + 1);
         montarFormRnc();
         RNC.lista = null;
-        if (!el('mod-rncproc').classList.contains('oculto')) carregarRnc();
+        if (!el('mod-rncproc').classList.contains('oculto') ||
+            !el('mod-rncpainel').classList.contains('oculto')) carregarRnc();
       })
       .withFailureHandler(function(e){
         b.disabled = false; b.textContent = 'Enviar RNC';
@@ -3744,6 +3813,74 @@ el('rnc-enviar').addEventListener('click', function(){
   });
 });
 
+/* ==================================================================
+   RNC — Processos: filtros, colunas ajustáveis e tabela
+   ================================================================== */
+var RNC_FILTROS = ['nº documento', 'nº rnc', 'ufv', 'etapa', 'nome do fornecedor',
+                   'status - rnc', 'status tratativa'];
+var RNC_MULTIS = {};
+var RNC_LARGURAS = {};
+try { RNC_LARGURAS = JSON.parse(localStorage.getItem('rnc_larguras') || '{}'); } catch (e) { RNC_LARGURAS = {}; }
+
+function gravarLargurasRnc(){
+  try { localStorage.setItem('rnc_larguras', JSON.stringify(RNC_LARGURAS)); } catch (e) {}
+}
+
+function rotuloRnc(id){
+  var c = camposRnc().filter(function(x){ return x.id === id; })[0];
+  return c ? c.rotulo : id;
+}
+
+/** Opções que ainda fazem sentido, dado o que os outros filtros deixaram. */
+function opcoesRnc(id){
+  if (!RNC.lista) return [];
+  var vistos = {};
+  RNC.lista.linhas.forEach(function(l){
+    if (!passaNosFiltrosRnc(l, id)) return;
+    var v = String(l.v[id] || '').trim();
+    if (v) vistos[v] = true;
+  });
+  return Object.keys(vistos).sort(function(a, b){ return a.localeCompare(b, 'pt-BR'); });
+}
+
+function passaNosFiltrosRnc(l, exceto){
+  for (var id in RNC_MULTIS){
+    if (id === exceto) continue;
+    var marcados = RNC_MULTIS[id].get();
+    if (!marcados.length) continue;
+    if (marcados.indexOf(String(l.v[id] || '').trim()) < 0) return false;
+  }
+  if (RNC.busca && l.busca.indexOf(RNC.busca) < 0) return false;
+  return true;
+}
+
+function montarFiltrosRnc(){
+  var alvo = el('rnc-filtros');
+  if (!alvo || !RNC.lista) return;
+  alvo.innerHTML = '';
+  RNC_MULTIS = {};
+  RNC_FILTROS.forEach(function(id){
+    if (!camposRnc().some(function(c){ return c.id === id; })) return;
+    var m = criarMulti(id, rotuloRnc(id), function(){ return opcoesRnc(id); }, desenharRnc);
+    RNC_MULTIS[id] = m;
+    alvo.appendChild(m.el);
+  });
+}
+
+el('rnc-limpar-filtros').addEventListener('click', function(){
+  fecharTodosPops();
+  Object.keys(RNC_MULTIS).forEach(function(k){ RNC_MULTIS[k].limpar(); });
+  el('rnc-busca').value = '';
+  RNC.busca = '';
+  desenharRnc();
+});
+
+el('rnc-redefinir-colunas').addEventListener('click', function(){
+  RNC_LARGURAS = {};
+  gravarLargurasRnc();
+  colgroupRnc();
+});
+
 el('rnc-busca').addEventListener('input', function(){
   RNC.busca = this.value.trim().toLowerCase();
   desenharRnc();
@@ -3751,30 +3888,250 @@ el('rnc-busca').addEventListener('input', function(){
 
 el('rnc-atualizar').addEventListener('click', carregarRnc);
 
+function larguraPadraoRnc(c){
+  if (c.id.indexOf('status') === 0) return 170;
+  if (c.id.indexOf('data') === 0) return 120;
+  if (c.id.indexOf('resumo') === 0 || c.id.indexOf('atualiza') === 0) return 320;
+  return 150;
+}
+
+function colgroupRnc(){
+  var cg = el('rnc-colgroup');
+  if (!cg || !RNC.colunas) return;
+  var total = 0, html = [];
+  RNC.colunas.forEach(function(c){
+    var larg = Number(RNC_LARGURAS[c.id]) >= 60 ? Number(RNC_LARGURAS[c.id]) : larguraPadraoRnc(c);
+    total += larg;
+    html.push('<col data-id="' + esc(c.id) + '" style="width:' + larg + 'px">');
+  });
+  var caixa = el('rnc-tabela-caixa').clientWidth || 0;
+  var sobra = Math.max(0, caixa - total);
+  html.push('<col style="width:' + sobra + 'px">');
+  cg.innerHTML = html.join('');
+  var tabela = el('rnc-tabela-caixa').querySelector('table');
+  if (tabela) tabela.style.width = (total + sobra) + 'px';
+}
+
+function ligarPuxadoresRnc(){
+  el('rnc-cabecalho').querySelectorAll('th[data-id]').forEach(function(th){
+    var id = th.dataset.id;
+    var alca = document.createElement('div');
+    alca.className = 'puxador';
+    alca.title = 'Arraste para mudar a largura';
+    th.appendChild(alca);
+
+    function coluna(){
+      return el('rnc-colgroup').querySelector('col[data-id="' + id + '"]');
+    }
+
+    alca.addEventListener('mousedown', function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      var col = coluna();
+      if (!col) return;
+      var x0 = ev.clientX, l0 = parseFloat(col.style.width) || th.offsetWidth;
+      alca.classList.add('arrastando');
+      document.body.classList.add('redimensionando');
+      function mover(e){ col.style.width = Math.max(60, Math.round(l0 + (e.clientX - x0))) + 'px'; }
+      function soltar(){
+        document.removeEventListener('mousemove', mover);
+        document.removeEventListener('mouseup', soltar);
+        alca.classList.remove('arrastando');
+        document.body.classList.remove('redimensionando');
+        RNC_LARGURAS[id] = parseFloat(col.style.width);
+        gravarLargurasRnc();
+        colgroupRnc();
+      }
+      document.addEventListener('mousemove', mover);
+      document.addEventListener('mouseup', soltar);
+    });
+
+    alca.addEventListener('dblclick', function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      delete RNC_LARGURAS[id];
+      gravarLargurasRnc();
+      colgroupRnc();
+    });
+  });
+}
+
 function desenharRnc(){
   if (!RNC.lista) return;
-  var campos = RNC.lista.campos;
-  el('rnc-cabecalho').innerHTML = campos.map(function(c){
-    return '<th>' + esc(c.rotulo) + '</th>';
-  }).join('');
+  var cols = RNC.colunas || camposRnc();
 
-  RNC.filtrados = RNC.lista.linhas.filter(function(l){
-    return !RNC.busca || l.busca.indexOf(RNC.busca) >= 0;
-  });
+  el('rnc-cabecalho').innerHTML = cols.map(function(c){
+    return '<th data-id="' + esc(c.id) + '">' + esc(c.rotulo) + '</th>';
+  }).join('') + '<th class="sobra"></th>';
+
+  RNC.filtrados = RNC.lista.linhas.filter(function(l){ return passaNosFiltrosRnc(l, null); });
 
   el('rnc-corpo').innerHTML = RNC.filtrados.map(function(l){
-    return '<tr data-linha="' + l.linha + '">' + campos.map(function(c, i){
+    return '<tr data-linha="' + l.linha + '">' + cols.map(function(c, i){
       var v = l.v[c.id] || '';
+      var texto = (String(v).indexOf('http') === 0)
+        ? '<a href="' + esc(v) + '" target="_blank" rel="noopener">abrir pasta</a>'
+        : (esc(v) || '—');
       return '<td class="' + (i === 0 ? 'cod' : 'cel') + (v ? '' : ' vazio') + '" title="' + esc(v) + '">' +
-             (esc(v) || '—') + '</td>';
-    }).join('') + '</tr>';
+             texto + '</td>';
+    }).join('') + '<td class="sobra"></td></tr>';
   }).join('');
 
   el('rnc-corpo').querySelectorAll('tr').forEach(function(tr){
-    tr.addEventListener('click', function(){ abrirGavetaRnc(Number(tr.dataset.linha)); });
+    tr.addEventListener('click', function(ev){
+      if (ev.target.tagName === 'A') return;
+      abrirGavetaRnc(Number(tr.dataset.linha));
+    });
   });
 
+  colgroupRnc();
+  ligarPuxadoresRnc();
   el('rnc-legenda').textContent = RNC.filtrados.length + ' de ' + RNC.lista.linhas.length + ' RNCs';
+  el('rnc-desc').textContent = cols.length + ' colunas';
+  montarPainelRnc();
+}
+
+/* ==================================================================
+   RNC — Painel
+   ================================================================== */
+var RNC_DIMS = [
+  { id: 'ufv',                rotulo: 'UFV',              titulo: 'RNCs por usina' },
+  { id: 'nome do fornecedor', rotulo: 'Fornecedor',       titulo: 'RNCs por fornecedor' },
+  { id: 'status - rnc',       rotulo: 'Status - RNC',     titulo: 'RNCs por Status - RNC' },
+  { id: 'status tratativa',   rotulo: 'Status Tratativa', titulo: 'RNCs por Status Tratativa' }
+];
+var RNC_SEL = {};    // { coluna: [valores] }
+
+function passaNaSelecaoRnc(l, exceto){
+  for (var id in RNC_SEL){
+    if (id === exceto) continue;
+    var v = _normalizar2(l.v[id] || '');
+    var ok = RNC_SEL[id].some(function(x){ return _normalizar2(x) === v; });
+    if (!ok) return false;
+  }
+  return true;
+}
+
+function escolherRnc(id, nome, somar){
+  var lista = (RNC_SEL[id] || []).slice();
+  var onde = -1;
+  lista.forEach(function(x, i){ if (_normalizar2(x) === _normalizar2(nome)) onde = i; });
+  if (somar){
+    if (onde >= 0) lista.splice(onde, 1); else lista.push(nome);
+  } else {
+    lista = (onde >= 0 && lista.length === 1) ? [] : [nome];
+  }
+  if (lista.length) RNC_SEL[id] = lista; else delete RNC_SEL[id];
+  montarPainelRnc();
+}
+
+function contarRnc(id){
+  var g = {};
+  RNC.lista.linhas.forEach(function(l){
+    if (!passaNaSelecaoRnc(l, id)) return;
+    var bruto = String(l.v[id] || '').trim();
+    if (!bruto) return;
+    var chave = _normalizar2(bruto);
+    if (!g[chave]) g[chave] = { nome: bruto, qtd: 0 };
+    g[chave].qtd++;
+  });
+  return Object.keys(g).map(function(k){ return g[k]; })
+    .sort(function(a, b){ return b.qtd - a.qtd || a.nome.localeCompare(b.nome, 'pt-BR'); });
+}
+
+function montarPainelRnc(){
+  if (!RNC.lista || el('mod-rncpainel').classList.contains('oculto')) {
+    if (!RNC.lista) return;
+  }
+  var carregando = el('rncp-carregando');
+  if (!carregando) return;
+  carregando.classList.add('oculto');
+  el('rncp-conteudo').classList.remove('oculto');
+
+  var naTela = RNC.lista.linhas.filter(function(l){ return passaNaSelecaoRnc(l, null); });
+  var distintos = function(id){
+    var v = {};
+    naTela.forEach(function(l){ var t = _normalizar2(l.v[id] || ''); if (t) v[t] = true; });
+    return Object.keys(v).length;
+  };
+  var temFiltro = Object.keys(RNC_SEL).length > 0;
+
+  el('rncp-kpis').innerHTML = [
+    { rot: temFiltro ? 'RNCs filtradas' : 'RNCs', num: naTela.length, destaque: true },
+    { rot: 'Usinas', num: distintos('ufv') },
+    { rot: 'Fornecedores', num: distintos('nome do fornecedor') },
+    { rot: 'Status em uso', num: distintos('status tratativa') }
+  ].map(function(k){
+    return '<div class="kpi' + (k.destaque ? ' destaque' : '') + '">' +
+      '<div class="rot">' + esc(k.rot) + '</div><div class="num">' +
+      (k.destaque ? '<em>' : '') + numeroBR(k.num) + (k.destaque ? '</em>' : '') + '</div></div>';
+  }).join('');
+
+  desenharSelecoesRnc();
+
+  var alvo = el('rncp-graficos');
+  alvo.innerHTML = '';
+  RNC_DIMS.forEach(function(d){
+    if (!camposRnc().some(function(c){ return c.id === d.id; })) return;
+    alvo.appendChild(cartaoRnc(d));
+  });
+}
+
+function desenharSelecoesRnc(){
+  var caixa = el('rncp-selecoes');
+  var ids = Object.keys(RNC_SEL);
+  if (!ids.length){
+    caixa.innerHTML = '<span class="titulo-sel">Clique para filtrar · Ctrl+clique para escolher mais de um</span>';
+    return;
+  }
+  caixa.innerHTML = '<span class="titulo-sel">Filtrando por</span>';
+  ids.forEach(function(id){
+    RNC_SEL[id].forEach(function(valor){
+      var m = document.createElement('span');
+      m.className = 'marca-sel';
+      m.innerHTML = '<span class="dim">' + esc(rotuloRnc(id)) + ':</span> ' + esc(valor) +
+                    '<button type="button" class="x" title="Remover">&times;</button>';
+      m.querySelector('.x').addEventListener('click', function(){ escolherRnc(id, valor, true); });
+      caixa.appendChild(m);
+    });
+  });
+  var limpa = document.createElement('button');
+  limpa.type = 'button';
+  limpa.className = 'limpa-sel';
+  limpa.textContent = 'Limpar tudo';
+  limpa.addEventListener('click', function(){ RNC_SEL = {}; montarPainelRnc(); });
+  caixa.appendChild(limpa);
+}
+
+function cartaoRnc(dim){
+  var dados = contarRnc(dim.id);
+  var visiveis = dados.slice(0, TOPO_GRAFICO);
+  var cartao = molduraCartao(dim.titulo,
+    visiveis.length ? 'Os ' + visiveis.length + ' primeiros de ' + dados.length : '—');
+  if (!visiveis.length){ semDado(cartao, 'Nada a mostrar com esse filtro.'); return cartao; }
+
+  var maior = visiveis[0].qtd;
+  var soma = dados.reduce(function(t, d){ return t + d.qtd; }, 0) || 1;
+  var caixa = document.createElement('div');
+  caixa.className = 'barras';
+
+  visiveis.forEach(function(d){
+    var marcado = (RNC_SEL[dim.id] || []).some(function(x){ return _normalizar2(x) === _normalizar2(d.nome); });
+    var linha = document.createElement('div');
+    linha.className = 'barra-graf selecionavel' +
+      ((RNC_SEL[dim.id] && !marcado) ? ' apagado' : '');
+    linha.innerHTML =
+      '<div class="nome" title="' + esc(d.nome) + '">' + esc(d.nome) + '</div>' +
+      '<div class="trilho"><div class="preenche" style="width:' + Math.max(2, (d.qtd / maior) * 100) + '%"></div></div>' +
+      '<div class="qtd">' + numeroBR(d.qtd) + '</div>';
+    linha.addEventListener('click', function(ev){
+      escolherRnc(dim.id, d.nome, !!(ev.ctrlKey || ev.metaKey || ev.shiftKey));
+    });
+    ligarDica(linha, d.nome, d.qtd, (d.qtd / soma) * 100);
+    caixa.appendChild(linha);
+  });
+
+  cartao.appendChild(caixa);
+  anexarTabela(cartao, dim.rotulo, dados);
+  return cartao;
 }
 
 function abrirGavetaRnc(linha){
