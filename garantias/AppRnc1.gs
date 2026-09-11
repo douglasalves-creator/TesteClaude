@@ -1,7 +1,8 @@
 /**
  * RNC — Registro de Não Conformidade.
- * Tudo preso ao NOME do cabeçalho (linha 9), nunca à ordem das colunas.
- * Namespace próprio, para não brigar com os outros scripts do projeto.
+ * Formulário com as perguntas do modelo em Word; gera o PDF no mesmo layout,
+ * cria a pasta no Drive com as evidências e grava na planilha as colunas que
+ * já existem lá (sempre pelo NOME do cabeçalho, linha 9).
  */
 var GAR_RNC = (function () {
 
@@ -9,28 +10,64 @@ var GAR_RNC = (function () {
     SPREADSHEET_ID: '10XC9wnG3g9oaZVcja77ogyVVnLtKUBTLLoGQZgSQ1tE',
     ABA: 'Lista EP ( Para conciliação)',
     HEADER_ROW: 9,
-    CACHE_SEG: 600
+    PASTA_DRIVE_ID: '1TjVagrbktvQwpTy0GO94M91Hhwvky-hR',
+    ANEXO_MAX_MB: 25
   };
 
-  // Campos do formulário, na ordem em que aparecem na tela.
-  var CAMPOS = [
-    { cab: 'Nº Documento',          tipo: 'texto' },
-    { cab: 'Nº RNC',                tipo: 'texto' },
-    { cab: 'UFV',                   tipo: 'select' },
-    { cab: 'Etapa',                 tipo: 'select' },
-    { cab: 'Nome do Fornecedor',    tipo: 'select' },
-    { cab: 'Resumo da Ocorrência',  tipo: 'area'  },
-    { cab: 'Status - RNC',          tipo: 'select' },
-    { cab: 'RNC',                   tipo: 'texto' },
-    { cab: 'Data de Emissão',       tipo: 'data'  },
-    { cab: 'Status Tratativa',      tipo: 'select' },
-    { cab: 'Data de Conclusão',     tipo: 'data'  },
-    { cab: 'ATUALIZAÇÃO',           tipo: 'area'  }
+  var ASSUNTOS = ['QUALIDADE', 'MEIO AMBIENTE', 'SAÚDE E SEG. TRABALHO'];
+  var TIPOS    = ['Não Conformidade', 'Oportunidade de Melhoria', 'Não Conformidade Potencial'];
+  var FASES    = ['Operacional', 'Em Construção'];
+
+  /**
+   * As perguntas do documento, na ordem em que aparecem nele.
+   *   bloco    = seção do PDF
+   *   planilha = cabeçalho da aba que recebe esse valor (quando houver)
+   *   daColuna = de onde vêm as opções da lista, quando a lista é da planilha
+   */
+  var PERGUNTAS = [
+    { id: 'data_rnc',    rotulo: 'Data da RNC',            tipo: 'data',   bloco: 'topo',      planilha: 'Data de Emissão', obrig: true },
+    { id: 'n_rnc',       rotulo: 'N° RNC',                 tipo: 'texto',  bloco: 'topo',      planilha: 'Nº RNC',          obrig: true },
+    { id: 'ufv',         rotulo: 'UFV',                    tipo: 'select', bloco: 'topo',      planilha: 'UFV',             daColuna: 'UFV', obrig: true },
+
+    { id: 'assunto',     rotulo: 'Assunto relacionado',    tipo: 'select', bloco: 'marcar',    opcoes: ASSUNTOS, obrig: true },
+    { id: 'tipo',        rotulo: 'Tipo de ocorrência',     tipo: 'select', bloco: 'marcar',    opcoes: TIPOS,    obrig: true },
+    { id: 'fase',        rotulo: 'Fase do projeto',        tipo: 'select', bloco: 'marcar',    opcoes: FASES,    planilha: 'Etapa', obrig: true },
+
+    { id: 'resumo',      rotulo: 'Resumo da ocorrência',   tipo: 'area',   bloco: 'resumo',    planilha: 'Resumo da Ocorrência', obrig: true },
+
+    { id: 'fornecedor',  rotulo: 'Fornecedor / Prestador', tipo: 'select', bloco: 'dados',     planilha: 'Nome do Fornecedor', daColuna: 'Nome do Fornecedor', obrig: true },
+    { id: 'descricao_item', rotulo: 'Descrição do item',   tipo: 'area',   bloco: 'dados' },
+    { id: 'qtd_recebida',   rotulo: 'Quantidade recebida', tipo: 'texto',  bloco: 'dados' },
+
+    { id: 'descricao_nc', rotulo: 'Descrição da não conformidade / causas da não conformidade',
+      tipo: 'area', bloco: 'nc', obrig: true },
+
+    { id: 'acao_imediata', rotulo: 'Ação imediata', tipo: 'area', bloco: 'acao' },
+    { id: 'causa_raiz',    rotulo: 'Análise da causa raiz da não conformidade e/ou análise da oportunidade de melhoria',
+      tipo: 'area', bloco: 'causa' },
+
+    { id: 'elaborador', rotulo: 'Elaborador', tipo: 'texto', bloco: 'assinaturas' },
+    { id: 'revisao',    rotulo: 'Revisão',    tipo: 'texto', bloco: 'assinaturas' }
+  ];
+
+  var BLOCOS = [
+    { id: 'topo',        titulo: 'Identificação' },
+    { id: 'marcar',      titulo: 'Classificação' },
+    { id: 'resumo',      titulo: 'Resumo da ocorrência' },
+    { id: 'dados',       titulo: 'Dados iniciais' },
+    { id: 'nc',          titulo: '1. Descrição da não conformidade / causas' },
+    { id: 'acao',        titulo: '3. Ação imediata' },
+    { id: 'causa',       titulo: '4. Análise da causa raiz' },
+    { id: 'assinaturas', titulo: 'Assinaturas' }
   ];
 
   function _norm(t) {
     return String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  function _esc(t) {
+    return String(t == null ? '' : t)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function _aba() {
@@ -50,59 +87,17 @@ var GAR_RNC = (function () {
     return m;
   }
 
-  /** Campos que existem mesmo na aba + as colunas extras que houver. */
-  function _ativos(aba, mapa) {
-    var usados = {}, saida = [];
-    CAMPOS.forEach(function (c) {
-      var achou = mapa[_norm(c.cab)];
-      if (!achou) return;
-      usados[_norm(c.cab)] = true;
-      saida.push({ id: _norm(c.cab), rotulo: achou.cab, tipo: c.tipo, col: achou.col });
-    });
-    Object.keys(mapa).forEach(function (n) {
-      if (usados[n]) return;
-      saida.push({ id: n, rotulo: mapa[n].cab, tipo: 'texto', col: mapa[n].col, extra: true });
-    });
-    return saida;
-  }
-
-  /** Opções das listas: a validação da própria planilha; senão, o que já foi usado. */
-  function _opcoes(aba, campos, linhas) {
-    var fim = aba.getLastRow();
-    var op = {};
-    campos.forEach(function (c) {
-      if (c.tipo !== 'select') return;
-      var lista = [];
-      try {
-        var v = aba.getRange(CFG.HEADER_ROW + 1, c.col).getDataValidation();
-        if (v) {
-          var tipo = v.getCriteriaType(), vals = v.getCriteriaValues();
-          if (tipo === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
-            lista = vals[0] || [];
-          } else if (tipo === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
-            lista = (vals[0].getDisplayValues() || []).map(function (l) { return l[0]; });
-          }
-        }
-      } catch (e) { /* sem validação */ }
-
-      if (!lista.length) {
-        var vistos = {};
-        linhas.forEach(function (l) {
-          var t = String(l.v[c.id] || '').trim();
-          if (t) vistos[t] = true;
-        });
-        lista = Object.keys(vistos);
-      }
-      op[c.id] = lista.filter(function (x) { return String(x).trim(); })
-                      .sort(function (a, b) { return String(a).localeCompare(String(b), 'pt-BR'); });
-    });
-    return op;
+  /** Colunas da aba, para a tela de Processos. */
+  function _colunas(mapa) {
+    return Object.keys(mapa)
+      .map(function (n) { return { id: n, rotulo: mapa[n].cab, col: mapa[n].col }; })
+      .sort(function (a, b) { return a.col - b.col; });
   }
 
   function _ler() {
     var aba = _aba();
     var mapa = _mapa(aba);
-    var campos = _ativos(aba, mapa);
+    var colunas = _colunas(mapa);
     var primeira = CFG.HEADER_ROW + 1;
     var ultima = aba.getLastRow();
     var linhas = [];
@@ -110,62 +105,287 @@ var GAR_RNC = (function () {
     if (ultima >= primeira) {
       var dados = aba.getRange(primeira, 1, ultima - primeira + 1, aba.getLastColumn()).getDisplayValues();
       dados.forEach(function (l, i) {
-        var temAlgo = l.some(function (c) { return String(c).trim() !== ''; });
-        if (!temAlgo) return;
+        if (!l.some(function (c) { return String(c).trim() !== ''; })) return;
         var v = {};
-        campos.forEach(function (c) { v[c.id] = String(l[c.col - 1] || '').trim(); });
+        colunas.forEach(function (c) { v[c.id] = String(l[c.col - 1] || '').trim(); });
         linhas.push({ linha: primeira + i, v: v, busca: l.join(' ').toLowerCase() });
       });
     }
-    return { aba: aba, mapa: mapa, campos: campos, linhas: linhas };
+    return { aba: aba, mapa: mapa, colunas: colunas, linhas: linhas };
+  }
+
+  /** Opções vindas da planilha: validação da coluna ou o que já foi usado nela. */
+  function _opcoesDaColuna(aba, mapa, cabecalho, linhas) {
+    var achou = mapa[_norm(cabecalho)];
+    if (!achou) return [];
+    var lista = [];
+    try {
+      var v = aba.getRange(CFG.HEADER_ROW + 1, achou.col).getDataValidation();
+      if (v) {
+        var tipo = v.getCriteriaType(), vals = v.getCriteriaValues();
+        if (tipo === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) lista = vals[0] || [];
+        else if (tipo === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+          lista = (vals[0].getDisplayValues() || []).map(function (l) { return l[0]; });
+        }
+      }
+    } catch (e) { /* sem validação */ }
+
+    if (!lista.length) {
+      var vistos = {};
+      linhas.forEach(function (l) {
+        var t = String(l.v[_norm(cabecalho)] || '').trim();
+        if (t) vistos[t] = true;
+      });
+      lista = Object.keys(vistos);
+    }
+    return lista.filter(function (x) { return String(x).trim(); })
+                .sort(function (a, b) { return String(a).localeCompare(String(b), 'pt-BR'); });
   }
 
   function inicio() {
     var r = _ler();
+    var opcoes = {};
+    PERGUNTAS.forEach(function (p) {
+      if (p.opcoes) opcoes[p.id] = p.opcoes;
+      else if (p.daColuna) opcoes[p.id] = _opcoesDaColuna(r.aba, r.mapa, p.daColuna, r.linhas);
+    });
     return {
       usuario: Session.getActiveUser().getEmail() || '',
-      campos: r.campos.map(function (c) {
-        return { id: c.id, rotulo: c.rotulo, tipo: c.tipo, extra: !!c.extra };
+      blocos: BLOCOS,
+      perguntas: PERGUNTAS.map(function (p) {
+        return { id: p.id, rotulo: p.rotulo, tipo: p.tipo, bloco: p.bloco, obrig: !!p.obrig };
       }),
-      opcoes: _opcoes(r.aba, r.campos, r.linhas)
+      opcoes: opcoes,
+      anexoMaxMb: CFG.ANEXO_MAX_MB
     };
   }
 
   function listar() {
     var r = _ler();
     return {
-      campos: r.campos.map(function (c) { return { id: c.id, rotulo: c.rotulo, tipo: c.tipo }; }),
+      campos: r.colunas.map(function (c) { return { id: c.id, rotulo: c.rotulo, tipo: 'texto' }; }),
       linhas: r.linhas
     };
   }
 
-  function _paraCelula(campo, valor) {
+  /* ---------------- PDF no layout do modelo em Word ---------------- */
+
+  function _marcar(valor, opcao) {
+    return '( ' + (_norm(valor) === _norm(opcao) ? 'X' : '&nbsp;') + ' ) ' + _esc(opcao);
+  }
+
+  function _dataBR(iso) {
+    var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : String(iso || '');
+  }
+
+  function _quebras(t) {
+    return _esc(t).replace(/\r?\n/g, '<br>');
+  }
+
+  function _htmlDoDocumento(d, arquivos) {
+    var BASE = 'border:1px solid #000;padding:4px 6px;font-size:9pt;vertical-align:top;';
+    var TAB = ' style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:6px"';
+
+    // uma única propriedade style por célula, senão o navegador ignora a segunda
+    function td(css, txt, attrs) {
+      return '<td' + (attrs ? ' ' + attrs : '') + ' style="' + BASE + (css || '') + '">' +
+             (txt == null ? '' : txt) + '</td>';
+    }
+    function rot(txt, largura) {
+      return td('font-weight:bold;' + (largura ? 'width:' + largura + ';' : ''), _esc(txt));
+    }
+    function barra(txt) {
+      return '<table' + TAB + '><tr>' +
+        td('font-weight:bold;background:#D9D9D9;text-align:center;', _esc(txt)) + '</tr></table>';
+    }
+    function caixa(txt) {
+      return '<table' + TAB + '><tr>' + td('', _quebras(txt)) + '</tr></table>';
+    }
+
+    var fotos = (arquivos || []).filter(function (a) {
+      return String(a.tipo || '').indexOf('image/') === 0;
+    });
+
+    var blocoFotos;
+    if (fotos.length) {
+      var linhas = [];
+      for (var i = 0; i < fotos.length; i += 3) {
+        var cel = [];
+        for (var j = i; j < i + 3; j++) {
+          if (j < fotos.length) {
+            cel.push(td('width:33.33%;padding:6px;text-align:center;',
+              '<img src="data:' + fotos[j].tipo + ';base64,' + fotos[j].dados +
+              '" style="width:100%;max-height:300px">' +
+              '<div style="font-size:8pt;margin-top:4px">Evidência ' + (j + 1) + ' — ' +
+              _esc(fotos[j].nome) + '</div>'));
+          } else {
+            cel.push(td('width:33.33%;', ''));
+          }
+        }
+        linhas.push('<tr>' + cel.join('') + '</tr>');
+      }
+      blocoFotos = '<table' + TAB + '>' + linhas.join('') + '</table>';
+    } else {
+      blocoFotos = '<table' + TAB + '><tr>' +
+        td('padding:14px;text-align:center;', 'Sem evidências anexadas.') + '</tr></table>';
+    }
+
+    var outros = (arquivos || []).filter(function (a) {
+      return String(a.tipo || '').indexOf('image/') !== 0;
+    });
+    var listaOutros = outros.length
+      ? '<table' + TAB + '><tr>' + td('', '<b>Outros arquivos anexados:</b> ' +
+          outros.map(function (a) { return _esc(a.nome); }).join(' · ')) + '</tr></table>'
+      : '';
+
+    return '' +
+    '<html><head><meta charset="utf-8"></head>' +
+    '<body style="font-family:Arial,Helvetica,sans-serif;color:#000;margin:26px">' +
+
+    '<table' + TAB + '>' +
+      '<tr>' +
+        td('width:20%;text-align:center;vertical-align:middle;color:#E36C0A;font-weight:bold;font-size:15pt;',
+           'SolarGrid', 'rowspan="2"') +
+        td('text-align:center;font-weight:bold;', 'INFORMAÇÃO DOCUMENTADA', 'colspan="2"') +
+      '</tr>' +
+      '<tr>' +
+        td('font-size:8pt;', 'RNC - Relatório de Não Conformidade, Oportunidade de Melhoria e ' +
+           'Não Conformidade Potencial') +
+        td('width:16%;font-size:8pt;', 'Página: 1 de 1') +
+      '</tr>' +
+    '</table>' +
+
+    '<table' + TAB + '>' +
+      '<tr>' +
+        rot('DATA DA RNC:', '16%') + td('width:17%;', _dataBR(d.data_rnc)) +
+        rot('N° RNC:', '12%')      + td('width:17%;', _esc(d.n_rnc)) +
+        rot('UFV', '10%')          + td('', _esc(d.ufv)) +
+      '</tr>' +
+    '</table>' +
+
+    '<table' + TAB + '>' +
+      '<tr>' + rot('ASSUNTO RELACIONADO:', '25%') +
+        ASSUNTOS.map(function (o) { return td('', _marcar(d.assunto, o)); }).join('') + '</tr>' +
+      '<tr>' + rot('TIPO DE OCORRÊNCIA?', '25%') +
+        TIPOS.map(function (o) { return td('', _marcar(d.tipo, o)); }).join('') + '</tr>' +
+      '<tr>' + rot('FASE DO PROJETO:', '25%') +
+        FASES.map(function (o) { return td('', _marcar(d.fase, o)); }).join('') + td('', '') + '</tr>' +
+    '</table>' +
+
+    '<table' + TAB + '><tr>' + rot('RESUMO DA OCORRÊNCIA:', '25%') +
+      td('', _quebras(d.resumo)) + '</tr></table>' +
+
+    barra('DADOS INICIAIS') +
+    '<table' + TAB + '>' +
+      '<tr>' + rot('Fornecedor / Prestador:', '25%') + td('', _esc(d.fornecedor)) + '</tr>' +
+      '<tr>' + rot('Descrição do Item:', '25%') + td('', _quebras(d.descricao_item)) + '</tr>' +
+      '<tr>' + rot('Quantidade Recebida:', '25%') + td('', _esc(d.qtd_recebida)) + '</tr>' +
+    '</table>' +
+
+    barra('1. DESCRIÇÃO DA NÃO CONFORMIDADE / CAUSAS DA NÃO CONFORMIDADE') +
+    caixa(d.descricao_nc) +
+
+    barra('2. EVIDÊNCIAS DA NÃO CONFORMIDADE') +
+    blocoFotos + listaOutros +
+
+    barra('3. AÇÃO IMEDIATA') + caixa(d.acao_imediata) +
+
+    barra('4. ANÁLISE DA CAUSA RAIZ DA NÃO CONFORMIDADE E/OU ANÁLISE DA OPORTUNIDADE DE MELHORIA') +
+    caixa(d.causa_raiz) +
+
+    barra('ASSINATURAS') +
+    '<table' + TAB + '>' +
+      '<tr>' + rot('Elaborador:', '25%') + td('', _esc(d.elaborador)) + '</tr>' +
+      '<tr>' + rot('Revisão:', '25%') + td('', _esc(d.revisao)) + '</tr>' +
+    '</table>' +
+
+    '</body></html>';
+  }
+
+  /* ---------------- Drive ---------------- */
+
+  function _nomeSeguro(nome) {
+    return String(nome || 'arquivo').replace(/[\\\/:*?"<>|]/g, '-')
+      .replace(/\s+/g, ' ').trim().substring(0, 120) || 'arquivo';
+  }
+
+  function _pasta(nome, arquivos) {
+    var mae = DriveApp.getFolderById(CFG.PASTA_DRIVE_ID);
+    var iguais = mae.getFoldersByName(nome);
+    var pasta = iguais.hasNext() ? iguais.next() : mae.createFolder(nome);
+    var salvos = [];
+    (arquivos || []).forEach(function (a) {
+      var n = _nomeSeguro(a.nome);
+      var blob = Utilities.newBlob(Utilities.base64Decode(a.dados), a.tipo || 'application/octet-stream', n);
+      var arq = pasta.createFile(blob);
+      salvos.push({ nome: arq.getName(), url: arq.getUrl() });
+    });
+    return { pasta: pasta, id: pasta.getId(), nome: pasta.getName(), url: pasta.getUrl(), arquivos: salvos };
+  }
+
+  function _conferirTamanho(arquivos) {
+    var bytes = 0;
+    (arquivos || []).forEach(function (a) { bytes += Math.ceil((String(a.dados || '').length * 3) / 4); });
+    if (bytes > CFG.ANEXO_MAX_MB * 1048576) {
+      throw new Error('Os anexos somam ' + (bytes / 1048576).toFixed(1) +
+        ' MB. O limite é ' + CFG.ANEXO_MAX_MB + ' MB por envio.');
+    }
+  }
+
+  /* ---------------- gravação ---------------- */
+
+  function _paraCelula(tipo, valor) {
     var t = String(valor == null ? '' : valor).trim();
     if (!t) return '';
-    if (campo.tipo === 'data') {
+    if (tipo === 'data') {
       var m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
       if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
     }
     return t;
   }
 
-  function criar(dados) {
+  function criar(dados, arquivos) {
+    dados = dados || {};
+    arquivos = arquivos || [];
+
+    var faltou = PERGUNTAS.filter(function (p) {
+      return p.obrig && !String(dados[p.id] || '').trim();
+    }).map(function (p) { return p.rotulo; });
+    if (faltou.length) throw new Error('Preencha: ' + faltou.join(', ') + '.');
+    if (!arquivos.length) throw new Error('Anexe ao menos uma evidência.');
+    _conferirTamanho(arquivos);
+
+    // Pasta e arquivos primeiro: assim nenhuma linha fica sem as evidências.
+    var nomePasta = _nomeSeguro(dados.n_rnc || ('RNC ' + _dataBR(dados.data_rnc)));
+    var pasta = _pasta(nomePasta, arquivos);
+
+    try {
+      var pdf = Utilities.newBlob(_htmlDoDocumento(dados, arquivos), 'text/html', nomePasta + '.html')
+        .getAs('application/pdf').setName(nomePasta + ' - RNC.pdf');
+      var arq = pasta.pasta.createFile(pdf);
+      pasta.arquivos.push({ nome: arq.getName(), url: arq.getUrl() });
+    } catch (e) {
+      console.error('Falha ao gerar o PDF da RNC: ' + e.message);
+    }
+
     var trava = LockService.getScriptLock();
     trava.waitLock(20000);
     try {
-      var r = _ler();
-      var aba = r.aba;
+      var aba = _aba();
+      var mapa = _mapa(aba);
       var largura = aba.getLastColumn();
       var nova = Math.max(aba.getLastRow() + 1, CFG.HEADER_ROW + 1);
       if (nova > aba.getMaxRows()) aba.insertRowsAfter(aba.getMaxRows(), 1);
 
       var valores = new Array(largura).fill('');
-      r.campos.forEach(function (c) {
-        if (!(c.id in dados)) return;
-        valores[c.col - 1] = _paraCelula(c, dados[c.id]);
+      PERGUNTAS.forEach(function (p) {
+        if (!p.planilha) return;
+        var alvo = mapa[_norm(p.planilha)];
+        if (!alvo) return;
+        valores[alvo.col - 1] = _paraCelula(p.tipo, dados[p.id]);
       });
 
-      // devolve as fórmulas que já existirem na linha, em vez de apagá-las
       var faixa = aba.getRange(nova, 1, 1, largura);
       var formulas = faixa.getFormulas()[0];
       for (var i = 0; i < largura; i++) {
@@ -173,7 +393,8 @@ var GAR_RNC = (function () {
       }
       faixa.setValues([valores]);
       SpreadsheetApp.flush();
-      return { ok: true, linha: nova };
+
+      return { ok: true, linha: nova, pastaUrl: pasta.url, pastaNome: pasta.nome, anexos: arquivos.length };
     } finally {
       trava.releaseLock();
     }
@@ -185,11 +406,11 @@ var GAR_RNC = (function () {
     try {
       var aba = _aba();
       var mapa = _mapa(aba);
-      var campos = _ativos(aba, mapa);
       var n = 0;
-      campos.forEach(function (c) {
-        if (!(c.id in alteracoes)) return;
-        aba.getRange(linha, c.col).setValue(_paraCelula(c, alteracoes[c.id]));
+      Object.keys(alteracoes).forEach(function (id) {
+        var alvo = mapa[id];
+        if (!alvo) return;
+        aba.getRange(linha, alvo.col).setValue(_paraCelula('texto', alteracoes[id]));
         n++;
       });
       SpreadsheetApp.flush();
@@ -205,5 +426,5 @@ var GAR_RNC = (function () {
 /* Pontes para a tela */
 function rnc_inicio() { return GAR_RNC.inicio(); }
 function rnc_listar() { return GAR_RNC.listar(); }
-function rnc_criar(dados) { return GAR_RNC.criar(dados); }
+function rnc_criar(dados, arquivos) { return GAR_RNC.criar(dados, arquivos); }
 function rnc_salvar(linha, alteracoes) { return GAR_RNC.salvar(linha, alteracoes); }

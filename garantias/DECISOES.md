@@ -678,3 +678,22 @@ Três quadros abaixo dos números do topo, somando sempre o que está na tela
   eles (e clicar de novo tira).
 Se alguma dessas colunas não existir na planilha, o quadro simplesmente não
 aparece.
+
+## RNC — formulário no modelo do Word
+O formulário passou a ter as perguntas do documento antigo, em blocos:
+Identificação (Data da RNC, N° RNC, UFV), Classificação (Assunto, Tipo de
+ocorrência, Fase do projeto), Resumo, Dados iniciais (Fornecedor, Descrição
+do item, Quantidade recebida), 1. Descrição da não conformidade,
+3. Ação imediata, 4. Análise da causa raiz e Assinaturas.
+UFV e Fornecedor puxam a lista da própria planilha; Assunto, Tipo e Fase são
+as listas fixas do documento.
+
+Ao enviar: cria a pasta com o nome do N° RNC dentro de
+`1TjVagrbktvQwpTy0GO94M91Hhwvky-hR`, guarda as evidências e gera o
+`<N° RNC> - RNC.pdf` no mesmo layout do Word (cabeçalho SolarGrid, ( X ) nas
+opções marcadas, barras cinza das seções, fotos três por linha na seção 2).
+Anexar evidência é obrigatório; o limite é 25 MB por envio.
+
+Na planilha vão, por enquanto, só as colunas que já existem lá: Data de
+Emissão, Nº RNC, UFV, Etapa, Nome do Fornecedor e Resumo da Ocorrência. O
+resto fica só no PDF até definirmos.

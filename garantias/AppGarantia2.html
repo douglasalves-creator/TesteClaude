@@ -84,6 +84,9 @@ body.no-inicio{background:var(--eclipse)}
   letter-spacing:.04em;text-transform:uppercase;color:var(--aurora)}
 .cartao .entrar span{transition:transform .18s}
 .cartao:hover .entrar span{transform:translateX(4px)}
+.bloco-rnc{margin-bottom:8px}
+.bloco-rnc h3{margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--tinta-3);border-bottom:1px solid var(--nevoa);padding-bottom:7px}
 .cartoes.dois{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:760px}
 .voltar-ini{margin-bottom:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#c9d1d9}
 .voltar-ini:hover{background:rgba(236,110,45,.16);border-color:rgba(236,110,45,.5);color:#fff}
@@ -751,7 +754,20 @@ td.cel{text-align:center}
   <section id="mod-rncform" class="oculto">
     <h1 class="titulo" style="margin-bottom:22px">Nova RNC</h1>
     <div class="painel" style="padding:24px">
-      <div class="grade" id="rnc-form"></div>
+      <div id="rnc-form"></div>
+
+      <div class="anexos">
+        <h3>Evidências <b>*</b></h3>
+        <p>Fotos da não conformidade. Elas entram no PDF, três por linha, na seção 2.</p>
+        <div class="solta" id="rnc-solta">
+          <div class="titulo-solta">Arraste as fotos aqui ou <span>escolha do computador</span></div>
+          <div class="ajuda">Vários arquivos de uma vez</div>
+        </div>
+        <input type="file" id="rnc-arquivos" multiple style="display:none">
+        <ul class="lista-anexos" id="rnc-lista-anexos"></ul>
+        <div class="soma-anexos oculto" id="rnc-soma-anexos"></div>
+      </div>
+
       <div class="rodape-form">
         <button class="btn btn-aurora" id="rnc-enviar">Enviar RNC</button>
         <button class="btn" id="rnc-limpar">Limpar</button>
@@ -3593,26 +3609,109 @@ function carregarRnc(){
 }
 
 function camposRnc(){
-  return (RNC.ini && RNC.ini.campos) ? RNC.ini.campos : ((RNC.lista && RNC.lista.campos) || []);
+  return (RNC.lista && RNC.lista.campos) || [];
 }
 
+/* ---- formulário: as perguntas do modelo, em blocos ---- */
 function montarFormRnc(){
   var alvo = el('rnc-form');
   if (!alvo || !RNC.ini) return;
   alvo.innerHTML = '';
-  RNC.ini.campos.filter(function(c){ return !c.extra; }).forEach(function(c){
-    var campo = { id: c.id, rotulo: c.rotulo, tipo: c.tipo, opcoes: (RNC.ini.opcoes || {})[c.id] || [] };
-    alvo.appendChild(criarCampo(campo, '', 'rncn-'));
+  RNC.ini.blocos.forEach(function(b){
+    var doBloco = RNC.ini.perguntas.filter(function(p){ return p.bloco === b.id; });
+    if (!doBloco.length) return;
+    var sec = document.createElement('section');
+    sec.className = 'bloco-rnc';
+    sec.innerHTML = '<h3>' + esc(b.titulo) + '</h3>';
+    var grade = document.createElement('div');
+    grade.className = 'grade';
+    doBloco.forEach(function(p){
+      var campo = {
+        id: p.id, rotulo: p.rotulo, tipo: p.tipo, obrig: p.obrig,
+        opcoes: (RNC.ini.opcoes || {})[p.id] || []
+      };
+      grade.appendChild(criarCampo(campo, '', 'rncn-'));
+    });
+    sec.appendChild(grade);
+    alvo.appendChild(sec);
   });
+  RNC_ANEXOS = [];
+  desenharAnexosRnc();
 }
 
 function valoresDoFormRnc(){
   var d = {};
-  camposRnc().filter(function(c){ return !c.extra; }).forEach(function(c){
-    var e = el('rncn-' + slug(c.id));
-    if (e) d[c.id] = e.value || '';
+  (RNC.ini ? RNC.ini.perguntas : []).forEach(function(p){
+    var e = el('rncn-' + slug(p.id));
+    if (e) d[p.id] = e.value || '';
   });
   return d;
+}
+
+/* ---- evidências ---- */
+var RNC_ANEXOS = [];
+
+function desenharAnexosRnc(){
+  var ul = el('rnc-lista-anexos');
+  ul.innerHTML = '';
+  RNC_ANEXOS.forEach(function(a, i){
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="ico">' + esc(extensao(a.nome)) + '</span>' +
+      '<span class="nm">' + esc(a.nome) + '</span>' +
+      '<span class="pz">' + pesoLegivel(a.tamanho) + '</span>';
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'x'; x.innerHTML = '&times;';
+    x.addEventListener('click', function(){ RNC_ANEXOS.splice(i, 1); desenharAnexosRnc(); });
+    li.appendChild(x);
+    ul.appendChild(li);
+  });
+  var soma = RNC_ANEXOS.reduce(function(t, a){ return t + a.tamanho; }, 0);
+  var caixa = el('rnc-soma-anexos');
+  caixa.classList.toggle('oculto', !RNC_ANEXOS.length);
+  caixa.textContent = RNC_ANEXOS.length + (RNC_ANEXOS.length === 1 ? ' arquivo · ' : ' arquivos · ') + pesoLegivel(soma);
+}
+
+function juntarAnexosRnc(lista){
+  Array.prototype.forEach.call(lista, function(f){
+    RNC_ANEXOS.push({ arquivo: f, nome: f.name, tamanho: f.size });
+  });
+  desenharAnexosRnc();
+}
+
+el('rnc-solta').addEventListener('click', function(){ el('rnc-arquivos').click(); });
+el('rnc-arquivos').addEventListener('change', function(){ juntarAnexosRnc(this.files); this.value = ''; });
+['dragenter','dragover'].forEach(function(ev){
+  el('rnc-solta').addEventListener(ev, function(e){ e.preventDefault(); this.classList.add('sobre'); });
+});
+['dragleave','drop'].forEach(function(ev){
+  el('rnc-solta').addEventListener(ev, function(e){ e.preventDefault(); this.classList.remove('sobre'); });
+});
+el('rnc-solta').addEventListener('drop', function(e){
+  if (e.dataTransfer && e.dataTransfer.files) juntarAnexosRnc(e.dataTransfer.files);
+});
+
+function lerAnexosRnc(quando){
+  if (!RNC_ANEXOS.length){ quando([]); return; }
+  var prontos = [], i = 0;
+  (function proximo(){
+    if (i >= RNC_ANEXOS.length){ quando(prontos); return; }
+    var a = RNC_ANEXOS[i];
+    var leitor = new FileReader();
+    leitor.onload = function(){
+      var t = String(leitor.result);
+      prontos.push({ nome: a.nome, tipo: a.arquivo.type || 'application/octet-stream',
+                     dados: t.substring(t.indexOf(',') + 1) });
+      i++;
+      el('rnc-enviar').textContent = 'Preparando ' + i + '/' + RNC_ANEXOS.length + '…';
+      proximo();
+    };
+    leitor.onerror = function(){
+      recado('Não foi possível ler "' + a.nome + '".', true);
+      el('rnc-enviar').disabled = false;
+      el('rnc-enviar').textContent = 'Enviar RNC';
+    };
+    leitor.readAsDataURL(a.arquivo);
+  })();
 }
 
 el('rnc-limpar').addEventListener('click', montarFormRnc);
@@ -3620,22 +3719,29 @@ el('rnc-limpar').addEventListener('click', montarFormRnc);
 el('rnc-enviar').addEventListener('click', function(){
   var b = this;
   var dados = valoresDoFormRnc();
-  var vazio = Object.keys(dados).every(function(k){ return !String(dados[k]).trim(); });
-  if (vazio){ recado('Preencha ao menos um campo.', true); return; }
-  b.disabled = true; b.textContent = 'Enviando…';
-  google.script.run
-    .withSuccessHandler(function(){
-      b.disabled = false; b.textContent = 'Enviar RNC';
-      recado('RNC registrada.');
-      montarFormRnc();
-      RNC.lista = null;
-      if (!el('mod-rncproc').classList.contains('oculto')) carregarRnc();
-    })
-    .withFailureHandler(function(e){
-      b.disabled = false; b.textContent = 'Enviar RNC';
-      recado(e.message, true);
-    })
-    .rnc_criar(dados);
+  var faltou = (RNC.ini ? RNC.ini.perguntas : []).filter(function(p){
+    return p.obrig && !String(dados[p.id] || '').trim();
+  }).map(function(p){ return p.rotulo; });
+  if (faltou.length){ recado('Preencha: ' + faltou.join(', ') + '.', true); return; }
+  if (!RNC_ANEXOS.length){ recado('Anexe ao menos uma evidência.', true); return; }
+
+  b.disabled = true; b.textContent = 'Preparando…';
+  lerAnexosRnc(function(arquivos){
+    b.textContent = 'Enviando…';
+    google.script.run
+      .withSuccessHandler(function(r){
+        b.disabled = false; b.textContent = 'Enviar RNC';
+        recado('RNC registrada · pasta ' + r.pastaNome + ' no Drive.');
+        montarFormRnc();
+        RNC.lista = null;
+        if (!el('mod-rncproc').classList.contains('oculto')) carregarRnc();
+      })
+      .withFailureHandler(function(e){
+        b.disabled = false; b.textContent = 'Enviar RNC';
+        recado(e.message, true);
+      })
+      .rnc_criar(dados, arquivos);
+  });
 });
 
 el('rnc-busca').addEventListener('input', function(){
@@ -3685,8 +3791,7 @@ function abrirGavetaRnc(linha){
     var valor = item.v[c.id] || '';
     if (c.tipo === 'data') valor = textoParaISO(valor);
     RNC.original[c.id] = valor;
-    var campo = { id: c.id, rotulo: c.rotulo, tipo: c.tipo, opcoes: ((RNC.ini && RNC.ini.opcoes) || {})[c.id] || [] };
-    grade.appendChild(criarCampo(campo, valor, 'rnced-'));
+    grade.appendChild(criarCampo({ id: c.id, rotulo: c.rotulo, tipo: c.tipo }, valor, 'rnced-'));
   });
   corpo.appendChild(grade);
 
