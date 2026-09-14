@@ -774,3 +774,12 @@ vazia na tela por até 30 minutos (e uma lista nova, por até 6 horas) até o
 cache vencer ou alguém clicar em Atualizar — foi o que aconteceu com
 Material/Equipamento e Qtd na janela do Valor de reparo.
 O cache das listas também caiu de 6 horas para 30 minutos.
+
+## Painel — janela do Fora da garantia
+Clicar no quadro **Fora da garantia** abre a lista dos acionamentos com "Não"
+em Coberto em Garantia: UFV, Tipo de Acionamento, Fornecedor,
+Material/Equipamento e Qtd, com o total de itens no rodapé. **Ctrl+clique**
+continua filtrando o painel por eles, como antes.
+As duas janelas (esta e a do Valor de reparo) passaram a usar a mesma função
+`abrirJanela(cfg)` — uma janela nova é só uma lista de colunas e uma regra de
+quem entra.

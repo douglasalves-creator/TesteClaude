@@ -2886,11 +2886,15 @@ function montarValores(){
     q3.innerHTML =
       '<div class="rot">Fora da garantia</div>' +
       '<div class="num">' + numeroBR(fora) + '</div>' +
-      '<div class="dica-kpi">' + pct.toFixed(0) + '% dos que já têm resposta' +
-      (escolhido('garantia', 'Não') ? ' · clique para tirar o filtro' : ' · clique para ver só eles') +
+      '<div class="dica-kpi">' + pct.toFixed(0) + '% dos que já têm resposta · ' +
+      (escolhido('garantia', 'Não')
+        ? 'Ctrl+clique tira o filtro'
+        : 'clique para ver a lista') +
       '</div>';
     q3.addEventListener('click', function(ev){
-      escolher('garantia', 'Não', !!(ev.ctrlKey || ev.metaKey || ev.shiftKey));
+      // clique abre a lista; Ctrl+clique continua filtrando o painel
+      if (ev.ctrlKey || ev.metaKey || ev.shiftKey) escolher('garantia', 'Não', true);
+      else abrirJanelaForaDaGarantia();
     });
     caixa.appendChild(q3);
   }
@@ -2899,11 +2903,51 @@ function montarValores(){
 }
 
 /* ==================================================================
-   Janela do "Valor de reparo"
+   Janelas dos quadros do Painel
    ------------------------------------------------------------------
-   Mostra, linha a linha, de onde vem o total: só os acionamentos que
-   têm Valor Reparo preenchido, respeitando filtros, período e escolhas.
+   Mostram, linha a linha, de onde vem o número do quadro. Sempre
+   respeitam filtros, período e as escolhas dos gráficos.
    ================================================================== */
+function abrirJanela(cfg){
+  var linhas = [];
+  LISTA.itens.forEach(function(item){
+    if (!passaNaSelecao(item, null)) return;
+    var extra = cfg.entra(item);
+    if (extra === false) return;
+    linhas.push({ item: item, valor: (extra === true ? 0 : extra) });
+  });
+  if (cfg.ordenar !== false) linhas.sort(function(a, b){ return b.valor - a.valor; });
+
+  el('janela-titulo').textContent = cfg.titulo;
+  el('janela-sub').textContent = linhas.length ? cfg.resumo(linhas) : cfg.vazio;
+
+  el('janela-cabecalho').innerHTML = cfg.colunas.map(function(c){
+    return '<th' + (c.dir ? ' class="dir"' : '') + '>' + esc(c.rotulo) + '</th>';
+  }).join('');
+
+  el('janela-corpo').innerHTML = linhas.map(function(l){
+    return '<tr>' + cfg.colunas.map(function(c){
+      var v = c.moeda ? dinheiroBR(l.valor) : (l.item.f[c.id] || '');
+      return '<td class="cel' + (c.dir ? ' dir' : '') + (v ? '' : ' vazio') + '" title="' + esc(v) + '">' +
+             (esc(v) || '—') + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+
+  el('janela-rodape').innerHTML = cfg.rodape(linhas);
+  el('janela-detalhe').classList.remove('oculto');
+}
+
+/** Soma uma coluna de números das linhas da janela (ex.: a Qtd). */
+function somaNaJanela(linhas, id){
+  var t = 0;
+  linhas.forEach(function(l){
+    var n = textoParaNumero(l.item.f[id] || '');
+    if (n !== '') t += Number(n);
+  });
+  return t;
+}
+
+/* ---------- Valor de reparo ---------- */
 var COLUNAS_REPARO = [
   { id: 'ufv de origem',        rotulo: 'UFV' },
   { id: 'fornecedor',           rotulo: 'Fornecedor' },
@@ -2913,40 +2957,57 @@ var COLUNAS_REPARO = [
 ];
 
 function abrirJanelaReparo(){
-  var linhas = [];
-  var total = 0;
-  LISTA.itens.forEach(function(item){
-    if (!passaNaSelecao(item, null)) return;
-    var n = textoParaNumero(item.f[ID_REPARO] || '');
-    if (n === '' || Number(n) === 0) return;
-    total += Number(n);
-    linhas.push({ item: item, valor: Number(n) });
+  abrirJanela({
+    titulo: 'Valor de reparo',
+    colunas: COLUNAS_REPARO,
+    vazio: 'Nenhum acionamento com valor de reparo no que está na tela.',
+    entra: function(item){
+      var n = textoParaNumero(item.f[ID_REPARO] || '');
+      return (n === '' || Number(n) === 0) ? false : Number(n);
+    },
+    resumo: function(linhas){
+      var total = linhas.reduce(function(t, l){ return t + l.valor; }, 0);
+      return numeroBR(linhas.length) +
+        (linhas.length === 1 ? ' acionamento com valor' : ' acionamentos com valor') +
+        ' · total ' + dinheiroBR(total);
+    },
+    rodape: function(linhas){
+      var total = linhas.reduce(function(t, l){ return t + l.valor; }, 0);
+      return '<td colspan="' + (COLUNAS_REPARO.length - 1) + '">Total</td>' +
+             '<td class="dir">' + dinheiroBR(total) + '</td>';
+    }
   });
-  linhas.sort(function(a, b){ return b.valor - a.valor; });
+}
 
-  el('janela-titulo').textContent = 'Valor de reparo';
-  el('janela-sub').textContent = linhas.length
-    ? numeroBR(linhas.length) + (linhas.length === 1 ? ' acionamento com valor' : ' acionamentos com valor') +
-      ' · total ' + dinheiroBR(total)
-    : 'Nenhum acionamento com valor de reparo no que está na tela.';
+/* ---------- Fora da garantia ---------- */
+var COLUNAS_GARANTIA = [
+  { id: 'ufv de origem',        rotulo: 'UFV' },
+  { id: 'tipo de acionamento',  rotulo: 'Tipo de Acionamento' },
+  { id: 'fornecedor',           rotulo: 'Fornecedor' },
+  { id: 'material/equipamento', rotulo: 'Material/Equipamento' },
+  { id: 'qtd',                  rotulo: 'Qtd', dir: true }
+];
 
-  el('janela-cabecalho').innerHTML = COLUNAS_REPARO.map(function(c){
-    return '<th' + (c.dir ? ' class="dir"' : '') + '>' + esc(c.rotulo) + '</th>';
-  }).join('');
-
-  el('janela-corpo').innerHTML = linhas.map(function(l){
-    return '<tr>' + COLUNAS_REPARO.map(function(c){
-      var v = c.moeda ? dinheiroBR(l.valor) : (l.item.f[c.id] || '');
-      return '<td class="cel' + (c.dir ? ' dir' : '') + (v ? '' : ' vazio') + '" title="' + esc(v) + '">' +
-             (esc(v) || '—') + '</td>';
-    }).join('') + '</tr>';
-  }).join('');
-
-  el('janela-rodape').innerHTML =
-    '<td colspan="' + (COLUNAS_REPARO.length - 1) + '">Total</td>' +
-    '<td class="dir">' + dinheiroBR(total) + '</td>';
-
-  el('janela-detalhe').classList.remove('oculto');
+function abrirJanelaForaDaGarantia(){
+  abrirJanela({
+    titulo: 'Fora da garantia',
+    colunas: COLUNAS_GARANTIA,
+    vazio: 'Nenhum acionamento com "Não" em Coberto em Garantia no que está na tela.',
+    ordenar: false,                       // sem valor para ordenar: fica na ordem da planilha
+    entra: function(item){
+      return _normalizar2(item.f[DIMS.garantia.id] || '') === 'nao';
+    },
+    resumo: function(linhas){
+      var pecas = somaNaJanela(linhas, 'qtd');
+      return numeroBR(linhas.length) +
+        (linhas.length === 1 ? ' acionamento' : ' acionamentos') +
+        ' não cobertos · ' + numeroBR(pecas) + (pecas === 1 ? ' item' : ' itens');
+    },
+    rodape: function(linhas){
+      return '<td colspan="' + (COLUNAS_GARANTIA.length - 1) + '">Total</td>' +
+             '<td class="dir">' + numeroBR(somaNaJanela(linhas, 'qtd')) + '</td>';
+    }
+  });
 }
 
 function fecharJanela(){ el('janela-detalhe').classList.add('oculto'); }
