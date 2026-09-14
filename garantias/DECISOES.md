@@ -755,3 +755,12 @@ cada vez. O botão **Atualizar** passou a refazer também as listas suspensas.
 formulário (`rotuloSol`); na planilha, na tabela e na edição continua com o
 nome da coluna. "Equipamento Principal" passou a vir logo ao lado dele
 (`VIZINHOS_SOL`), independentemente da ordem das colunas.
+
+## Painel — janela do Valor de reparo
+Clicar no quadro **Valor de reparo** abre uma janela com os acionamentos que
+formam aquele total: UFV (rótulo curto de UFV de Origem), Fornecedor,
+Material/Equipamento, Qtd e Valor Reparo, do maior valor para o menor, com o
+total repetido no rodapé. Só entram as linhas com valor preenchido, e a
+janela respeita filtros, período e as escolhas dos gráficos — o total dela
+sempre bate com o do quadro. Fecha no X, no Esc ou clicando fora.
+Para isso, Material/Equipamento e Qtd entraram no índice leve (`indice: true`).

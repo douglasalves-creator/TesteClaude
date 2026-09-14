@@ -271,6 +271,23 @@ td.cod{font-weight:700;white-space:nowrap;text-align:center}
 .kpi{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);padding:18px 20px;box-shadow:var(--sombra)}
 .kpi .rot{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-3)}
 .kpi .num{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:7px}
+.janela{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  padding:28px 20px;background:rgba(10,15,20,.5)}
+.janela-caixa{background:var(--branco);border-radius:var(--raio);box-shadow:0 24px 64px rgba(10,15,20,.32);
+  width:100%;max-width:1080px;max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.janela-topo{display:flex;align-items:flex-start;gap:16px;padding:20px 24px 16px;border-bottom:1px solid var(--nevoa)}
+.janela-topo h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.janela-sub{margin:4px 0 0;font-size:12.5px;color:var(--tinta-3)}
+.janela-topo .fechar{margin-left:auto}
+.janela-corpo{padding:0;overflow:hidden;display:flex;min-height:0}
+.janela-tabela{max-height:62vh;width:100%}
+.janela-tabela table{width:100%;min-width:640px}
+.janela-tabela th{text-align:left}
+.janela-tabela td.cel{text-align:left;white-space:normal;max-width:none;overflow:visible;text-overflow:clip}
+.janela-tabela td.dir,.janela-tabela th.dir{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.janela-tabela tfoot td{position:sticky;bottom:0;background:var(--sirius);font-weight:700;
+  border-top:1px solid var(--nevoa);white-space:nowrap}
+
 .kpis-valor{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
 .kpi.clicavel{cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
 .kpi.clicavel:hover{border-color:rgba(236,110,45,.55);background:var(--aurora-fraco)}
@@ -911,6 +928,28 @@ td.cel{text-align:center}
     <span class="dica">Só os campos marcados são gravados.</span>
   </div>
 </aside>
+
+<!-- ============ Janela de detalhe (quadros do Painel) ============ -->
+<div class="janela oculto" id="janela-detalhe">
+  <div class="janela-caixa" role="dialog" aria-modal="true" aria-labelledby="janela-titulo">
+    <div class="janela-topo">
+      <div>
+        <h2 id="janela-titulo">—</h2>
+        <p class="janela-sub" id="janela-sub">—</p>
+      </div>
+      <button class="fechar" id="janela-fechar" title="Fechar">&times;</button>
+    </div>
+    <div class="janela-corpo">
+      <div class="tabela-caixa janela-tabela">
+        <table>
+          <thead><tr id="janela-cabecalho"></tr></thead>
+          <tbody id="janela-corpo"></tbody>
+          <tfoot><tr id="janela-rodape"></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="dica-grafico" id="dica-grafico"></div>
 
@@ -2820,12 +2859,14 @@ function montarValores(){
     caixa.appendChild(q);
   }
 
-  /* --- valor de reparo --- */
+  /* --- valor de reparo: um clique abre a lista dos acionamentos --- */
   if (temReparo){
     var q2 = document.createElement('div');
-    q2.className = 'kpi';
+    q2.className = 'kpi clicavel';
     q2.innerHTML = '<div class="rot">Valor de reparo</div>' +
-                   '<div class="num dinheiro">' + dinheiroBR(somarColuna(ID_REPARO)) + '</div>';
+                   '<div class="num dinheiro">' + dinheiroBR(somarColuna(ID_REPARO)) + '</div>' +
+                   '<div class="dica-kpi">Clique para ver os acionamentos</div>';
+    q2.addEventListener('click', abrirJanelaReparo);
     caixa.appendChild(q2);
   }
 
@@ -2856,6 +2897,67 @@ function montarValores(){
 
   caixa.classList.toggle('oculto', !caixa.children.length);
 }
+
+/* ==================================================================
+   Janela do "Valor de reparo"
+   ------------------------------------------------------------------
+   Mostra, linha a linha, de onde vem o total: só os acionamentos que
+   têm Valor Reparo preenchido, respeitando filtros, período e escolhas.
+   ================================================================== */
+var COLUNAS_REPARO = [
+  { id: 'ufv de origem',        rotulo: 'UFV' },
+  { id: 'fornecedor',           rotulo: 'Fornecedor' },
+  { id: 'material/equipamento', rotulo: 'Material/Equipamento' },
+  { id: 'qtd',                  rotulo: 'Qtd',          dir: true },
+  { id: ID_REPARO,              rotulo: 'Valor Reparo', dir: true, moeda: true }
+];
+
+function abrirJanelaReparo(){
+  var linhas = [];
+  var total = 0;
+  LISTA.itens.forEach(function(item){
+    if (!passaNaSelecao(item, null)) return;
+    var n = textoParaNumero(item.f[ID_REPARO] || '');
+    if (n === '' || Number(n) === 0) return;
+    total += Number(n);
+    linhas.push({ item: item, valor: Number(n) });
+  });
+  linhas.sort(function(a, b){ return b.valor - a.valor; });
+
+  el('janela-titulo').textContent = 'Valor de reparo';
+  el('janela-sub').textContent = linhas.length
+    ? numeroBR(linhas.length) + (linhas.length === 1 ? ' acionamento com valor' : ' acionamentos com valor') +
+      ' · total ' + dinheiroBR(total)
+    : 'Nenhum acionamento com valor de reparo no que está na tela.';
+
+  el('janela-cabecalho').innerHTML = COLUNAS_REPARO.map(function(c){
+    return '<th' + (c.dir ? ' class="dir"' : '') + '>' + esc(c.rotulo) + '</th>';
+  }).join('');
+
+  el('janela-corpo').innerHTML = linhas.map(function(l){
+    return '<tr>' + COLUNAS_REPARO.map(function(c){
+      var v = c.moeda ? dinheiroBR(l.valor) : (l.item.f[c.id] || '');
+      return '<td class="cel' + (c.dir ? ' dir' : '') + (v ? '' : ' vazio') + '" title="' + esc(v) + '">' +
+             (esc(v) || '—') + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+
+  el('janela-rodape').innerHTML =
+    '<td colspan="' + (COLUNAS_REPARO.length - 1) + '">Total</td>' +
+    '<td class="dir">' + dinheiroBR(total) + '</td>';
+
+  el('janela-detalhe').classList.remove('oculto');
+}
+
+function fecharJanela(){ el('janela-detalhe').classList.add('oculto'); }
+
+el('janela-fechar').addEventListener('click', fecharJanela);
+el('janela-detalhe').addEventListener('click', function(ev){
+  if (ev.target === this) fecharJanela();       // clicou fora da caixa
+});
+document.addEventListener('keydown', function(ev){
+  if (ev.key === 'Escape' && !el('janela-detalhe').classList.contains('oculto')) fecharJanela();
+});
 
 /** As escolhas ativas, em marcadores que dá para tirar um a um. */
 function desenharSelecoes(){
