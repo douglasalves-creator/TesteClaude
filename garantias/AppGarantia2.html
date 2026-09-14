@@ -1528,12 +1528,33 @@ function hojeISO(){
   return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
 }
 
+/* Pares que devem ficar lado a lado no formulário: o segundo vem logo
+   depois do primeiro, seja qual for a ordem das colunas na planilha. */
+var VIZINHOS_SOL = [['material/equipamento', 'equipamento principal']];
+
+function camposDaSolicitacao(){
+  var lista = INICIO.campos.filter(function(c){ return c.sol; });
+  VIZINHOS_SOL.forEach(function(par){
+    var i = -1, j = -1;
+    lista.forEach(function(c, k){
+      if (c.id === par[0]) i = k;
+      if (c.id === par[1]) j = k;
+    });
+    if (i < 0 || j < 0 || j === i + 1) return;
+    var mover = lista.splice(j, 1)[0];
+    lista.splice(j < i ? i : i + 1, 0, mover);
+  });
+  return lista;
+}
+
 function montarFormulario(){
   var alvo = el('form-solicitacao');
   alvo.innerHTML = '';
-  INICIO.campos.filter(function(c){ return c.sol; }).forEach(function(c){
+  camposDaSolicitacao().forEach(function(c){
     var inicial = (c.tipo === 'data' && c.auto) ? hojeISO() : '';
-    alvo.appendChild(criarCampo(c, inicial, 'sol-'));
+    // no formulário alguns campos têm um nome mais claro que o da planilha
+    var campo = c.rotuloSol ? Object.assign({}, c, { rotulo: c.rotuloSol }) : c;
+    alvo.appendChild(criarCampo(campo, inicial, 'sol-'));
   });
 }
 

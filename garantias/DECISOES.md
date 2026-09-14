@@ -735,3 +735,18 @@ do RNC é independente do de Garantias.
   Script, então não pesa. Só é buscado quando a gaveta abre, no máximo 40
   arquivos. Sem link da pasta na linha, procura a pasta pelo número da RNC.
 - Nº RNC passou a ser a primeira coluna da tabela.
+
+## Aba própria para as listas suspensas
+Existe agora uma aba **Listas** (nome em `CONFIG.ABA_LISTAS`): título da lista
+na linha 1 e os valores abaixo, uma coluna por lista. `CONFIG.LISTAS` diz qual
+título alimenta qual campo — já vem apontando Fornecedores, UFVs,
+Equipamentos, Materiais, Tipos de Acionamento e Responsáveis.
+Ordem de prioridade: **aba Listas → validação da coluna → valores já usados**.
+Coluna que não existir na aba é ignorada, então dá para migrar uma lista de
+cada vez. O botão **Atualizar** passou a refazer também as listas suspensas.
+
+## Formulário de solicitação
+"Material/Equipamento" aparece como **Material/Equipamento Acionado** só no
+formulário (`rotuloSol`); na planilha, na tabela e na edição continua com o
+nome da coluna. "Equipamento Principal" passou a vir logo ao lado dele
+(`VIZINHOS_SOL`), independentemente da ordem das colunas.

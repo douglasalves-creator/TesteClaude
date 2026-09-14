@@ -75,6 +75,22 @@ const CONFIG = {
   LOGO_URL: '',
 
   // ---------------- Anexos no Google Drive ----------------
+  // Aba só com as listas suspensas: a primeira linha é o título da lista e
+  // os valores vêm abaixo, uma coluna por lista. Deixe '' para não usar.
+  // Quem manda é ela: o que estiver aqui vence a validação da coluna.
+  ABA_LISTAS: 'Listas',
+
+  // Qual coluna dessa aba alimenta cada campo (cabeçalho da planilha : título
+  // na aba Listas). O que não existir na aba é simplesmente ignorado.
+  LISTAS: {
+    'Fornecedor': 'Fornecedores',
+    'UFV de Origem': 'UFVs',
+    'Equipamento Principal': 'Equipamentos',
+    'Material/Equipamento': 'Materiais',
+    'Tipo de Acionamento': 'Tipos de Acionamento',
+    'Responsável Atual': 'Responsáveis'
+  },
+
   // Pasta-mãe onde será criada uma subpasta por solicitação, com o nome do
   // SCGAR (ex.: SCGAR-5212). É o trecho depois de /folders/ no endereço.
   PASTA_DRIVE_ID: '1QO87QQHFJflSSnEDr4lr7UgLKHpqfblV',
@@ -164,7 +180,7 @@ const CAMPOS = [
   { cab: 'Tipo de Acionamento',   tipo: 'select', grupo: 'Identificação', lista: true, sol: true, obrig: true, opcoesDaValidacao: true, listaFechada: true , filtro: true },
   { cab: 'UFV de Origem',         tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true , obrig: true },
   { cab: 'Fornecedor',            tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , filtro: true , obrig: true },
-  { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true },
+  { cab: 'Material/Equipamento',  tipo: 'select', grupo: 'Identificação', lista: true, sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true, rotuloSol: 'Material/Equipamento Acionado' },
   { cab: 'Qtd',                   tipo: 'inteiro', grupo: 'Identificação', lista: true, sol: true, obrig: true },
   { cab: 'Motivo Inicial',        tipo: 'area',   grupo: 'Identificação', sol: true, obrig: true },
   { cab: 'Equipamento Principal', tipo: 'select', grupo: 'Identificação', sol: true, opcoesDaValidacao: true, listaFechada: true , obrig: true, indice: true },
@@ -520,6 +536,7 @@ function carregarInicio() {
       id: _idCampo(c),
       cab: c.cab,
       rotulo: c.rotulo || (c.extra ? _rotuloDaColuna(aba, item.col) : c.cab),
+      rotuloSol: c.rotuloSol || '',
       tipo: c.tipo,
       grupo: c.grupo,
       sol: !!c.sol,
@@ -591,12 +608,15 @@ function _opcoesDeCampos(aba, mapa) {
   const ultima = aba.getLastRow();
   const resultado = {};
 
+  const daAbaListas = _listasDaAbaPropria();
+
   CAMPOS.filter(function (c) { return c.opcoesDaValidacao || c.opcoesDaColuna; }).forEach(function (c) {
     const col = _coluna(mapa, c);
     if (!col) return;
 
-    let vals = null;
-    if (c.opcoesDaValidacao) vals = _opcoesDaValidacao(aba, col, primeira, ultima);
+    // 1º a aba de listas, 2º a validação da coluna, 3º o que já foi usado
+    let vals = daAbaListas[_normalizar(c.cab)] || null;
+    if (!vals && c.opcoesDaValidacao) vals = _opcoesDaValidacao(aba, col, primeira, ultima);
 
     if (vals && vals.length) {
       resultado[_idCampo(c)] = { vals: vals, fixo: true };
@@ -613,6 +633,42 @@ function _opcoesDeCampos(aba, mapa) {
 
   _cacheGravar(chave, JSON.stringify(resultado), CONFIG.CACHE_OPCOES_SEG);
   return resultado;
+}
+
+/**
+ * Lê a aba própria de listas: título na linha 1, valores abaixo.
+ * Devolve { 'nome do campo normalizado': [valores] }.
+ */
+function _listasDaAbaPropria() {
+  const saida = {};
+  if (!CONFIG.ABA_LISTAS) return saida;
+
+  let aba;
+  try { aba = _abrirPlanilha().getSheetByName(CONFIG.ABA_LISTAS); } catch (e) { aba = null; }
+  if (!aba) return saida;
+
+  const ultima = aba.getLastRow();
+  const largura = aba.getLastColumn();
+  if (ultima < 2 || largura < 1) return saida;
+
+  const dados = aba.getRange(1, 1, ultima, largura).getDisplayValues();
+  const porTitulo = {};
+  dados[0].forEach(function (titulo, i) {
+    const t = _normalizar(titulo);
+    if (!t) return;
+    const vals = [];
+    for (let l = 1; l < dados.length; l++) {
+      const v = String(dados[l][i] || '').trim();
+      if (v) vals.push(v);
+    }
+    if (vals.length) porTitulo[t] = _limparLista(vals);
+  });
+
+  Object.keys(CONFIG.LISTAS || {}).forEach(function (campo) {
+    const lista = porTitulo[_normalizar(CONFIG.LISTAS[campo])];
+    if (lista && lista.length) saida[_normalizar(campo)] = lista;
+  });
+  return saida;
 }
 
 /** Lê a lista suspensa configurada na coluna, seja fixa ou vinda de outra aba. */
@@ -693,6 +749,10 @@ function listarProcessos(forcar) {
     if (guardado) {
       try { return JSON.parse(guardado); } catch (e) { /* segue e recalcula */ }
     }
+  } else {
+    // "Atualizar" também refaz as listas suspensas — é o que a pessoa espera
+    // depois de mexer na aba Listas ou na validação de uma coluna.
+    _cacheLimpar('gar_opcoes_v2');
   }
 
   const aba = _aba();
