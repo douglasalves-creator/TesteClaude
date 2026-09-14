@@ -615,7 +615,7 @@ function _opcoesDeCampos(aba, mapa) {
     if (!col) return;
 
     // 1º a aba de listas, 2º a validação da coluna, 3º o que já foi usado
-    let vals = daAbaListas[_normalizar(c.cab)] || null;
+    let vals = _listaDoCampo(daAbaListas, c);
     if (!vals && c.opcoesDaValidacao) vals = _opcoesDaValidacao(aba, col, primeira, ultima);
 
     if (vals && vals.length) {
@@ -637,22 +637,21 @@ function _opcoesDeCampos(aba, mapa) {
 
 /**
  * Lê a aba própria de listas: título na linha 1, valores abaixo.
- * Devolve { 'nome do campo normalizado': [valores] }.
+ * Devolve { 'título normalizado': [valores] } — uma entrada por coluna.
  */
 function _listasDaAbaPropria() {
-  const saida = {};
-  if (!CONFIG.ABA_LISTAS) return saida;
+  const porTitulo = {};
+  if (!CONFIG.ABA_LISTAS) return porTitulo;
 
   let aba;
   try { aba = _abrirPlanilha().getSheetByName(CONFIG.ABA_LISTAS); } catch (e) { aba = null; }
-  if (!aba) return saida;
+  if (!aba) return porTitulo;
 
   const ultima = aba.getLastRow();
   const largura = aba.getLastColumn();
-  if (ultima < 2 || largura < 1) return saida;
+  if (ultima < 2 || largura < 1) return porTitulo;
 
   const dados = aba.getRange(1, 1, ultima, largura).getDisplayValues();
-  const porTitulo = {};
   dados[0].forEach(function (titulo, i) {
     const t = _normalizar(titulo);
     if (!t) return;
@@ -663,12 +662,19 @@ function _listasDaAbaPropria() {
     }
     if (vals.length) porTitulo[t] = _limparLista(vals);
   });
+  return porTitulo;
+}
 
-  Object.keys(CONFIG.LISTAS || {}).forEach(function (campo) {
-    const lista = porTitulo[_normalizar(CONFIG.LISTAS[campo])];
-    if (lista && lista.length) saida[_normalizar(campo)] = lista;
-  });
-  return saida;
+/**
+ * Qual coluna da aba Listas alimenta este campo. Procura, nesta ordem:
+ *   1) o título apontado em CONFIG.LISTAS;
+ *   2) uma coluna com o mesmo nome do cabeçalho do campo.
+ * Assim, acrescentar uma coluna na aba Listas já basta, mesmo sem mexer aqui.
+ */
+function _listaDoCampo(porTitulo, campo) {
+  const apontado = (CONFIG.LISTAS || {})[campo.cab];
+  if (apontado && porTitulo[_normalizar(apontado)]) return porTitulo[_normalizar(apontado)];
+  return porTitulo[_normalizar(campo.cab)] || null;
 }
 
 /** Lê a lista suspensa configurada na coluna, seja fixa ou vinda de outra aba. */

@@ -742,6 +742,11 @@ na linha 1 e os valores abaixo, uma coluna por lista. `CONFIG.LISTAS` diz qual
 título alimenta qual campo — já vem apontando Fornecedores, UFVs,
 Equipamentos, Materiais, Tipos de Acionamento e Responsáveis.
 Ordem de prioridade: **aba Listas → validação da coluna → valores já usados**.
+Além do título apontado em `CONFIG.LISTAS`, também vale uma coluna cujo título
+seja igual ao **cabeçalho do próprio campo** — então dá para acrescentar uma
+lista nova só criando a coluna, sem mexer no código. A busca ignora acento,
+maiúscula e espaço sobrando, e a ordem das opções é a mesma da aba (não é
+reordenada).
 Coluna que não existir na aba é ignorada, então dá para migrar uma lista de
 cada vez. O botão **Atualizar** passou a refazer também as listas suspensas.
 
