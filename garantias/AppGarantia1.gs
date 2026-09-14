@@ -69,7 +69,7 @@ const CONFIG = {
 
   // Quantos acionamentos por página no módulo Processos.
   POR_PAGINA: 100,
-  CACHE_OPCOES_SEG: 21600,
+  CACHE_OPCOES_SEG: 1800,
 
   // Endereço de uma imagem do logo (PNG/SVG público). Vazio = usa o nome escrito.
   LOGO_URL: '',
@@ -294,6 +294,30 @@ function _aba() {
   }
   return aba;
 }
+
+/**
+ * As chaves do cache carregam uma "impressão digital" do que elas guardam.
+ * Se mudar o que vai no índice ou de onde vêm as listas, a chave muda junto e
+ * o que estava guardado no formato antigo é ignorado na hora — sem precisar
+ * esperar o tempo do cache nem clicar em Atualizar.
+ */
+function _digital(texto) {
+  let h = 5381;
+  const t = String(texto);
+  for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+const CHAVE_LISTA = 'gar_lista_' + _digital(
+  CAMPOS.filter(function (c) { return c.filtro || c.indice; })
+        .map(function (c) { return c.cab + (c.ocor || ''); }).join('|')
+);
+
+const CHAVE_OPCOES = 'gar_opcoes_' + _digital(
+  JSON.stringify(CONFIG.LISTAS || {}) + '#' + CONFIG.ABA_LISTAS + '#' +
+  CAMPOS.filter(function (c) { return c.opcoesDaValidacao || c.opcoesDaColuna; })
+        .map(function (c) { return c.cab; }).join('|')
+);
 
 /** Deixa o texto comparável: sem acento, sem maiúscula, sem espaço sobrando. */
 function _normalizar(texto) {
@@ -598,7 +622,7 @@ function carregarInicio() {
  * Se a coluna não tiver regra, cai para os valores já digitados nela.
  */
 function _opcoesDeCampos(aba, mapa) {
-  const chave = 'gar_opcoes_v2';
+  const chave = CHAVE_OPCOES;
   const guardado = _cacheLer(chave);
   if (guardado) {
     try { return JSON.parse(guardado); } catch (e) { /* segue e recalcula */ }
@@ -749,7 +773,7 @@ function _valoresJaUsados(aba, col, primeira, ultima) {
  * buscado depois, por paginaProcessos(), já filtrado.
  */
 function listarProcessos(forcar) {
-  const chave = 'gar_lista_v4';
+  const chave = CHAVE_LISTA;
   if (!forcar) {
     const guardado = _cacheLer(chave);
     if (guardado) {
@@ -758,7 +782,7 @@ function listarProcessos(forcar) {
   } else {
     // "Atualizar" também refaz as listas suspensas — é o que a pessoa espera
     // depois de mexer na aba Listas ou na validação de uma coluna.
-    _cacheLimpar('gar_opcoes_v2');
+    _cacheLimpar(CHAVE_OPCOES);
   }
 
   const aba = _aba();
@@ -998,7 +1022,7 @@ function salvarLote(linhas, alteracoes) {
       }
     });
 
-    if (celulas) _cacheLimpar('gar_lista_v4');
+    if (celulas) _cacheLimpar(CHAVE_LISTA);
     SpreadsheetApp.flush();
     _registrarAuditoria('Edição em lote', registro);
 
@@ -1176,7 +1200,7 @@ function salvarProcesso(linha, scgarEsperado, alteracoes) {
       };
     });
 
-    if (gravados) _cacheLimpar('gar_lista_v4');
+    if (gravados) _cacheLimpar(CHAVE_LISTA);
     SpreadsheetApp.flush();
     _registrarAuditoria('Edição', registro);
 
@@ -1333,8 +1357,8 @@ function criarSolicitacao(dados, arquivos) {
     });
 
     SpreadsheetApp.flush();
-    _cacheLimpar('gar_lista_v4');
-    _cacheLimpar('gar_opcoes_v2');
+    _cacheLimpar(CHAVE_LISTA);
+    _cacheLimpar(CHAVE_OPCOES);
 
     // Registra a abertura em UMA linha só
     _registrarAuditoria('Solicitação', [{

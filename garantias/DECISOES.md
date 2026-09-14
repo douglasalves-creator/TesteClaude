@@ -764,3 +764,13 @@ total repetido no rodapé. Só entram as linhas com valor preenchido, e a
 janela respeita filtros, período e as escolhas dos gráficos — o total dela
 sempre bate com o do quadro. Fecha no X, no Esc ou clicando fora.
 Para isso, Material/Equipamento e Qtd entraram no índice leve (`indice: true`).
+
+## Cache com impressão digital
+As chaves do cache passaram a carregar uma marca do próprio conteúdo
+(`CHAVE_LISTA`, `CHAVE_OPCOES`): se mudar o que vai no índice leve ou de onde
+vêm as listas suspensas, a chave muda junto e o que estava guardado no
+formato antigo é ignorado na hora. Antes, uma coluna nova no índice ficava
+vazia na tela por até 30 minutos (e uma lista nova, por até 6 horas) até o
+cache vencer ou alguém clicar em Atualizar — foi o que aconteceu com
+Material/Equipamento e Qtd na janela do Valor de reparo.
+O cache das listas também caiu de 6 horas para 30 minutos.
