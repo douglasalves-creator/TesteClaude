@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controle de Fretes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Cores da empresa: troque os valores abaixo. */
+  :root{
+    --ink:#16191c; --ink-2:#4a5158; --ink-3:#7d858c;
+    --paper:#fff; --canvas:#f1f2ef; --line:#dfe2dc; --line-2:#eef0ec;
+    --pick:#12513c; --pick-soft:#e6efea;
+    --save:#7a5300; --save-soft:#fdf3dd;
+    --alert:#8c2f22; --alert-soft:#fdeeec;
+    --info:#1f4e79; --info-soft:#e8eff6;
+    --sans:"IBM Plex Sans",-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--canvas); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1300px; margin:0 auto; padding:0 20px 60px}
+
+  header.top{background:var(--ink); color:#fff; padding:16px 0 0}
+  .top-in{max-width:1300px; margin:0 auto; padding:0 20px; display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap}
+  .top h1{margin:0; font-size:17px; font-weight:600}
+  .top p{margin:2px 0 0; font-size:12.5px; color:#a8b0b6}
+  .top-right{display:flex; align-items:center; gap:12px; font-size:12px; color:#a8b0b6}
+  .tabs{max-width:1300px; margin:14px auto 0; padding:0 20px; display:flex; gap:2px}
+  .tab{background:transparent; border:0; border-bottom:2px solid transparent; color:#a8b0b6; padding:10px 16px; font-weight:500; font-size:13.5px; border-radius:6px 6px 0 0}
+  .tab:hover{color:#fff; background:#252b30}
+  .tab.on{color:#fff; border-bottom-color:#fff; background:#252b30}
+  .tab .badge{display:inline-block; margin-left:7px; font-family:var(--mono); font-size:11px; background:#3b4247; color:#fff; border-radius:999px; padding:1px 7px}
+
+  button{font-family:inherit; font-size:inherit; cursor:pointer}
+  .btn{border:1px solid var(--line); background:var(--paper); color:var(--ink); padding:8px 14px; border-radius:8px; font-weight:500; transition:background .15s}
+  .btn:hover{background:var(--line-2)}
+  .btn-ghost{background:transparent; border-color:#3b4247; color:#fff}
+  .btn-ghost:hover{background:#252b30}
+  .btn-pick{background:var(--pick); border-color:var(--pick); color:#fff; font-weight:600}
+  .btn-pick:hover{background:#0d3f2e}
+  .btn-pick:disabled,.btn:disabled{background:#cfd4ce; border-color:#cfd4ce; color:#8c9490; cursor:not-allowed}
+  .btn-sm{padding:5px 11px; font-size:12.5px}
+  :focus-visible{outline:2px solid var(--pick); outline-offset:2px}
+
+  .panel{background:var(--paper); border:1px solid var(--line); border-radius:10px; box-shadow:0 1px 2px rgba(20,24,28,.06); overflow:hidden}
+  .panel > .hd{padding:13px 16px; border-bottom:1px solid var(--line-2); display:flex; gap:12px; align-items:baseline; flex-wrap:wrap}
+  .panel > .hd h2{margin:0; font-size:14px; font-weight:600}
+  .panel > .hd .hint{font-size:12px; color:var(--ink-3)}
+  .panel > .bd{padding:16px}
+  .label{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); margin:0 0 10px}
+
+  /* ---------- formulário ---------- */
+  form .sect{margin-bottom:22px}
+  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:12px}
+  .f{display:flex; flex-direction:column; gap:5px; grid-column:span 4}
+  .f.sm{grid-column:span 2} .f.md{grid-column:span 3} .f.lg{grid-column:span 6} .f.full{grid-column:span 12}
+  .f label{font-size:12px; font-weight:500; color:var(--ink-2)}
+  .f label .req{color:var(--alert)}
+  .f input,.f select,.f textarea{font-family:inherit; font-size:13.5px; color:var(--ink); background:var(--paper);
+    border:1px solid var(--line); border-radius:7px; padding:8px 10px; width:100%}
+  .f textarea{resize:vertical; min-height:70px}
+  .f input:focus,.f select:focus,.f textarea:focus{border-color:var(--pick); outline:none; box-shadow:0 0 0 2px var(--pick-soft)}
+  .f.bad input,.f.bad select,.f.bad textarea{border-color:var(--alert); background:#fffafa}
+  .f .tip{font-size:11px; color:var(--ink-3)}
+  .formfoot{display:flex; gap:12px; align-items:center; flex-wrap:wrap; border-top:1px solid var(--line-2); padding-top:14px}
+  .formfoot .sum{margin-right:auto; font-size:12.5px; color:var(--ink-3)}
+
+  /* ---------- tabelas ---------- */
+  .scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table{width:100%; border-collapse:collapse; min-width:980px}
+  th{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600; text-align:left; padding:10px 12px; background:#f7f8f5; border-bottom:1px solid var(--line); white-space:nowrap}
+  th.sortable{cursor:pointer} th.sortable:hover{color:var(--ink)}
+  td{padding:11px 12px; border-bottom:1px solid var(--line-2); font-size:13px; vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr.row{cursor:pointer}
+  tbody tr.row:hover{background:#fbfcfa}
+  td.num,th.num{text-align:right; font-family:var(--mono); white-space:nowrap}
+  td.code{font-family:var(--mono); font-weight:500; white-space:nowrap}
+  td.act{text-align:right; white-space:nowrap}
+  .sub{font-size:11.5px; color:var(--ink-3); margin-top:3px}
+  .dash{color:var(--ink-3)}
+
+  .pill{display:inline-block; font-size:11.5px; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap; border:1px solid transparent}
+  .pill.s-solicitado{background:#eef0ec; color:var(--ink-2); border-color:var(--line)}
+  .pill.s-emcotacao{background:var(--info-soft); color:var(--info); border-color:#cadcea}
+  .pill.s-aguardandoaprovacao{background:var(--save-soft); color:var(--save); border-color:#f0dfb4}
+  .pill.s-aprovado{background:var(--pick-soft); color:var(--pick); border-color:#c6dcd0}
+  .pill.s-emprogramacao{background:var(--pick-soft); color:var(--pick); border-color:#c6dcd0}
+  .pill.s-emtransito{background:var(--info-soft); color:var(--info); border-color:#cadcea}
+  .pill.s-entregue{background:var(--pick); color:#fff}
+  .pill.s-cancelado{background:#eceded; color:var(--ink-3); border-color:var(--line); text-decoration:line-through}
+  .pill.late{background:var(--alert-soft); color:var(--alert); border-color:#f2cfc9}
+  .pill.prio{background:var(--alert-soft); color:var(--alert); border-color:#f2cfc9}
+  .pill.prio.u{background:var(--save-soft); color:var(--save); border-color:#f0dfb4}
+
+  /* ---------- filtros ---------- */
+  .filters{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px}
+  .filters .f{grid-column:auto; min-width:150px}
+  .filters .f.search{min-width:260px; flex:1}
+  .chk{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-2); padding-bottom:9px}
+  .chk input{width:15px; height:15px}
+
+  /* ---------- painel ---------- */
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:12px; margin-bottom:18px}
+  .kpi{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px 16px}
+  .kpi .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+  .kpi .v{font-family:var(--mono); font-size:25px; font-weight:600; margin-top:6px; line-height:1.1}
+  .kpi .d{font-size:11.5px; color:var(--ink-3); margin-top:4px}
+  .kpi.warn .v{color:var(--alert)}
+  .kpi.good .v{color:var(--pick)}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start}
+  .cols.three{grid-template-columns:1fr 1fr 1fr}
+  .bars{display:flex; flex-direction:column; gap:9px}
+  .bar{display:grid; grid-template-columns:150px 1fr 54px; gap:10px; align-items:center; font-size:12.5px}
+  .bar .nm{color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bar .tr{background:var(--line-2); border-radius:5px; height:16px; overflow:hidden}
+  .bar .fl{background:var(--pick); height:100%; border-radius:5px; min-width:2px; transition:width .3s}
+  .bar .fl.muted{background:#b9c2bc}
+  .bar .fl.bad{background:var(--alert)}
+  .bar .vl{font-family:var(--mono); font-size:12.5px; text-align:right}
+  .mini{font-size:12.5px}
+  .mini li{margin-bottom:7px; display:flex; gap:8px; justify-content:space-between}
+  .mini ul{list-style:none; margin:0; padding:0}
+  .mini .nm{color:var(--ink-2)}
+  .mini .vl{font-family:var(--mono); white-space:nowrap}
+
+  .state{text-align:center; padding:56px 20px; color:var(--ink-2)}
+  .state h3{margin:0 0 8px; font-size:16px; color:var(--ink)}
+  .state p{margin:0 auto; font-size:13px; max-width:560px}
+  .spinner{width:26px; height:26px; border:2.5px solid var(--line); border-top-color:var(--ink); border-radius:50%; margin:0 auto 14px; animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- modal ---------- */
+  .scrim{position:fixed; inset:0; background:rgba(20,24,28,.5); display:none; z-index:50; padding:24px}
+  .scrim.on{display:flex; align-items:center; justify-content:center}
+  .modal{background:var(--canvas); border-radius:12px; max-width:940px; width:100%; max-height:calc(100vh - 48px);
+         display:flex; flex-direction:column; box-shadow:0 24px 60px -20px rgba(0,0,0,.5); overflow:hidden}
+  .modal > header{background:var(--ink); color:#fff; padding:14px 18px; display:flex; align-items:center; gap:14px; flex:0 0 auto}
+  .modal > header h2{margin:0; font-size:15px; font-weight:600; font-family:var(--mono)}
+  .modal > header .who{font-size:12px; color:#a8b0b6; margin-top:2px}
+  .modal > header .x{margin-left:auto; background:transparent; border:0; color:#fff; font-size:20px; line-height:1; padding:4px 8px; border-radius:6px}
+  .modal > header .x:hover{background:#2b3237}
+  .modal .content{padding:18px; overflow-y:auto; flex:1 1 auto}
+  .modal > footer{background:var(--paper); border-top:1px solid var(--line); padding:14px 18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; flex:0 0 auto}
+  .modal > footer .sum{margin-right:auto; font-size:12.5px; color:var(--ink-3)}
+  .modal .panel{margin-bottom:16px}
+  .dl{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px 18px}
+  .dl div{min-width:0}
+  .dl dt{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+  .dl dd{margin:2px 0 0; font-size:13px; word-break:break-word}
+  .tl{list-style:none; margin:0; padding:0; font-size:12.5px}
+  .tl li{border-left:2px solid var(--line); padding:0 0 12px 12px; position:relative}
+  .tl li:last-child{padding-bottom:0}
+  .tl li::before{content:""; position:absolute; left:-5px; top:5px; width:8px; height:8px; border-radius:50%; background:var(--ink-3)}
+  .tl .w{font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+  .tl .m{margin-top:2px}
+  .tl .o{color:var(--ink-2); margin-top:2px}
+
+  .toast{position:fixed; left:50%; bottom:26px; transform:translate(-50%,20px); background:var(--ink); color:#fff; padding:11px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; z-index:60; max-width:90vw}
+  .toast.on{opacity:1; transform:translate(-50%,0)}
+  .toast.bad{background:var(--alert)}
+  .hide{display:none !important}
+
+  @media (max-width:980px){ .cols,.cols.three{grid-template-columns:1fr} .f,.f.sm,.f.md,.f.lg{grid-column:span 6} }
+  @media (max-width:620px){ .f,.f.sm,.f.md,.f.lg{grid-column:span 12} .scrim{padding:8px} .bar{grid-template-columns:110px 1fr 46px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div>
+      <h1>Controle de Fretes</h1>
+      <p id="sub-aba">Solicitação, acompanhamento e indicadores — na aba de controle da planilha.</p>
+    </div>
+    <div class="top-right">
+      <span id="quem">—</span>
+      <button class="btn btn-ghost btn-sm" id="reload">Atualizar</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab on" data-view="form">Formulário</button>
+    <button class="tab" data-view="proc">Processos <span class="badge" id="badge-proc">—</span></button>
+    <button class="tab" data-view="painel">Painel</button>
+  </nav>
+</header>
+
+<div class="wrap">
+
+  <div id="boot" class="state" style="padding-top:70px">
+    <div class="spinner"></div>
+    <p>Lendo a aba de controle…</p>
+  </div>
+
+  <div id="aviso-cols" class="hide" style="margin-top:18px">
+    <div class="panel" style="border-color:#f0dfb4; background:var(--save-soft)">
+      <div class="bd" style="font-size:12.5px; color:var(--save)">
+        <b>Colunas não encontradas na aba:</b> <span id="aviso-cols-lista"></span>.
+        O sistema continua funcionando, mas esses dados não serão gravados.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ FORMULÁRIO ============================ -->
+  <section id="v-form" class="hide" style="padding-top:22px">
+    <div class="panel">
+      <div class="hd">
+        <h2>Nova solicitação de frete</h2>
+        <span class="hint">Campos com <span style="color:#8c2f22">*</span> são obrigatórios. A RFQ é gerada automaticamente e a linha entra com status “Solicitado”.</span>
+      </div>
+      <div class="bd">
+        <form id="form" novalidate>
+
+          <div class="sect">
+            <p class="label">Solicitante</p>
+            <div class="grid">
+              <div class="f" data-k="solicitante"><label>Nome do solicitante</label><input name="solicitante" maxlength="80"><span class="tip">Registrado no histórico da RFQ.</span></div>
+              <div class="f md" data-k="setor"><label>Setor solicitante <span class="req">*</span></label><select name="setor"></select></div>
+              <div class="f md" data-k="centroCusto"><label>Centro de custo</label><input name="centroCusto" maxlength="60"></div>
+              <div class="f lg" data-k="empresa"><label>Empresa / UFV (tomador)</label><input name="empresa" list="dl-empresas" maxlength="120" placeholder="Ex.: Autogeração Solar Correntina LTDA"><datalist id="dl-empresas"></datalist></div>
+              <div class="f md" data-k="motivo"><label>Motivo do frete <span class="req">*</span></label><select name="motivo"></select></div>
+              <div class="f md" data-k="modalidade"><label>Modalidade <span class="req">*</span></label><select name="modalidade"></select></div>
+              <div class="f md" data-k="tipoFrete"><label>Tipo de frete</label><select name="tipoFrete"></select></div>
+              <div class="f md" data-k="previsaoEntrega"><label>Entrega necessária</label><input name="previsaoEntrega" type="date"></div>
+            </div>
+          </div>
+
+          <div class="sect">
+            <p class="label">Material a ser transportado</p>
+            <div class="grid">
+              <div class="f lg" data-k="material"><label>Material <span class="req">*</span></label><input name="material" maxlength="200" placeholder="Ex.: INVERSOR SG250HX SUNGROW"></div>
+              <div class="f md" data-k="especificacao"><label>Especificação / Série</label><input name="especificacao" maxlength="120"></div>
+              <div class="f sm" data-k="qtde"><label>Qtde solicitada <span class="req">*</span></label><input name="qtde" maxlength="20"></div>
+              <div class="f sm" data-k="tipoVolume"><label>Tipo de volume</label><select name="tipoVolume"></select></div>
+              <div class="f sm" data-k="qtdeVolume"><label>Qtde de volume</label><input name="qtdeVolume" maxlength="20"></div>
+              <div class="f md" data-k="dimensoes"><label>Dimensões unitárias</label><input name="dimensoes" maxlength="80" placeholder="1.148mm x 779mm x 371mm"></div>
+              <div class="f sm" data-k="m3"><label>M³ total</label><input name="m3" inputmode="decimal"></div>
+              <div class="f sm" data-k="peso"><label>Peso total (kg)</label><input name="peso" inputmode="decimal"></div>
+              <div class="f sm" data-k="ncm"><label>NCM</label><input name="ncm" maxlength="20"></div>
+              <div class="f md" data-k="valorUnitario"><label>Valor unitário (R$)</label><input name="valorUnitario" inputmode="decimal"></div>
+              <div class="f md" data-k="valorNF"><label>Valor da NF (R$)</label><input name="valorNF" inputmode="decimal"><span class="tip">Base do ad valorem.</span></div>
+              <div class="f md" data-k="nf"><label>NF / Tíquete / RMA</label><input name="nf" maxlength="60"></div>
+            </div>
+          </div>
+
+          <div class="sect">
+            <p class="label">Origem × Destino</p>
+            <div class="grid">
+              <div class="f lg" data-k="origem"><label>Origem <span class="req">*</span></label><input name="origem" list="dl-locais" maxlength="140" placeholder="Usina, fornecedor ou CD"><datalist id="dl-locais"></datalist></div>
+              <div class="f md" data-k="cnpjOrigem"><label>CNPJ de origem</label><input name="cnpjOrigem" maxlength="24"></div>
+              <div class="f md" data-k="linkOrigem"><label>Link coordenadas origem</label><input name="linkOrigem" maxlength="200"></div>
+              <div class="f full" data-k="enderecoOrigem"><label>Endereço de origem</label><input name="enderecoOrigem" maxlength="250"></div>
+              <div class="f lg" data-k="destino"><label>Destino <span class="req">*</span></label><input name="destino" list="dl-locais" maxlength="140"></div>
+              <div class="f md" data-k="cnpjDestino"><label>CNPJ de destino</label><input name="cnpjDestino" maxlength="24"></div>
+              <div class="f md" data-k="linkDestino"><label>Link coordenadas destino</label><input name="linkDestino" maxlength="200"></div>
+              <div class="f full" data-k="enderecoDestino"><label>Endereço de destino</label><input name="enderecoDestino" maxlength="250"></div>
+              <div class="f md" data-k="km"><label>Total de KM</label><input name="km" inputmode="decimal"></div>
+            </div>
+          </div>
+
+          <div class="sect">
+            <p class="label">Justificativa</p>
+            <div class="grid">
+              <div class="f full" data-k="justificativa"><label>Justificativa do frete / observações</label><textarea name="justificativa" maxlength="800" placeholder="Restrição de horário, contato na obra, necessidade de munck, urgência…"></textarea></div>
+            </div>
+          </div>
+
+          <div class="formfoot">
+            <span class="sum" id="form-msg">A linha é criada no fim da aba, com RFQ nova e status “Solicitado”.</span>
+            <button type="button" class="btn" id="form-clear">Limpar</button>
+            <button type="submit" class="btn btn-pick" id="form-send">Enviar solicitação</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ PROCESSOS ============================ -->
+  <section id="v-proc" class="hide" style="padding-top:22px">
+    <div class="filters">
+      <div class="f search"><label>Buscar</label><input id="fx-busca" placeholder="RFQ, material, origem, destino, transportadora, NF…"></div>
+      <div class="f"><label>Status</label><select id="fx-status"><option value="">Todos</option></select></div>
+      <div class="f"><label>Setor</label><select id="fx-setor"><option value="">Todos</option></select></div>
+      <div class="f"><label>Motivo</label><select id="fx-motivo"><option value="">Todos</option></select></div>
+      <div class="f"><label>Ano</label><select id="fx-ano"><option value="">Todos</option></select></div>
+      <label class="chk"><input type="checkbox" id="fx-abertos" checked> Só em aberto</label>
+      <label class="chk"><input type="checkbox" id="fx-atraso"> Só atrasadas</label>
+      <label class="chk"><input type="checkbox" id="fx-semtr"> Sem transportadora</label>
+    </div>
+    <div class="panel">
+      <div class="hd">
+        <h2>Processos</h2>
+        <span class="hint" id="proc-cnt">—</span>
+      </div>
+      <div class="scroll">
+        <table id="tbl">
+          <thead><tr>
+            <th class="sortable" data-s="rfqNum">RFQ</th>
+            <th class="sortable" data-s="dataSolicitacao">Solicitado</th>
+            <th>Setor / Motivo</th>
+            <th>Material</th>
+            <th>Trecho</th>
+            <th class="sortable" data-s="previsaoEntrega">Prazo</th>
+            <th>Transportadora</th>
+            <th class="num sortable" data-s="valorAprovado">All In</th>
+            <th class="sortable" data-s="status">Status</th>
+            <th class="act"></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="proc-vazio" class="state hide">
+        <h3>Nada por aqui</h3>
+        <p>Nenhuma RFQ bate com os filtros atuais.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== PAINEL ============================== -->
+  <section id="v-painel" class="hide" style="padding-top:22px">
+    <div class="kpis" id="kpis"></div>
+    <div class="cols" style="margin-bottom:14px">
+      <div class="panel"><div class="hd"><h2>Carteira por status</h2><span class="hint">Status da SC</span></div>
+        <div class="bd"><div class="bars" id="bar-status"></div></div></div>
+      <div class="panel"><div class="hd"><h2>Motivo do frete</h2></div>
+        <div class="bd"><div class="bars" id="bar-motivo"></div></div></div>
+    </div>
+    <div class="cols three" style="margin-bottom:14px">
+      <div class="panel"><div class="hd"><h2>Demanda por setor</h2></div>
+        <div class="bd"><div class="bars" id="bar-setor"></div></div></div>
+      <div class="panel"><div class="hd"><h2>Solicitações por mês</h2></div>
+        <div class="bd"><div class="bars" id="bar-mes"></div></div></div>
+      <div class="panel"><div class="hd"><h2>Modalidade</h2></div>
+        <div class="bd"><div class="bars" id="bar-modal"></div></div></div>
+    </div>
+    <div class="cols" style="margin-bottom:14px">
+      <div class="panel"><div class="hd"><h2>Rotas mais usadas</h2></div>
+        <div class="bd mini"><ul id="lst-rotas"></ul></div></div>
+      <div class="panel"><div class="hd"><h2>Gasto por transportadora</h2><span class="hint">valor All In aprovado</span></div>
+        <div class="bd mini"><ul id="lst-transp"></ul></div></div>
+    </div>
+    <div class="cols">
+      <div class="panel"><div class="hd"><h2>Atrasos</h2><span class="hint" id="hint-atraso">—</span></div>
+        <div class="bd mini"><ul id="lst-atraso"></ul></div></div>
+      <div class="panel"><div class="hd"><h2>Parados</h2><span class="hint" id="hint-parada">—</span></div>
+        <div class="bd mini"><ul id="lst-parada"></ul></div></div>
+    </div>
+  </section>
+</div>
+
+<!-- =============================== MODAL =============================== -->
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-id">
+    <header>
+      <div>
+        <h2 id="m-id">—</h2>
+        <div class="who" id="m-sub">—</div>
+      </div>
+      <button class="x" id="m-close" aria-label="Fechar">&times;</button>
+    </header>
+    <div class="content">
+      <div class="panel">
+        <div class="hd"><h2>Dados da solicitação</h2><span class="hint" id="m-linha"></span></div>
+        <div class="bd"><div class="dl" id="m-dl"></div></div>
+      </div>
+      <div class="panel">
+        <div class="hd"><h2>Andamento do processo</h2><span class="hint">o que mudar aqui é gravado na linha da planilha</span></div>
+        <div class="bd">
+          <div class="grid">
+            <div class="f md"><label>Status da SC</label><select id="m-status"></select></div>
+            <div class="f md"><label>Rota</label><input id="m-rota" maxlength="40" placeholder="Ex.: ROTA-010"></div>
+            <div class="f md"><label>Transportadora aprovada</label><input id="m-transp" list="dl-transp" maxlength="120"><datalist id="dl-transp"></datalist></div>
+            <div class="f md"><label>Valor All In (R$)</label><input id="m-valor" inputmode="decimal"></div>
+            <div class="f md"><label>Veículo</label><select id="m-veiculo"></select></div>
+            <div class="f md"><label>Data de coleta</label><input id="m-coleta" type="date"></div>
+            <div class="f md"><label>Previsão de entrega</label><input id="m-previsao" type="date"></div>
+            <div class="f md"><label>Data da entrega</label><input id="m-entrega" type="date"></div>
+            <div class="f md"><label>Nome do motorista</label><input id="m-motorista" maxlength="80"></div>
+            <div class="f md"><label>Placa</label><input id="m-placa" maxlength="20"></div>
+            <div class="f md"><label>CTE</label><input id="m-cte" maxlength="40"></div>
+            <div class="f md"><label>Centro de custo</label><input id="m-cc" maxlength="60"></div>
+            <div class="f md"><label>Status de pagamento</label><select id="m-pgto"></select></div>
+            <div class="f full"><label>Justificativa / observações</label><textarea id="m-just" maxlength="800"></textarea></div>
+            <div class="f full"><label>Comentário desta atualização</label><input id="m-coment" maxlength="200" placeholder="Fica no histórico (opcional)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="hd"><h2>Histórico</h2><span class="hint">alterações feitas por este sistema</span></div>
+        <div class="bd"><ul class="tl" id="m-tl"><li><span class="w">carregando…</span></li></ul></div>
+      </div>
+    </div>
+    <footer>
+      <span class="sum" id="m-msg"></span>
+      <button class="btn" id="m-cancel">Fechar</button>
+      <button class="btn btn-pick" id="m-save">Salvar alterações</button>
+    </footer>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================================================================== */
+/* Estado                                                               */
+/* ==================================================================== */
+var DADOS = { itens: [], resumo: null, opcoes: null, usuario: null };
+var ORD = { campo: 'rfqNum', desc: true };
+var ABERTO = null;
+
+var $ = function (s, base) { return (base || document).querySelector(s); };
+var $$ = function (s, base) { return Array.prototype.slice.call((base || document).querySelectorAll(s)); };
+
+function esc(v){
+  return String(v === null || v === undefined ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function moeda(n){
+  if (n === null || n === undefined || n === '' || isNaN(n)) return '—';
+  return Number(n).toLocaleString('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:2});
+}
+function moedaCurta(n){
+  if (!n) return 'R$ 0';
+  if (Math.abs(n) >= 1000000) return 'R$ ' + (n/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' mi';
+  if (Math.abs(n) >= 1000) return 'R$ ' + (n/1000).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' mil';
+  return moeda(n);
+}
+function dataBr(iso){
+  if (!iso) return '—';
+  var p = String(iso).split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
+}
+function chaveStatus(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+}
+function toast(msg, ruim){
+  var t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast on' + (ruim ? ' bad' : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(function(){ t.className = 'toast'; }, ruim ? 7000 : 3500);
+}
+function opts(sel, lista, vazio, manter){
+  var atual = manter ? sel.value : '';
+  sel.innerHTML = (vazio !== undefined && vazio !== null ? '<option value="">' + esc(vazio) + '</option>' : '') +
+    lista.map(function(o){ return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('');
+  if (atual) sel.value = atual;
+}
+function datalist(sel, lista){
+  $(sel).innerHTML = lista.map(function(t){ return '<option value="' + esc(t) + '">'; }).join('');
+}
+
+/* ==================================================================== */
+/* Boot                                                                 */
+/* ==================================================================== */
+google.script.run
+  .withSuccessHandler(iniciar)
+  .withFailureHandler(function(e){
+    $('#boot').innerHTML = '<h3>Não consegui ler a planilha</h3><p>' + esc(e && e.message ? e.message : e) + '</p>';
+  })
+  .cfCarregarTudo();
+
+function iniciar(d){
+  DADOS = d;
+  $('#boot').classList.add('hide');
+  $('#quem').textContent = d.usuario && d.usuario.email ? d.usuario.email : d.empresa;
+  $('#sub-aba').textContent = 'Aba: ' + d.aba;
+
+  if (d.colunasFaltando && d.colunasFaltando.length){
+    $('#aviso-cols').classList.remove('hide');
+    $('#aviso-cols-lista').textContent = d.colunasFaltando.join(', ');
+  }
+
+  if (d.usuario && d.usuario.nome){
+    $('[name=solicitante]').value = d.usuario.nome.replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+  }
+  aplicarOpcoes();
+  preencherAnos();
+  aplicar();
+  mostrar('form');
+}
+
+function aplicarOpcoes(){
+  var o = DADOS.opcoes;
+  opts($('[name=setor]'), o.setores, 'Selecione…');
+  opts($('[name=motivo]'), o.motivos, 'Selecione…');
+  opts($('[name=modalidade]'), o.modalidades, 'Selecione…');
+  opts($('[name=tipoFrete]'), o.tiposFrete, '—');
+  opts($('[name=tipoVolume]'), o.tiposVolume, '—');
+  opts($('#fx-status'), o.status, 'Todos', true);
+  opts($('#fx-setor'), o.setores, 'Todos', true);
+  opts($('#fx-motivo'), o.motivos, 'Todos', true);
+  opts($('#m-status'), o.status);
+  opts($('#m-veiculo'), o.veiculos, '—');
+  opts($('#m-pgto'), o.statusPagamento.filter(function(s){ return s; }), '—');
+  datalist('#dl-transp', o.transportadoras);
+  datalist('#dl-empresas', o.empresas);
+  var locais = {};
+  DADOS.itens.forEach(function(it){
+    if (it.origem) locais[it.origem] = true;
+    if (it.destino) locais[it.destino] = true;
+  });
+  datalist('#dl-locais', Object.keys(locais).sort());
+}
+
+function preencherAnos(){
+  var anos = {};
+  DADOS.itens.forEach(function(it){
+    var a = it.ano || (it.dataSolicitacao ? it.dataSolicitacao.slice(0,4) : '');
+    if (a) anos[String(a).replace(/\D/g,'')] = true;
+  });
+  opts($('#fx-ano'), Object.keys(anos).filter(Boolean).sort().reverse(), 'Todos', true);
+}
+
+function aplicar(){
+  $('#badge-proc').textContent = DADOS.resumo ? DADOS.resumo.emAberto : DADOS.itens.length;
+  desenharTabela();
+  desenharPainel();
+}
+
+function recarregar(r){
+  DADOS.itens = r.itens;
+  DADOS.resumo = r.resumo;
+  if (r.opcoes) DADOS.opcoes = r.opcoes;
+  aplicarOpcoes();
+  preencherAnos();
+  aplicar();
+}
+
+/* ==================================================================== */
+/* Navegação                                                            */
+/* ==================================================================== */
+$$('.tab').forEach(function(b){ b.addEventListener('click', function(){ mostrar(b.dataset.view); }); });
+function mostrar(v){
+  $$('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.view === v); });
+  ['form','proc','painel'].forEach(function(k){ $('#v-' + k).classList.toggle('hide', k !== v); });
+  window.scrollTo(0, 0);
+}
+
+$('#reload').addEventListener('click', function(){
+  var b = this; b.disabled = true; b.textContent = 'Atualizando…';
+  google.script.run
+    .withSuccessHandler(function(r){
+      recarregar(r);
+      b.disabled = false; b.textContent = 'Atualizar';
+      toast('Dados atualizados.');
+    })
+    .withFailureHandler(function(e){
+      b.disabled = false; b.textContent = 'Atualizar';
+      toast(e && e.message ? e.message : e, true);
+    })
+    .cfListar();
+});
+
+/* ==================================================================== */
+/* Módulo 1 — Formulário                                                */
+/* ==================================================================== */
+var OBRIGATORIOS = ['setor','motivo','modalidade','material','qtde','origem','destino'];
+
+$('#form-clear').addEventListener('click', function(){
+  $('#form').reset();
+  $$('#form .f').forEach(function(f){ f.classList.remove('bad'); });
+  if (DADOS.usuario && DADOS.usuario.nome){
+    $('[name=solicitante]').value = DADOS.usuario.nome.replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+  }
+});
+
+$('#form').addEventListener('submit', function(ev){
+  ev.preventDefault();
+  var dados = {};
+  $$('#form [name]').forEach(function(el){ dados[el.name] = el.value.trim(); });
+
+  var faltou = [];
+  $$('#form .f').forEach(function(f){ f.classList.remove('bad'); });
+  OBRIGATORIOS.forEach(function(k){
+    if (!dados[k]){
+      faltou.push(k);
+      var f = $('#form .f[data-k=' + k + ']');
+      if (f) f.classList.add('bad');
+    }
+  });
+  if (faltou.length){
+    toast('Preencha os campos obrigatórios destacados.', true);
+    var p = $('#form .f.bad input, #form .f.bad select');
+    if (p) p.focus();
+    return;
+  }
+
+  var btn = $('#form-send');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  $('#form-msg').textContent = 'Gravando a linha na planilha…';
+
+  google.script.run
+    .withSuccessHandler(function(r){
+      btn.disabled = false; btn.textContent = 'Enviar solicitação';
+      recarregar(r);
+      $('#form').reset();
+      if (DADOS.usuario && DADOS.usuario.nome){
+        $('[name=solicitante]').value = DADOS.usuario.nome.replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+      }
+      $('#form-msg').innerHTML = 'RFQ <b>' + esc(r.rfq) + '</b> criada. Acompanhe em Processos.';
+      toast('RFQ ' + r.rfq + ' criada.');
+    })
+    .withFailureHandler(function(e){
+      btn.disabled = false; btn.textContent = 'Enviar solicitação';
+      $('#form-msg').textContent = 'Nada foi gravado.';
+      toast(e && e.message ? e.message : e, true);
+    })
+    .cfCriarSolicitacao(dados);
+});
+
+/* ==================================================================== */
+/* Módulo 2 — Processos                                                 */
+/* ==================================================================== */
+['#fx-busca','#fx-status','#fx-setor','#fx-motivo','#fx-ano','#fx-abertos','#fx-atraso','#fx-semtr']
+  .forEach(function(s){
+    var el = $(s);
+    el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input', desenharTabela);
+  });
+$$('#tbl th.sortable').forEach(function(th){
+  th.addEventListener('click', function(){
+    var c = th.dataset.s;
+    if (ORD.campo === c) ORD.desc = !ORD.desc; else { ORD.campo = c; ORD.desc = true; }
+    desenharTabela();
+  });
+});
+
+function filtrados(){
+  var q = $('#fx-busca').value.trim().toLowerCase();
+  var st = $('#fx-status').value, se = $('#fx-setor').value, mo = $('#fx-motivo').value, an = $('#fx-ano').value;
+  var abertos = $('#fx-abertos').checked, atraso = $('#fx-atraso').checked, semtr = $('#fx-semtr').checked;
+
+  var lista = DADOS.itens.filter(function(it){
+    if (st && it.status !== st) return false;
+    if (se && it.setor !== se) return false;
+    if (mo && it.motivo !== mo) return false;
+    if (an){
+      var a = String(it.ano || '').replace(/\D/g,'') || (it.dataSolicitacao || '').slice(0,4);
+      if (a !== an) return false;
+    }
+    if (abertos && it.finalizado) return false;
+    if (atraso && !(!it.finalizado && it.atraso !== null && it.atraso > 0)) return false;
+    if (semtr && it.transportadora) return false;
+    if (q){
+      var alvo = [it.rfq, it.rota, it.material, it.especificacao, it.origem, it.destino,
+        it.setor, it.transportadora, it.empresa, it.nf, it.motivo, it.cte].join(' ').toLowerCase();
+      if (alvo.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+
+  var c = ORD.campo, dir = ORD.desc ? -1 : 1;
+  lista.sort(function(a, b){
+    if (c === 'rfqNum'){
+      var na = parseInt(String(a.rfq).replace(/\D/g,''), 10) || 0;
+      var nb = parseInt(String(b.rfq).replace(/\D/g,''), 10) || 0;
+      return (na - nb) * dir;
+    }
+    if (c === 'valorAprovado') return ((a.valorAprovado || 0) - (b.valorAprovado || 0)) * dir;
+    if (c === 'status'){
+      var ordem = DADOS.opcoes.status;
+      return (ordem.indexOf(a.status) - ordem.indexOf(b.status)) * dir;
+    }
+    var x = String(a[c] || ''), y = String(b[c] || '');
+    return x < y ? -1 * dir : x > y ? 1 * dir : 0;
+  });
+  return lista;
+}
+
+function desenharTabela(){
+  if (!DADOS.opcoes) return;
+  var lista = filtrados();
+  $('#proc-cnt').textContent = lista.length + ' de ' + DADOS.itens.length + ' RFQs';
+  $('#proc-vazio').classList.toggle('hide', lista.length > 0);
+  $('#tbl').classList.toggle('hide', lista.length === 0);
+
+  $('#tbody').innerHTML = lista.map(function(it){
+    var prazo = '<span class="dash">—</span>';
+    if (it.previsaoEntrega || it.dataEntrega){
+      var atrasado = !it.finalizado && it.atraso !== null && it.atraso > 0;
+      prazo = (it.dataEntrega
+          ? '<b>' + dataBr(it.dataEntrega) + '</b><div class="sub">prev. ' + dataBr(it.previsaoEntrega) + '</div>'
+          : dataBr(it.previsaoEntrega)) +
+        (atrasado ? '<div class="sub"><span class="pill late">' + it.atraso + ' d de atraso</span></div>' : '');
+    }
+    var rota = it.rota ? ' <span class="pill" style="background:#16191c;color:#fff">' + esc(it.rota) + '</span>' : '';
+    return '<tr class="row" data-linha="' + it.linha + '">' +
+      '<td class="code">' + esc(it.rfq || '—') + rota + '</td>' +
+      '<td>' + dataBr(it.dataSolicitacao) +
+        (it.diasAberto !== null && it.diasAberto !== undefined ? '<div class="sub">' + it.diasAberto + ' d em aberto</div>' : '') + '</td>' +
+      '<td>' + esc(it.setor || '—') + '<div class="sub">' + esc(it.motivo || '') + '</div></td>' +
+      '<td>' + esc(it.material || '—') +
+        '<div class="sub">' + esc([it.qtde, it.tipoVolume].filter(Boolean).join(' ')) + '</div></td>' +
+      '<td>' + esc(it.origem || '—') + '<div class="sub">→ ' + esc(it.destino || '—') + '</div></td>' +
+      '<td>' + prazo + '</td>' +
+      '<td>' + (it.transportadora ? esc(it.transportadora) : '<span class="dash">—</span>') +
+        (it.veiculo ? '<div class="sub">' + esc(it.veiculo) + '</div>' : '') + '</td>' +
+      '<td class="num">' + (it.valorAprovado ? moeda(it.valorAprovado) : '<span class="dash">—</span>') + '</td>' +
+      '<td><span class="pill s-' + chaveStatus(it.status) + '">' + esc(it.status) + '</span></td>' +
+      '<td class="act"><button class="btn btn-sm">Abrir</button></td>' +
+      '</tr>';
+  }).join('');
+
+  $$('#tbody tr.row').forEach(function(tr){
+    tr.addEventListener('click', function(){ abrirItem(Number(tr.dataset.linha)); });
+  });
+}
+
+/* ---------- modal ---------- */
+function abrirItem(linha){
+  var it = DADOS.itens.filter(function(i){ return i.linha === linha; })[0];
+  if (!it) return;
+  ABERTO = it;
+
+  $('#m-id').textContent = 'RFQ ' + (it.rfq || '—') + (it.rota ? ' · ' + it.rota : '');
+  $('#m-sub').textContent = [it.setor, it.motivo, it.empresa].filter(Boolean).join(' · ') || '—';
+  $('#m-linha').textContent = 'linha ' + it.linha + ' da aba';
+
+  var linhas = [
+    ['Solicitado em', dataBr(it.dataSolicitacao)],
+    ['Status atual', it.status],
+    ['Modalidade', [it.modalidade, it.tipoFrete].filter(Boolean).join(' · ') || '—'],
+    ['Material', it.material || '—'],
+    ['Especificação / série', it.especificacao || '—'],
+    ['Quantidade', [it.qtde, it.tipoVolume, it.qtdeVolume ? '(' + it.qtdeVolume + ' vol.)' : ''].filter(Boolean).join(' ') || '—'],
+    ['Peso / M³', [it.peso ? it.peso + ' kg' : '', it.m3 ? it.m3 + ' m³' : ''].filter(Boolean).join(' · ') || '—'],
+    ['Dimensões', it.dimensoes || '—'],
+    ['Valor da NF', moeda(it.valorNF)],
+    ['NF / Tíquete / RMA', it.nf || '—'],
+    ['Origem', it.origem || '—'],
+    ['Endereço de origem', it.enderecoOrigem || '—'],
+    ['Destino', it.destino || '—'],
+    ['Endereço de destino', it.enderecoDestino || '—'],
+    ['Distância', it.km ? it.km + ' km' : '—'],
+    ['Aprovação da cotação', [it.aprovacao, it.aprovador].filter(Boolean).join(' · ') || '—']
+  ];
+  $('#m-dl').innerHTML = linhas.map(function(l){
+    return '<div><dt>' + esc(l[0]) + '</dt><dd>' + esc(l[1]) + '</dd></div>';
+  }).join('');
+
+  if (DADOS.opcoes.status.indexOf(it.status) === -1){
+    opts($('#m-status'), [it.status].concat(DADOS.opcoes.status));
+  } else {
+    opts($('#m-status'), DADOS.opcoes.status);
+  }
+  $('#m-status').value = it.status;
+  $('#m-rota').value = it.rota || '';
+  $('#m-transp').value = it.transportadora || '';
+  $('#m-valor').value = (it.valorAprovado !== null && it.valorAprovado !== undefined) ? it.valorAprovado : '';
+  $('#m-veiculo').value = it.veiculo || '';
+  $('#m-coleta').value = it.dataColeta || '';
+  $('#m-previsao').value = it.previsaoEntrega || '';
+  $('#m-entrega').value = it.dataEntrega || '';
+  $('#m-motorista').value = it.motorista || '';
+  $('#m-placa').value = it.placa || '';
+  $('#m-cte').value = it.cte || '';
+  $('#m-cc').value = it.centroCusto || '';
+  $('#m-pgto').value = it.statusPagamento || '';
+  $('#m-just').value = it.justificativa || '';
+  $('#m-coment').value = '';
+  $('#m-msg').textContent = (!it.finalizado && it.atraso !== null && it.atraso > 0)
+    ? 'Atenção: ' + it.atraso + ' dia(s) além da previsão de entrega.' : '';
+
+  $('#m-tl').innerHTML = '<li><span class="w">carregando…</span></li>';
+  google.script.run
+    .withSuccessHandler(function(h){
+      $('#m-tl').innerHTML = h.length ? h.map(function(e){
+        var mudou = e.campo && e.campo !== '(comentário)'
+          ? '<div class="m"><b>' + esc(e.campo) + ':</b> ' +
+            (e.de ? esc(e.de) + ' → ' : '') + '<b>' + esc(e.para || '—') + '</b></div>' : '';
+        return '<li><span class="w">' + esc(e.quando) + ' · ' + esc(e.quem || '—') + '</span>' +
+          mudou + (e.obs ? '<div class="o">' + esc(e.obs) + '</div>' : '') + '</li>';
+      }).join('') : '<li><span class="w">Sem registros para esta RFQ.</span></li>';
+    })
+    .withFailureHandler(function(){
+      $('#m-tl').innerHTML = '<li><span class="w">Não consegui ler o histórico.</span></li>';
+    })
+    .cfGetHistorico(it.rfq);
+
+  $('#scrim').classList.add('on');
+}
+
+function fechar(){ $('#scrim').classList.remove('on'); ABERTO = null; }
+$('#m-close').addEventListener('click', fechar);
+$('#m-cancel').addEventListener('click', fechar);
+$('#scrim').addEventListener('click', function(ev){ if (ev.target === this) fechar(); });
+document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') fechar(); });
+
+$('#m-save').addEventListener('click', function(){
+  if (!ABERTO) return;
+  var campos = {
+    status: $('#m-status').value,
+    rota: $('#m-rota').value.trim(),
+    transportadora: $('#m-transp').value.trim(),
+    valorAprovado: $('#m-valor').value.trim(),
+    veiculo: $('#m-veiculo').value,
+    dataColeta: $('#m-coleta').value,
+    previsaoEntrega: $('#m-previsao').value,
+    dataEntrega: $('#m-entrega').value,
+    motorista: $('#m-motorista').value.trim(),
+    placa: $('#m-placa').value.trim(),
+    cte: $('#m-cte').value.trim(),
+    centroCusto: $('#m-cc').value.trim(),
+    statusPagamento: $('#m-pgto').value,
+    justificativa: $('#m-just').value.trim()
+  };
+  if (chaveStatus(campos.status) === 'concluido' && !campos.dataEntrega){
+    toast('Informe a data da entrega para concluir.', true);
+    $('#m-entrega').focus();
+    return;
+  }
+  var btn = this; btn.disabled = true; btn.textContent = 'Salvando…';
+  google.script.run
+    .withSuccessHandler(function(r){
+      btn.disabled = false; btn.textContent = 'Salvar alterações';
+      recarregar(r);
+      fechar();
+      toast(r.semMudanca ? 'Nada mudou nesta RFQ.' : 'RFQ atualizada na planilha.');
+    })
+    .withFailureHandler(function(e){
+      btn.disabled = false; btn.textContent = 'Salvar alterações';
+      toast(e && e.message ? e.message : e, true);
+    })
+    .cfAtualizarProcesso(ABERTO.linha, campos, $('#m-coment').value.trim());
+});
+
+/* ==================================================================== */
+/* Módulo 3 — Painel                                                    */
+/* ==================================================================== */
+function desenharPainel(){
+  var r = DADOS.resumo;
+  if (!r) return;
+
+  var kpis = [
+    { k:'RFQs na planilha', v:r.total, d:r.criadasMes + ' criadas neste mês' },
+    { k:'Em aberto', v:r.emAberto, d:r.semTransportadora + ' sem transportadora' },
+    { k:'Concluídas', v:r.concluidos, d:r.entreguesMes + ' entregues neste mês' },
+    { k:'Atrasadas', v:r.qtdAtrasadas, d:'passaram da previsão de entrega', cls:r.qtdAtrasadas ? 'warn' : '' },
+    { k:'Gasto ' + r.anoAtual, v:moedaCurta(r.gastoAno), d:moedaCurta(r.gastoMes) + ' neste mês' },
+    { k:'Gasto total', v:moedaCurta(r.gastoTotal), d:'valor All In aprovado' },
+    { k:'Ticket médio', v:moedaCurta(r.ticketMedio), d:'por RFQ com valor' },
+    { k:'Ciclo médio', v:(r.cicloMedio === null ? '—' : r.cicloMedio.toFixed(1) + ' d'), d:'solicitação → entrega' },
+    { k:'No prazo', v:(r.percNoPrazo === null ? '—' : r.percNoPrazo.toFixed(0) + '%'),
+      d:r.noPrazo + ' no prazo · ' + r.foraPrazo + ' fora',
+      cls:(r.percNoPrazo !== null && r.percNoPrazo >= 90 ? 'good' : (r.percNoPrazo !== null && r.percNoPrazo < 70 ? 'warn' : '')) },
+    { k:'Canceladas', v:r.cancelados, d:'no histórico da aba' }
+  ];
+  $('#kpis').innerHTML = kpis.map(function(k){
+    return '<div class="kpi ' + (k.cls || '') + '"><div class="k">' + esc(k.k) + '</div>' +
+      '<div class="v">' + esc(k.v) + '</div><div class="d">' + esc(k.d) + '</div></div>';
+  }).join('');
+
+  barras('#bar-status', r.porStatus.map(function(s){
+    return { nome:s.nome, qtd:s.qtd, cls:(chaveStatus(s.nome).indexOf('cancel') === 0 ? 'muted' : '') };
+  }));
+  barras('#bar-motivo', r.porMotivo);
+  barras('#bar-setor', r.porSetor);
+  barras('#bar-modal', r.porModalidade);
+  barras('#bar-mes', r.porMes.map(function(m){
+    var p = m.mes.split('-');
+    return { nome: p[1] + '/' + p[0], qtd: m.qtd };
+  }));
+
+  $('#lst-rotas').innerHTML = r.topRotas.length ? r.topRotas.map(function(t){
+    return '<li><span class="nm">' + esc(t.rota) + '</span><span class="vl">' + t.qtd + 'x' +
+      (t.valor ? ' · ' + moedaCurta(t.valor) : '') + '</span></li>';
+  }).join('') : '<li><span class="nm dash">Sem trechos registrados.</span></li>';
+
+  $('#lst-transp').innerHTML = r.topTransportadoras.length ? r.topTransportadoras.map(function(t){
+    return '<li><span class="nm">' + esc(t.nome) + '</span><span class="vl">' + moedaCurta(t.valor) + '</span></li>';
+  }).join('') : '<li><span class="nm dash">Sem valores aprovados.</span></li>';
+
+  $('#hint-atraso').textContent = r.qtdAtrasadas + ' em atraso';
+  $('#lst-atraso').innerHTML = r.atrasadas.length ? r.atrasadas.map(function(a){
+    return '<li><span class="nm"><b>RFQ ' + esc(a.rfq) + '</b> · ' + esc(a.material || '—') +
+      '<br><span class="dash">' + esc(a.status) + ' · destino ' + esc(a.destino || '—') + '</span></span>' +
+      '<span class="vl"><span class="pill late">' + a.dias + ' d</span></span></li>';
+  }).join('') : '<li><span class="nm dash">Nenhuma RFQ em atraso.</span></li>';
+
+  $('#hint-parada').textContent = 'em aberto sem transportadora há ' + r.diasParado + '+ dias';
+  $('#lst-parada').innerHTML = r.paradas.length ? r.paradas.map(function(a){
+    return '<li><span class="nm"><b>RFQ ' + esc(a.rfq) + '</b> · ' + esc(a.material || '—') +
+      '<br><span class="dash">' + esc(a.status) + '</span></span>' +
+      '<span class="vl">' + a.dias + ' d</span></li>';
+  }).join('') : '<li><span class="nm dash">Nada parado.</span></li>';
+}
+
+function barras(sel, lista){
+  var box = $(sel);
+  if (!lista || !lista.length){
+    box.innerHTML = '<p class="dash" style="font-size:12.5px;margin:0">Sem dados ainda.</p>';
+    return;
+  }
+  var max = Math.max.apply(null, lista.map(function(l){ return l.qtd; })) || 1;
+  box.innerHTML = lista.map(function(l){
+    var p = Math.round((l.qtd / max) * 100);
+    return '<div class="bar"><span class="nm" title="' + esc(l.nome) + '">' + esc(l.nome) + '</span>' +
+      '<span class="tr"><span class="fl ' + (l.cls || '') + '" style="width:' + (l.qtd ? Math.max(p,2) : 0) + '%"></span></span>' +
+      '<span class="vl">' + l.qtd + '</span></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>
