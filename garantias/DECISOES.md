@@ -792,3 +792,22 @@ continua filtrando o painel por eles, como antes.
 As duas janelas (esta e a do Valor de reparo) passaram a usar a mesma função
 `abrirJanela(cfg)` — uma janela nova é só uma lista de colunas e uma regra de
 quem entra.
+
+## RNC — nome correto, aba Listas e ajustes do formulário
+- **RNC = Relatório de Não-Conformidade.** Os textos que diziam "Registro"
+  foram corrigidos. O cabeçalho do PDF continua com a frase do modelo em Word
+  original ("RNC - Relatório de Não Conformidade, Oportunidade de Melhoria e
+  Não Conformidade Potencial"), que é texto da própria empresa.
+- **Aba Listas** na planilha do RNC, com o mesmo funcionamento de Garantias:
+  título na linha 1, valores abaixo. `CFG.LISTAS` liga cada coluna ao seu
+  campo (UFV, ASSUNTO RELACIONADO, TIPO DE OCORRÊNCIA, FASE DO PROJETO,
+  FORNECEDOR, DESCRIÇÃO DO ITEM, ELABORADOR, REVISÃO) e, como reserva, também
+  vale uma coluna com o mesmo nome do rótulo do campo. Prioridade:
+  **aba Listas → coluna da planilha → lista fixa do documento**. Campo que
+  ganha lista vira lista suspensa mesmo que antes fosse texto livre.
+  As opções marcadas com "( X )" no PDF saem da mesma fonte do formulário, em
+  até três por linha — então mexer na aba muda o formulário e o PDF juntos.
+- **Data da RNC** virou **Data de Emissão** na tela (a coluna da planilha já
+  era essa).
+- **Quantidade recebida** passou a aceitar só número: qualquer outro caractere
+  é descartado na digitação.

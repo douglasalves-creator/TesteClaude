@@ -1,5 +1,5 @@
 /**
- * RNC — Registro de Não Conformidade.
+ * RNC — Relatório de Não-Conformidade.
  * Formulário com as perguntas do modelo em Word; gera o PDF no mesmo layout,
  * cria a pasta no Drive com as evidências e grava na planilha as colunas que
  * já existem lá (sempre pelo NOME do cabeçalho, linha 9).
@@ -16,7 +16,24 @@ var GAR_RNC = (function () {
     COL_LINK_PASTA: 'RNC',       // coluna que recebe o link da pasta no Drive
     COL_STATUS: 'Status - RNC',  // coluna que recebe "Emitida"
     STATUS_NOVO: 'Emitida',
-    EMAIL_NOVA_RNC: 'supplychain.eng@solargrid.com.br'
+    EMAIL_NOVA_RNC: 'supplychain.eng@solargrid.com.br',
+
+    // Aba só com as listas suspensas, na mesma planilha: título da lista na
+    // linha 1 e os valores abaixo, uma coluna por lista. '' desliga.
+    ABA_LISTAS: 'Listas',
+
+    // Qual coluna da aba Listas alimenta cada campo do formulário.
+    // O que não existir na aba é simplesmente ignorado.
+    LISTAS: {
+      ufv:            'UFV',
+      assunto:        'ASSUNTO RELACIONADO',
+      tipo:           'TIPO DE OCORRÊNCIA',
+      fase:           'FASE DO PROJETO',
+      fornecedor:     'FORNECEDOR',
+      descricao_item: 'DESCRIÇÃO DO ITEM',
+      elaborador:     'ELABORADOR',
+      revisao:        'REVISÃO'
+    }
   };
 
   var ASSUNTOS = ['QUALIDADE', 'MEIO AMBIENTE', 'SAÚDE E SEG. TRABALHO'];
@@ -30,7 +47,7 @@ var GAR_RNC = (function () {
    *   daColuna = de onde vêm as opções da lista, quando a lista é da planilha
    */
   var PERGUNTAS = [
-    { id: 'data_rnc',    rotulo: 'Data da RNC',            tipo: 'data',   bloco: 'topo',      planilha: 'Data de Emissão', auto: true },
+    { id: 'data_rnc',    rotulo: 'Data de Emissão',        tipo: 'data',   bloco: 'topo',      planilha: 'Data de Emissão', auto: true },
     { id: 'n_rnc',       rotulo: 'N° RNC',                 tipo: 'texto',  bloco: 'topo',      planilha: 'Nº RNC',          auto: true },
     { id: 'ufv',         rotulo: 'UFV',                    tipo: 'select', bloco: 'topo',      planilha: 'UFV',             daColuna: 'UFV', obrig: true },
 
@@ -42,7 +59,7 @@ var GAR_RNC = (function () {
 
     { id: 'fornecedor',  rotulo: 'Fornecedor / Prestador', tipo: 'select', bloco: 'dados',     planilha: 'Nome do Fornecedor', daColuna: 'Nome do Fornecedor', obrig: true },
     { id: 'descricao_item', rotulo: 'Descrição do item',   tipo: 'area',   bloco: 'dados' },
-    { id: 'qtd_recebida',   rotulo: 'Quantidade recebida', tipo: 'texto',  bloco: 'dados' },
+    { id: 'qtd_recebida',   rotulo: 'Quantidade recebida', tipo: 'inteiro', bloco: 'dados' },
 
     { id: 'descricao_nc', rotulo: 'Descrição da não conformidade / causas da não conformidade',
       tipo: 'area', bloco: 'nc', obrig: true },
@@ -147,18 +164,32 @@ var GAR_RNC = (function () {
                 .sort(function (a, b) { return String(a).localeCompare(String(b), 'pt-BR'); });
   }
 
-  function inicio() {
-    var r = _ler();
+  /**
+   * As opções de cada campo. Ordem de prioridade:
+   *   1º a aba Listas, 2º a coluna da planilha, 3º a lista fixa do documento.
+   */
+  function _opcoesDosCampos(r) {
+    var daAba = _listasDaAba();
     var opcoes = {};
     PERGUNTAS.forEach(function (p) {
-      if (p.opcoes) opcoes[p.id] = p.opcoes;
-      else if (p.daColuna) opcoes[p.id] = _opcoesDaColuna(r.aba, r.mapa, p.daColuna, r.linhas);
+      var lista = _listaDaAba(daAba, p);
+      if (!lista && p.daColuna) lista = _opcoesDaColuna(r.aba, r.mapa, p.daColuna, r.linhas);
+      if (!lista && p.opcoes) lista = p.opcoes;
+      if (lista && lista.length) opcoes[p.id] = lista;
     });
+    return opcoes;
+  }
+
+  function inicio() {
+    var r = _ler();
+    var opcoes = _opcoesDosCampos(r);
     return {
       usuario: Session.getActiveUser().getEmail() || '',
       blocos: BLOCOS,
       perguntas: PERGUNTAS.map(function (p) {
-        return { id: p.id, rotulo: p.rotulo, tipo: p.tipo, bloco: p.bloco,
+        // campo com lista vira lista suspensa, mesmo que fosse texto
+        var tipo = (opcoes[p.id] && opcoes[p.id].length && p.tipo !== 'data') ? 'select' : p.tipo;
+        return { id: p.id, rotulo: p.rotulo, tipo: tipo, bloco: p.bloco,
                  obrig: !!p.obrig, auto: !!p.auto };
       }),
       hoje: Utilities.formatDate(new Date(), _fuso(), 'yyyy-MM-dd'),
@@ -174,6 +205,50 @@ var GAR_RNC = (function () {
       campos: r.colunas.map(function (c) { return { id: c.id, rotulo: c.rotulo, tipo: 'texto' }; }),
       linhas: r.linhas
     };
+  }
+
+  /* ---------------- aba própria de listas ---------------- */
+
+  /**
+   * Lê a aba Listas: título na linha 1, valores abaixo.
+   * Devolve { 'título normalizado': [valores] } — uma entrada por coluna.
+   */
+  function _listasDaAba() {
+    var porTitulo = {};
+    if (!CFG.ABA_LISTAS) return porTitulo;
+
+    var aba;
+    try { aba = SpreadsheetApp.openById(CFG.SPREADSHEET_ID).getSheetByName(CFG.ABA_LISTAS); }
+    catch (e) { aba = null; }
+    if (!aba) return porTitulo;
+
+    var ultima = aba.getLastRow(), largura = aba.getLastColumn();
+    if (ultima < 2 || largura < 1) return porTitulo;
+
+    var dados = aba.getRange(1, 1, ultima, largura).getDisplayValues();
+    dados[0].forEach(function (titulo, i) {
+      var t = _norm(titulo);
+      if (!t) return;
+      var vals = [], vistos = {};
+      for (var l = 1; l < dados.length; l++) {
+        var v = String(dados[l][i] || '').trim();
+        if (v && !vistos[v]) { vistos[v] = true; vals.push(v); }
+      }
+      if (vals.length) porTitulo[t] = vals;
+    });
+    return porTitulo;
+  }
+
+  /**
+   * A lista daquele campo. Procura, nesta ordem:
+   *   1) o título apontado em CFG.LISTAS;
+   *   2) uma coluna com o mesmo nome do rótulo do campo.
+   * Assim, acrescentar uma coluna na aba Listas já basta.
+   */
+  function _listaDaAba(porTitulo, p) {
+    var apontado = (CFG.LISTAS || {})[p.id];
+    if (apontado && porTitulo[_norm(apontado)]) return porTitulo[_norm(apontado)];
+    return porTitulo[_norm(p.rotulo)] || null;
   }
 
   /* ---------------- número da RNC ---------------- */
@@ -228,7 +303,8 @@ var GAR_RNC = (function () {
     return _esc(t).replace(/\r?\n/g, '<br>');
   }
 
-  function _htmlDoDocumento(d, arquivos) {
+  function _htmlDoDocumento(d, arquivos, listas) {
+    listas = listas || {};
     var BASE = 'border:1px solid #000;padding:4px 6px;font-size:9pt;vertical-align:top;';
     var TAB = ' style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:6px"';
 
@@ -246,6 +322,18 @@ var GAR_RNC = (function () {
     }
     function caixa(txt) {
       return '<table' + TAB + '><tr>' + td('', _quebras(txt)) + '</tr></table>';
+    }
+    // três opções por linha, como no modelo em Word; se houver mais, continua
+    // nas linhas de baixo, com o rótulo só na primeira
+    function linhasMarcar(rotulo, valor, opcoes) {
+      var fora = [];
+      for (var i = 0; i < opcoes.length; i += 3) {
+        var pedaco = opcoes.slice(i, i + 3);
+        var cels = pedaco.map(function (o) { return td('', _marcar(valor, o)); });
+        while (cels.length < 3) cels.push(td('', ''));
+        fora.push('<tr>' + rot(i === 0 ? rotulo : '', '25%') + cels.join('') + '</tr>');
+      }
+      return fora.join('');
     }
 
     var fotos = (arquivos || []).filter(function (a) {
@@ -310,12 +398,9 @@ var GAR_RNC = (function () {
     '</table>' +
 
     '<table' + TAB + '>' +
-      '<tr>' + rot('ASSUNTO RELACIONADO:', '25%') +
-        ASSUNTOS.map(function (o) { return td('', _marcar(d.assunto, o)); }).join('') + '</tr>' +
-      '<tr>' + rot('TIPO DE OCORRÊNCIA?', '25%') +
-        TIPOS.map(function (o) { return td('', _marcar(d.tipo, o)); }).join('') + '</tr>' +
-      '<tr>' + rot('FASE DO PROJETO:', '25%') +
-        FASES.map(function (o) { return td('', _marcar(d.fase, o)); }).join('') + td('', '') + '</tr>' +
+      linhasMarcar('ASSUNTO RELACIONADO:', d.assunto, listas.assunto || ASSUNTOS) +
+      linhasMarcar('TIPO DE OCORRÊNCIA?',  d.tipo,    listas.tipo    || TIPOS) +
+      linhasMarcar('FASE DO PROJETO:',     d.fase,    listas.fase    || FASES) +
     '</table>' +
 
     '<table' + TAB + '><tr>' + rot('RESUMO DA OCORRÊNCIA:', '25%') +
@@ -507,6 +592,7 @@ var GAR_RNC = (function () {
 
     // O número e a data são do sistema, não do formulário.
     var r0 = _ler();
+    var opcoes = _opcoesDosCampos(r0);
     dados.n_rnc = _proximoNumero(r0.linhas, r0.mapa);
     dados.data_rnc = Utilities.formatDate(new Date(), _fuso(), 'yyyy-MM-dd');
 
@@ -515,7 +601,7 @@ var GAR_RNC = (function () {
     var pasta = _pasta(nomePasta, arquivos);
 
     try {
-      var pdf = Utilities.newBlob(_htmlDoDocumento(dados, arquivos), 'text/html', nomePasta + '.html')
+      var pdf = Utilities.newBlob(_htmlDoDocumento(dados, arquivos, opcoes), 'text/html', nomePasta + '.html')
         .getAs('application/pdf').setName(nomePasta + ' - RNC.pdf');
       var arq = pasta.pasta.createFile(pdf);
       pasta.arquivos.push({ nome: arq.getName(), url: arq.getUrl() });
