@@ -51,6 +51,8 @@ var GAR_RNC = (function () {
       datas:    ['Data de Emissão', 'Data de Conclusão'],
       // caixas de texto grandes
       grandes:  ['Resumo da Ocorrência', 'ATUALIZAÇÃO'],
+      // ocupam a linha inteira da tela, com o texto inteiro à mostra
+      largos:   ['DESCRIÇÃO DO ITEM'],
       // quando o nome da coluna é diferente do título na aba Listas.
       // O resto casa sozinho pelo próprio nome do cabeçalho.
       listas:   { 'Nome do Fornecedor': 'FORNECEDOR' },
@@ -59,9 +61,9 @@ var GAR_RNC = (function () {
       // ordem dos campos na tela que abre ao clicar numa RNC.
       // O que não estiver aqui entra depois, na ordem da planilha.
       ordem: ['Nº RNC', 'Data de Emissão', 'UFV', 'Nome do Fornecedor',
-              'TIPO DE OCORRÊNCIA', 'DESCRIÇÃO DO ITEM', 'Resumo da Ocorrência',
-              'Etapa', 'Status Tratativa', 'ATUALIZAÇÃO', 'ELABORADOR',
-              'REVISÃO', 'Data de Conclusão']
+              'TIPO DE OCORRÊNCIA', 'Status - RNC', 'DESCRIÇÃO DO ITEM',
+              'Resumo da Ocorrência', 'Etapa', 'Status Tratativa',
+              'ATUALIZAÇÃO', 'ELABORADOR', 'REVISÃO', 'Data de Conclusão']
     }
   };
 
@@ -365,6 +367,7 @@ var GAR_RNC = (function () {
     var travados = _conjunto(P.travados);
     var datas    = _conjunto(P.datas);
     var grandes  = _conjunto(P.grandes);
+    var largos   = _conjunto(P.largos);
 
     // exceções de nome entre a coluna e o título na aba Listas
     var apontados = {};
@@ -391,6 +394,7 @@ var GAR_RNC = (function () {
 
         if (travados[c.id]) campo.travado = true;
         if (depois[c.id]) campo.depoisDe = depois[c.id];
+        if (largos[c.id]) campo.largo = true;
         campo.ordem = ordem[c.id] || (900 + c.col);
         return campo;
       });

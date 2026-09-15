@@ -86,7 +86,12 @@ body.no-inicio{background:var(--eclipse)}
 .cartao:hover .entrar span{transform:translateX(4px)}
 .campo-alto{grid-column:span 2}
 .campo-alto textarea.entrada{min-height:160px}
-@media(max-width:760px){ .campo-alto{grid-column:auto} }
+/* Ocupa a linha inteira e mostra o texto todo, dobrando quando precisa. */
+.campo-largo{grid-column:span 2}
+.campo-largo .sel-btn{align-items:flex-start}
+.campo-largo .sel-btn .val{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35}
+.campo-largo .sel-btn .seta-sel{margin-top:5px}
+@media(max-width:760px){ .campo-alto,.campo-largo{grid-column:auto} }
 .evid-rnc{margin-top:26px;border-top:1px solid var(--nevoa);padding-top:18px}
 .evid-rnc h3{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:11px;font-weight:700;
   letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-3)}
@@ -4347,6 +4352,7 @@ function abrirGavetaRnc(linha){
                   opcoes: c.opcoes, travado: !!c.travado };
     var caixa = criarCampo(campo, valor, 'rnced-');
     if (c.id === RNC_ALTO) caixa.classList.add('campo-alto');
+    if (c.largo) caixa.classList.add('campo-largo');
     grade.appendChild(caixa);
   });
   corpo.appendChild(grade);

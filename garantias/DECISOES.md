@@ -905,3 +905,11 @@ Não existe um "forçar número". Foi tentado e não funciona: como a planilha
 é a verdade, qualquer valor forçado seria desfeito na abertura seguinte, e
 de todo jeito o sistema pula números que já estão em uso na aba. O caminho
 é sempre o mesmo: arrumar a planilha.
+
+## RNC — Status - RNC ao lado do Tipo de Ocorrência
+Na tela que abre ao clicar numa RNC, **Status - RNC** passou a ficar ao lado
+de **TIPO DE OCORRÊNCIA**. Com isso **DESCRIÇÃO DO ITEM** desceu uma linha e
+agora ocupa a largura inteira (`CFG.PROCESSOS.largos`), com o texto todo à
+mostra: quando o nome do material é comprido, ele dobra para a linha de
+baixo em vez de ser cortado com "…". A caixa cresce só o necessário — nada
+da altura fixa do campo de ATUALIZAÇÃO.
