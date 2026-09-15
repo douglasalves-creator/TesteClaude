@@ -3782,9 +3782,10 @@ function abrirRnc(mod){
   else if (mod === 'rncpainel') montarPainelRnc();
 }
 
-function carregarRnc(){
+function carregarRnc(forcar){
   el('rnc-carregando').classList.remove('oculto');
   el('rnc-painel').classList.add('oculto');
+  if (forcar) RNC.ini = null;      // as listas do formulário também se refazem
   google.script.run
     .withSuccessHandler(function(r){
       RNC.lista = r;
@@ -3800,7 +3801,7 @@ function carregarRnc(){
       el('rnc-carregando').classList.add('oculto');
       mostrarErroJS('RNC: ' + e.message);
     })
-    .rnc_listar();
+    .rnc_listar(!!forcar);
 }
 
 function camposRnc(){
@@ -4037,7 +4038,11 @@ el('rnc-busca').addEventListener('input', function(){
   desenharRnc();
 });
 
-el('rnc-atualizar').addEventListener('click', carregarRnc);
+el('rnc-atualizar').addEventListener('click', function(){
+  carregarRnc(true);
+  // o formulário volta a perguntar as listas ao servidor
+  google.script.run.withSuccessHandler(function(r){ RNC.ini = r; montarFormRnc(); }).rnc_inicio();
+});
 
 function larguraPadraoRnc(c){
   if (c.id.indexOf('status') === 0) return 170;

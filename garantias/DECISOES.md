@@ -811,3 +811,20 @@ quem entra.
   era essa).
 - **Quantidade recebida** passou a aceitar só número: qualquer outro caractere
   é descartado na digitação.
+
+## RNC — cabeçalho na linha 6 e abertura mais rápida
+- **Cabeçalho da aba Lista EP: linha 6**, confirmado lendo a própria planilha
+  (a linha 6 traz Nº RNC, Status - RNC, Data de Emissão, UFV, Etapa, Nome do
+  Fornecedor, …, ELABORADOR, TIPO DE OCORRÊNCIA, FASE DO PROJETO, DESCRIÇÃO DO
+  ITEM). Estava configurado 9, então o sistema lia uma linha de dados como se
+  fosse o cabeçalho — era isso que aparecia errado em Processos.
+- **Abertura do formulário.** O que pesava era abrir a planilha (ela é grande):
+  isso acontecia três vezes por chamada — uma para a aba, outra para a aba
+  Listas e outra para o fuso horário. Agora abre **uma vez por execução** e
+  reaproveita. Além disso, `inicio()` e `listar()` passaram a ter cache
+  (30 min e 10 min), com chave que carrega a marca do conteúdo, e o fuso
+  horário vai guardado junto — com o cache quente, a tela abre **sem abrir a
+  planilha nenhuma vez**. O formulário também só lê as linhas da planilha se
+  algum campo ainda depender delas; com a aba Listas cobrindo tudo, não lê.
+- **Atualizar** em Processos refaz a lista **e** as listas suspensas do
+  formulário.

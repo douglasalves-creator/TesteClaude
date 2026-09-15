@@ -9,7 +9,7 @@ var GAR_RNC = (function () {
   var CFG = {
     SPREADSHEET_ID: '10XC9wnG3g9oaZVcja77ogyVVnLtKUBTLLoGQZgSQ1tE',
     ABA: 'Lista EP ( Para conciliação)',
-    HEADER_ROW: 9,
+    HEADER_ROW: 6,
     PASTA_DRIVE_ID: '1TjVagrbktvQwpTy0GO94M91Hhwvky-hR',
     ANEXO_MAX_MB: 25,
     NUMERO_MINIMO: 254,          // a última RNC emitida; a próxima será 255
@@ -92,11 +92,76 @@ var GAR_RNC = (function () {
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /**
+   * A planilha é grande e abri-la custa caro. Abre uma vez por execução e
+   * reaproveita — era o que mais demorava para a tela aparecer.
+   */
+  var _SS = null;
+  function _planilha() {
+    if (!_SS) _SS = SpreadsheetApp.openById(CFG.SPREADSHEET_ID);
+    return _SS;
+  }
+
   function _aba() {
-    var ss = SpreadsheetApp.openById(CFG.SPREADSHEET_ID);
-    var aba = ss.getSheetByName(CFG.ABA);
+    var aba = _planilha().getSheetByName(CFG.ABA);
     if (!aba) throw new Error('A aba "' + CFG.ABA + '" não foi encontrada.');
     return aba;
+  }
+
+  /* ---------------- cache ---------------- */
+
+  var _TAM_PEDACO = 90000;
+
+  /** Marca do conteúdo: se o formato mudar, a chave muda e o velho é ignorado. */
+  function _digital(texto) {
+    var h = 5381, t = String(texto);
+    for (var i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
+  var CHAVE_INICIO = 'rnc_inicio_' + _digital(
+    JSON.stringify(CFG.LISTAS) + CFG.ABA_LISTAS + CFG.ABA + CFG.HEADER_ROW +
+    PERGUNTAS.map(function (p) { return p.id + p.rotulo + p.tipo; }).join('|')
+  );
+  var CHAVE_LISTA = 'rnc_lista_' + _digital(CFG.ABA + '#' + CFG.HEADER_ROW);
+
+  function _cacheLer(chave) {
+    var cache = CacheService.getScriptCache();
+    var n = Number(cache.get(chave + '::n') || 0);
+    if (!n) return null;
+    var nomes = [];
+    for (var i = 0; i < n; i++) nomes.push(chave + '::' + i);
+    var partes = cache.getAll(nomes);
+    var texto = '';
+    for (var j = 0; j < n; j++) {
+      if (partes[chave + '::' + j] == null) return null;   // pedaço venceu
+      texto += partes[chave + '::' + j];
+    }
+    return texto;
+  }
+
+  function _cacheGravar(chave, texto, segundos) {
+    var cache = CacheService.getScriptCache();
+    var lote = {}, n = 0;
+    for (var i = 0; i < texto.length; i += _TAM_PEDACO) {
+      lote[chave + '::' + n] = texto.substring(i, i + _TAM_PEDACO);
+      n++;
+    }
+    lote[chave + '::n'] = String(n);
+    cache.putAll(lote, segundos);
+  }
+
+  function _cacheLimpar(chave) {
+    var cache = CacheService.getScriptCache();
+    var n = Number(cache.get(chave + '::n') || 0);
+    var nomes = [chave + '::n'];
+    for (var i = 0; i < n; i++) nomes.push(chave + '::' + i);
+    cache.removeAll(nomes);
+  }
+
+  function _limparCaches() {
+    _cacheLimpar(CHAVE_INICIO);
+    _cacheLimpar(CHAVE_LISTA);
   }
 
   function _mapa(aba) {
@@ -168,12 +233,20 @@ var GAR_RNC = (function () {
    * As opções de cada campo. Ordem de prioridade:
    *   1º a aba Listas, 2º a coluna da planilha, 3º a lista fixa do documento.
    */
-  function _opcoesDosCampos(r) {
+  /**
+   * `lerTudo` só é chamado se algum campo ainda depender da planilha — com a
+   * aba Listas cobrindo tudo, a tela abre sem ler as linhas.
+   */
+  function _opcoesDosCampos(lerTudo) {
     var daAba = _listasDaAba();
+    var r = null;
     var opcoes = {};
     PERGUNTAS.forEach(function (p) {
       var lista = _listaDaAba(daAba, p);
-      if (!lista && p.daColuna) lista = _opcoesDaColuna(r.aba, r.mapa, p.daColuna, r.linhas);
+      if (!lista && p.daColuna) {
+        if (!r) r = lerTudo();
+        lista = _opcoesDaColuna(r.aba, r.mapa, p.daColuna, r.linhas);
+      }
       if (!lista && p.opcoes) lista = p.opcoes;
       if (lista && lista.length) opcoes[p.id] = lista;
     });
@@ -181,8 +254,26 @@ var GAR_RNC = (function () {
   }
 
   function inicio() {
-    var r = _ler();
-    var opcoes = _opcoesDosCampos(r);
+    var guardado = _cacheLer(CHAVE_INICIO);
+    if (guardado) {
+      try {
+        var pronto = JSON.parse(guardado);
+        // o que muda a cada abertura não vem do cache. O fuso vem guardado
+        // junto, para nem precisar abrir a planilha.
+        pronto.usuario = Session.getActiveUser().getEmail() || '';
+        pronto.hoje = Utilities.formatDate(new Date(), pronto.fuso || 'America/Sao_Paulo', 'yyyy-MM-dd');
+        pronto.proximoNumero = _verProximoNumero();
+        return pronto;
+      } catch (e) { /* segue e recalcula */ }
+    }
+
+    var opcoes = _opcoesDosCampos(_ler);
+    var saida = _montarInicio(opcoes);
+    _cacheGravar(CHAVE_INICIO, JSON.stringify(saida), 1800);
+    return saida;
+  }
+
+  function _montarInicio(opcoes) {
     return {
       usuario: Session.getActiveUser().getEmail() || '',
       blocos: BLOCOS,
@@ -192,6 +283,7 @@ var GAR_RNC = (function () {
         return { id: p.id, rotulo: p.rotulo, tipo: tipo, bloco: p.bloco,
                  obrig: !!p.obrig, auto: !!p.auto };
       }),
+      fuso: _fuso(),
       hoje: Utilities.formatDate(new Date(), _fuso(), 'yyyy-MM-dd'),
       proximoNumero: _verProximoNumero(),
       opcoes: opcoes,
@@ -199,12 +291,22 @@ var GAR_RNC = (function () {
     };
   }
 
-  function listar() {
+  function listar(forcar) {
+    // "Atualizar" também refaz as listas suspensas
+    if (forcar) _cacheLimpar(CHAVE_INICIO);
+    if (!forcar) {
+      var guardado = _cacheLer(CHAVE_LISTA);
+      if (guardado) {
+        try { return JSON.parse(guardado); } catch (e) { /* segue e recalcula */ }
+      }
+    }
     var r = _ler();
-    return {
+    var saida = {
       campos: r.colunas.map(function (c) { return { id: c.id, rotulo: c.rotulo, tipo: 'texto' }; }),
       linhas: r.linhas
     };
+    _cacheGravar(CHAVE_LISTA, JSON.stringify(saida), 600);
+    return saida;
   }
 
   /* ---------------- aba própria de listas ---------------- */
@@ -218,7 +320,7 @@ var GAR_RNC = (function () {
     if (!CFG.ABA_LISTAS) return porTitulo;
 
     var aba;
-    try { aba = SpreadsheetApp.openById(CFG.SPREADSHEET_ID).getSheetByName(CFG.ABA_LISTAS); }
+    try { aba = _planilha().getSheetByName(CFG.ABA_LISTAS); }
     catch (e) { aba = null; }
     if (!aba) return porTitulo;
 
@@ -254,7 +356,7 @@ var GAR_RNC = (function () {
   /* ---------------- número da RNC ---------------- */
 
   function _fuso() {
-    try { return SpreadsheetApp.openById(CFG.SPREADSHEET_ID).getSpreadsheetTimeZone() || 'America/Sao_Paulo'; }
+    try { return _planilha().getSpreadsheetTimeZone() || 'America/Sao_Paulo'; }
     catch (e) { return 'America/Sao_Paulo'; }
   }
 
@@ -592,7 +694,7 @@ var GAR_RNC = (function () {
 
     // O número e a data são do sistema, não do formulário.
     var r0 = _ler();
-    var opcoes = _opcoesDosCampos(r0);
+    var opcoes = _opcoesDosCampos(function () { return r0; });
     dados.n_rnc = _proximoNumero(r0.linhas, r0.mapa);
     dados.data_rnc = Utilities.formatDate(new Date(), _fuso(), 'yyyy-MM-dd');
 
@@ -639,6 +741,7 @@ var GAR_RNC = (function () {
       }
       faixa.setValues([valores]);
       SpreadsheetApp.flush();
+      _limparCaches();
 
       _avisarPorEmail(dados, pasta);
 
@@ -663,6 +766,7 @@ var GAR_RNC = (function () {
         n++;
       });
       SpreadsheetApp.flush();
+      _limparCaches();
       return { ok: true, gravados: n };
     } finally {
       trava.releaseLock();
@@ -674,7 +778,7 @@ var GAR_RNC = (function () {
 
 /* Pontes para a tela */
 function rnc_inicio() { return GAR_RNC.inicio(); }
-function rnc_listar() { return GAR_RNC.listar(); }
+function rnc_listar(forcar) { return GAR_RNC.listar(forcar); }
 function rnc_criar(dados, arquivos) { return GAR_RNC.criar(dados, arquivos); }
 function rnc_salvar(linha, alteracoes) { return GAR_RNC.salvar(linha, alteracoes); }
 function rnc_evidencias(linha) { return GAR_RNC.evidencias(linha); }
