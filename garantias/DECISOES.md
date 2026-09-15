@@ -775,7 +775,16 @@ cache vencer ou alguém clicar em Atualizar — foi o que aconteceu com
 Material/Equipamento e Qtd na janela do Valor de reparo.
 O cache das listas também caiu de 6 horas para 30 minutos.
 
-## Painel — janela do Fora da garantia
+## Painel — Fora da garantia saiu (juntado ao Valor de reparo)
+Só existe valor de reparo quando o acionamento não é coberto, então o quadro
+"Fora da garantia" virou informação repetida e foi removido, junto com a sua
+janela e a dimensão `garantia`. O quadro **Valor de reparo** passou a trazer,
+na linha de baixo, **quantos acionamentos** formam o total — é a "junção" dos
+dois. Com dois quadros na faixa, cada um pega metade
+(`minmax(320px,1fr)` com auto-fit); sozinho, um deles ocupa a faixa inteira.
+Não sobra buraco em nenhum dos casos.
+
+## (histórico) Painel — janela do Fora da garantia
 Clicar no quadro **Fora da garantia** abre a lista dos acionamentos com "Não"
 em Coberto em Garantia: UFV, Tipo de Acionamento, Fornecedor,
 Material/Equipamento e Qtd, com o total de itens no rodapé. **Ctrl+clique**
