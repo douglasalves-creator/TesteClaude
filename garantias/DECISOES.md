@@ -828,3 +828,20 @@ quem entra.
   algum campo ainda depender delas; com a aba Listas cobrindo tudo, não lê.
 - **Atualizar** em Processos refaz a lista **e** as listas suspensas do
   formulário.
+
+## RNC — a gravação segue o nome do cabeçalho
+Cada pergunta vai para a coluna com o **mesmo nome do seu rótulo**, e só usa
+um nome diferente quando declarado em `planilha` (caso do Nº RNC, que na aba
+tem "º" e no formulário tem "°"). Com isso, ELABORADOR, TIPO DE OCORRÊNCIA,
+FASE DO PROJETO e DESCRIÇÃO DO ITEM passaram a ser preenchidos assim que
+foram criados na aba — e qualquer coluna futura com o nome de um campo do
+formulário também será, sem mexer no código.
+"Fase do projeto" deixou de ir para a coluna **Etapa** (que guarda O&M) e
+passou a ir para a coluna **FASE DO PROJETO**, que é a dela.
+
+## RNC — contador de número sincronizado com a planilha
+A planilha já tinha RNCs até 266, enquanto o contador guardado ainda estava em
+254. Agora, toda vez que o sistema lê a planilha (inclusive ao abrir o
+formulário, onde ele lê só a coluna Nº RNC), o contador acompanha o maior
+número que existe lá. Assim o número mostrado no formulário é o mesmo que será
+gravado, e números criados à mão na planilha nunca são repetidos.

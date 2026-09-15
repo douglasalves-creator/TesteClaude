@@ -43,7 +43,9 @@ var GAR_RNC = (function () {
   /**
    * As perguntas do documento, na ordem em que aparecem nele.
    *   bloco    = seção do PDF
-   *   planilha = cabeçalho da aba que recebe esse valor (quando houver)
+   *   planilha = cabeçalho da aba que recebe esse valor, quando o nome na
+   *              planilha for diferente do rótulo. Sem isso, o valor vai para
+   *              a coluna que tiver o mesmo nome do rótulo, se ela existir.
    *   daColuna = de onde vêm as opções da lista, quando a lista é da planilha
    */
   var PERGUNTAS = [
@@ -53,7 +55,7 @@ var GAR_RNC = (function () {
 
     { id: 'assunto',     rotulo: 'Assunto relacionado',    tipo: 'select', bloco: 'marcar',    opcoes: ASSUNTOS, obrig: true },
     { id: 'tipo',        rotulo: 'Tipo de ocorrência',     tipo: 'select', bloco: 'marcar',    opcoes: TIPOS,    obrig: true },
-    { id: 'fase',        rotulo: 'Fase do projeto',        tipo: 'select', bloco: 'marcar',    opcoes: FASES,    planilha: 'Etapa', obrig: true },
+    { id: 'fase',        rotulo: 'Fase do projeto',        tipo: 'select', bloco: 'marcar',    opcoes: FASES,    obrig: true },
 
     { id: 'resumo',      rotulo: 'Resumo da ocorrência',   tipo: 'area',   bloco: 'resumo',    planilha: 'Resumo da Ocorrência', obrig: true },
 
@@ -198,6 +200,7 @@ var GAR_RNC = (function () {
         linhas.push({ linha: primeira + i, v: v, busca: l.join(' ').toLowerCase() });
       });
     }
+    _acertarContador(linhas);
     return { aba: aba, mapa: mapa, colunas: colunas, linhas: linhas };
   }
 
@@ -268,6 +271,7 @@ var GAR_RNC = (function () {
     }
 
     var opcoes = _opcoesDosCampos(_ler);
+    _acertarContadorPelaColuna();       // o número mostrado já sai certo
     var saida = _montarInicio(opcoes);
     _cacheGravar(CHAVE_INICIO, JSON.stringify(saida), 1800);
     return saida;
@@ -358,6 +362,46 @@ var GAR_RNC = (function () {
   function _fuso() {
     try { return _planilha().getSpreadsheetTimeZone() || 'America/Sao_Paulo'; }
     catch (e) { return 'America/Sao_Paulo'; }
+  }
+
+  /**
+   * Toda vez que lemos a planilha, o contador acompanha o maior número que
+   * já existe lá. Assim o número mostrado no formulário é o mesmo que será
+   * gravado, mesmo que alguém crie RNCs direto na planilha.
+   */
+  function _acertarContador(linhas) {
+    try {
+      var idNum = _norm('Nº RNC');
+      var maior = 0;
+      (linhas || []).forEach(function (l) {
+        var n = Number(String(l.v[idNum] || '').trim().split(/[^0-9]/)[0]);
+        if (n && n > maior) maior = n;
+      });
+      if (!maior) return;
+      var props = PropertiesService.getScriptProperties();
+      var guardado = Number(props.getProperty('rnc_ultimo_numero') || 0);
+      if (maior > guardado) props.setProperty('rnc_ultimo_numero', String(maior));
+    } catch (e) { /* o contador não pode atrapalhar a leitura */ }
+  }
+
+  /**
+   * Acerta o contador lendo só a coluna Nº RNC — leve, para o formulário
+   * mostrar o número certo já na primeira abertura.
+   */
+  function _acertarContadorPelaColuna() {
+    try {
+      var aba = _aba();
+      var mapa = _mapa(aba);
+      var col = mapa[_norm('Nº RNC')];
+      var ultima = aba.getLastRow();
+      if (!col || ultima <= CFG.HEADER_ROW) return;
+      var vals = aba.getRange(CFG.HEADER_ROW + 1, col.col, ultima - CFG.HEADER_ROW, 1).getDisplayValues();
+      var idNum = _norm('Nº RNC');
+      var linhas = vals.map(function (l) {
+        var v = {}; v[idNum] = l[0]; return { v: v };
+      });
+      _acertarContador(linhas);
+    } catch (e) { /* o contador não pode atrapalhar a abertura */ }
   }
 
   /** Só para mostrar na tela; quem vale é o _proximoNumero() da gravação. */
@@ -671,6 +715,17 @@ var GAR_RNC = (function () {
 
   /* ---------------- gravação ---------------- */
 
+  /**
+   * Para onde vai cada resposta na planilha. Primeiro o nome apontado em
+   * `planilha`; senão, uma coluna com o mesmo nome do rótulo do campo.
+   * Assim, criar a coluna na aba já basta para ela passar a ser preenchida —
+   * é a mesma regra de cabeçalho usada no resto do sistema.
+   */
+  function _colunaDoCampo(mapa, p) {
+    if (p.planilha) return mapa[_norm(p.planilha)] || null;
+    return mapa[_norm(p.rotulo)] || null;
+  }
+
   function _paraCelula(tipo, valor) {
     var t = String(valor == null ? '' : valor).trim();
     if (!t) return '';
@@ -722,8 +777,7 @@ var GAR_RNC = (function () {
 
       var valores = new Array(largura).fill('');
       PERGUNTAS.forEach(function (p) {
-        if (!p.planilha) return;
-        var alvo = mapa[_norm(p.planilha)];
+        var alvo = _colunaDoCampo(mapa, p);
         if (!alvo) return;
         valores[alvo.col - 1] = _paraCelula(p.tipo, dados[p.id]);
       });
