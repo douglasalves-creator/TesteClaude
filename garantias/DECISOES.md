@@ -939,3 +939,26 @@ Também: gravar uma edição em Processos, ou abrir uma RNC nova, não derruba
 mais o cache do formulário — as listas suspensas não mudaram, e só a
 tabela de Processos se refaz. Abrir o formulário logo depois de um envio
 passou de 2 leituras para nenhuma.
+
+## RNC — mais campos obrigatórios no formulário
+Passaram a ser obrigatórios: **Descrição do item, Quantidade recebida,
+Descrição da não conformidade / causas, Elaborador** — somando-se aos que
+já eram (UFV, Assunto, Tipo de ocorrência, Fase do projeto, Resumo,
+Fornecedor). As **evidências** já eram obrigatórias desde o início, na tela
+e no servidor; nada mudou lá.
+
+Campo obrigatório com lista suspensa deixa de oferecer "Deixar em branco".
+
+## RNC — a Data de Conclusão só abre com a RNC inteira preenchida
+No módulo Processos, o campo **Data de Conclusão** fica travado enquanto
+faltar qualquer outro campo daquela RNC, e a tela mostra em laranja
+exatamente o que falta. Assim que tudo é preenchido, o campo libera
+sozinho; se algum campo é esvaziado de novo, ele volta a travar.
+
+A regra vale também no servidor (`_conferirConclusao`): mesmo forçando pelo
+navegador, gravar uma data de conclusão com campos vazios é recusado com a
+lista do que falta. **Apagar** a data continua permitido — senão não haveria
+como corrigir um engano.
+
+Qual coluna é essa está em `CFG.PROCESSOS.conclusao`, pelo nome do
+cabeçalho, como todo o resto.

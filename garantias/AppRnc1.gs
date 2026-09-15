@@ -53,6 +53,8 @@ var GAR_RNC = (function () {
       grandes:  ['Resumo da Ocorrência', 'ATUALIZAÇÃO'],
       // ocupam a linha inteira da tela, com o texto inteiro à mostra
       largos:   ['DESCRIÇÃO DO ITEM'],
+      // só pode ser preenchida quando todo o resto já estiver preenchido
+      conclusao: 'Data de Conclusão',
       // quando o nome da coluna é diferente do título na aba Listas.
       // O resto casa sozinho pelo próprio nome do cabeçalho.
       listas:   { 'Nome do Fornecedor': 'FORNECEDOR' },
@@ -91,8 +93,8 @@ var GAR_RNC = (function () {
     { id: 'resumo',      rotulo: 'Resumo da ocorrência',   tipo: 'area',   bloco: 'resumo',    planilha: 'Resumo da Ocorrência', obrig: true },
 
     { id: 'fornecedor',  rotulo: 'Fornecedor / Prestador', tipo: 'select', bloco: 'dados',     planilha: 'Nome do Fornecedor', daColuna: 'Nome do Fornecedor', obrig: true },
-    { id: 'descricao_item', rotulo: 'Descrição do item',   tipo: 'area',   bloco: 'dados' },
-    { id: 'qtd_recebida',   rotulo: 'Quantidade recebida', tipo: 'inteiro', bloco: 'dados' },
+    { id: 'descricao_item', rotulo: 'Descrição do item',   tipo: 'area',   bloco: 'dados', obrig: true },
+    { id: 'qtd_recebida',   rotulo: 'Quantidade recebida', tipo: 'inteiro', bloco: 'dados', obrig: true },
 
     { id: 'descricao_nc', rotulo: 'Descrição da não conformidade / causas da não conformidade',
       tipo: 'area', bloco: 'nc', obrig: true },
@@ -101,7 +103,7 @@ var GAR_RNC = (function () {
     { id: 'causa_raiz',    rotulo: 'Análise da causa raiz da não conformidade e/ou análise da oportunidade de melhoria',
       tipo: 'area', bloco: 'causa' },
 
-    { id: 'elaborador', rotulo: 'Elaborador', tipo: 'texto', bloco: 'assinaturas' },
+    { id: 'elaborador', rotulo: 'Elaborador', tipo: 'texto', bloco: 'assinaturas', obrig: true },
     { id: 'revisao',    rotulo: 'Revisão',    tipo: 'texto', bloco: 'assinaturas' }
   ];
 
@@ -364,6 +366,7 @@ var GAR_RNC = (function () {
     var datas    = _conjunto(P.datas);
     var grandes  = _conjunto(P.grandes);
     var largos   = _conjunto(P.largos);
+    var conclusao = P.conclusao ? _norm(P.conclusao) : '';
 
     // exceções de nome entre a coluna e o título na aba Listas
     var apontados = {};
@@ -391,6 +394,7 @@ var GAR_RNC = (function () {
         if (travados[c.id]) campo.travado = true;
         if (depois[c.id]) campo.depoisDe = depois[c.id];
         if (largos[c.id]) campo.largo = true;
+        if (conclusao && conclusao === c.id) campo.conclusao = true;
         campo.ordem = ordem[c.id] || (900 + c.col);
         return campo;
       });
@@ -829,6 +833,36 @@ var GAR_RNC = (function () {
     return mapa[_norm(p.rotulo)] || null;
   }
 
+  /**
+   * A Data de Conclusão só entra quando a RNC está inteira. Vale no servidor,
+   * não só na tela: se faltar alguma coisa, a gravação nem começa.
+   */
+  function _conferirConclusao(aba, mapa, campos, linha, alteracoes) {
+    var alvoConc = null;
+    Object.keys(campos).forEach(function (id) { if (campos[id].conclusao) alvoConc = campos[id]; });
+    if (!alvoConc) return;
+    if (!(alvoConc.id in alteracoes)) return;                    // não mexeram nela
+    if (!String(alteracoes[alvoConc.id] || '').trim()) return;   // estão limpando: pode
+
+    var largura = aba.getLastColumn();
+    var atuais = aba.getRange(linha, 1, 1, largura).getDisplayValues()[0];
+
+    var faltando = [];
+    Object.keys(campos).forEach(function (id) {
+      var c = campos[id];
+      if (c.conclusao) return;
+      var col = mapa[id];
+      if (!col) return;
+      var v = (id in alteracoes) ? alteracoes[id] : atuais[col.col - 1];
+      if (!String(v == null ? '' : v).trim()) faltando.push(c.rotulo);
+    });
+
+    if (faltando.length) {
+      throw new Error('Para preencher a Data de Conclusão, preencha antes: ' +
+                      faltando.join(', ') + '.');
+    }
+  }
+
   /** O Nº RNC daquela linha, para aparecer no registro de auditoria. */
   function _codigoDaLinha(aba, mapa, linha) {
     var alvo = mapa[_norm('Nº RNC')];
@@ -1037,6 +1071,8 @@ var GAR_RNC = (function () {
       var campos = {};
       _camposDeProcessos(_colunas(mapa), _listasDaAba())
         .forEach(function (c) { campos[c.id] = c; });
+
+      _conferirConclusao(aba, mapa, campos, linha, alteracoes);
 
       var codigo = _codigoDaLinha(aba, mapa, linha);
       var registro = [];

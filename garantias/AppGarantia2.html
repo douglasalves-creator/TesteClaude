@@ -87,6 +87,7 @@ body.no-inicio{background:var(--eclipse)}
 .campo-alto{grid-column:span 2}
 .campo-alto textarea.entrada{min-height:160px}
 /* Ocupa a linha inteira e mostra o texto todo, dobrando quando precisa. */
+.aviso-trava{margin-top:6px;font-size:12px;line-height:1.4;color:#a05a1e;background:#fff6ec;border:1px solid #f2d9bf;border-radius:6px;padding:6px 9px}
 .campo-largo{grid-column:span 2}
 .campo-largo .sel-btn{align-items:flex-start}
 .campo-largo .sel-btn .val{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35}
@@ -4347,6 +4348,43 @@ function valorNaGaveta(c, bruto){
   return bruto;
 }
 
+/**
+ * A Data de Conclusão só abre quando o resto da RNC estiver preenchido.
+ * Enquanto faltar alguma coisa, o campo fica travado e a tela diz o que falta.
+ */
+function ligarTravaConclusao(grade){
+  var conc = camposDaGavetaRnc().filter(function(c){ return c.conclusao; })[0];
+  if (!conc) return;
+  var campoConc = el('rnced-' + slug(conc.id));
+  if (!campoConc) return;
+
+  var aviso = document.createElement('div');
+  aviso.className = 'aviso-trava';
+  campoConc.parentNode.appendChild(aviso);
+
+  function faltando(){
+    return camposDaGavetaRnc().filter(function(c){
+      if (c.conclusao) return false;
+      var e = el('rnced-' + slug(c.id));
+      return e && !String(e.value || '').trim();
+    }).map(function(c){ return c.rotulo; });
+  }
+
+  function conferir(){
+    var faltam = faltando();
+    campoConc.disabled = faltam.length > 0;
+    campoConc.classList.toggle('travado', faltam.length > 0);
+    aviso.textContent = faltam.length
+      ? 'Falta preencher: ' + faltam.join(', ') + '.'
+      : '';
+    aviso.classList.toggle('oculto', !faltam.length);
+  }
+
+  grade.addEventListener('input', conferir);
+  grade.addEventListener('change', conferir);
+  conferir();
+}
+
 /* Os campos na ordem pedida; o que não estiver na ordem entra depois. */
 function camposDaGavetaRnc(){
   return camposRnc().slice().sort(function(a, b){
@@ -4377,6 +4415,7 @@ function abrirGavetaRnc(linha){
     grade.appendChild(caixa);
   });
   corpo.appendChild(grade);
+  ligarTravaConclusao(grade);
 
   // as fotos da pasta daquela RNC, logo abaixo
   var evid = document.createElement('div');
