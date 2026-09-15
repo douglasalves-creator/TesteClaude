@@ -18,6 +18,11 @@ var GAR_RNC = (function () {
     STATUS_NOVO: 'Emitida',
     EMAIL_NOVA_RNC: 'supplychain.eng@solargrid.com.br',
 
+    // Aba que guarda o histórico de tudo que for criado ou alterado.
+    // '' desliga o registro.
+    ABA_AUDITORIA: 'Auditoria',
+    AUDITORIA_HEADER_ROW: 1,
+
     // Aba só com as listas suspensas, na mesma planilha: título da lista na
     // linha 1 e os valores abaixo, uma coluna por lista. '' desliga.
     ABA_LISTAS: 'Listas',
@@ -49,6 +54,8 @@ var GAR_RNC = (function () {
       // quando o nome da coluna é diferente do título na aba Listas.
       // O resto casa sozinho pelo próprio nome do cabeçalho.
       listas:   { 'Nome do Fornecedor': 'FORNECEDOR' },
+      // ordem das colunas na TABELA: "esta coluna vem logo depois daquela".
+      depoisDe: { 'DESCRIÇÃO DO ITEM': 'Nome do Fornecedor' },
       // ordem dos campos na tela que abre ao clicar numa RNC.
       // O que não estiver aqui entra depois, na ordem da planilha.
       ordem: ['Nº RNC', 'Data de Emissão', 'UFV', 'Nome do Fornecedor',
@@ -368,6 +375,11 @@ var GAR_RNC = (function () {
     var ordem = {};
     (P.ordem || []).forEach(function (n, i) { ordem[_norm(n)] = i + 1; });
 
+    var depois = {};
+    Object.keys(P.depoisDe || {}).forEach(function (k) {
+      depois[_norm(k)] = _norm(P.depoisDe[k]);
+    });
+
     var campos = colunas.filter(function (c) { return !ocultos[c.id]; })
       .map(function (c) {
         var campo = { id: c.id, rotulo: c.rotulo, tipo: 'texto' };
@@ -378,6 +390,7 @@ var GAR_RNC = (function () {
         else if (lista && lista.length) { campo.tipo = 'select'; campo.opcoes = lista; }
 
         if (travados[c.id]) campo.travado = true;
+        if (depois[c.id]) campo.depoisDe = depois[c.id];
         campo.ordem = ordem[c.id] || (900 + c.col);
         return campo;
       });
@@ -800,6 +813,110 @@ var GAR_RNC = (function () {
     return mapa[_norm(p.rotulo)] || null;
   }
 
+  /** O Nº RNC daquela linha, para aparecer no registro de auditoria. */
+  function _codigoDaLinha(aba, mapa, linha) {
+    var alvo = mapa[_norm('Nº RNC')];
+    if (!alvo) return '';
+    return String(aba.getRange(linha, alvo.col).getDisplayValue() || '').trim();
+  }
+
+  /* ---------------- auditoria ---------------- */
+
+  /**
+   * Cabeçalhos da aba de auditoria. Como no resto do sistema, tudo é achado
+   * pelo TEXTO do cabeçalho, então as colunas podem ser reordenadas lá.
+   * A coluna do código do processo pode se chamar RNC ou SC — vale as duas.
+   */
+  var AUD = {
+    DATA:    'Data / Hora',
+    USUARIO: 'Usuário',
+    ACAO:    'Ação',
+    LINHA:   'Linha',
+    RNC:     'RNC',
+    CAMPO:   'Campo',
+    DEPARA:  'De → Para'
+  };
+
+  /** Data vira 31/12/2026 no registro; o resto vai como está. */
+  function _textoDoValor(v) {
+    if (v instanceof Date) return Utilities.formatDate(v, _fuso(), 'dd/MM/yyyy');
+    return String(v == null ? '' : v);
+  }
+
+  /** Como o valor aparece no registro. Vazio vira "(vazio)". */
+  function _audValor(v) {
+    var t = String(v == null ? '' : v).trim();
+    return t === '' ? '(vazio)' : t;
+  }
+
+  /**
+   * Grava as entradas na aba de auditoria, todas de uma vez.
+   *   entradas = [{ linha, rnc, campo, de, para }]
+   * Nunca derruba a operação principal: se o registro falhar, o que foi
+   * gravado na planilha continua valendo e o erro fica só no log.
+   */
+  function _registrarAuditoria(acao, entradas) {
+    if (!CFG.ABA_AUDITORIA || !entradas || !entradas.length) return;
+
+    try {
+      var aba = _planilha().getSheetByName(CFG.ABA_AUDITORIA);
+      if (!aba) return;
+
+      var linhaCab = CFG.AUDITORIA_HEADER_ROW || 1;
+      var largura = Math.max(aba.getLastColumn(), 1);
+      var titulos = aba.getRange(linhaCab, 1, 1, largura).getDisplayValues()[0];
+
+      var onde = {};
+      titulos.forEach(function (t, i) {
+        var chave = _norm(t);
+        if (chave && onde[chave] === undefined) onde[chave] = i;
+      });
+      function pos(nome) {
+        var i = onde[_norm(nome)];
+        return i === undefined ? -1 : i;
+      }
+      function pos1() {   // o primeiro nome que existir na aba
+        for (var i = 0; i < arguments.length; i++) {
+          var p = pos(arguments[i]);
+          if (p >= 0) return p;
+        }
+        return -1;
+      }
+
+      var cols = {
+        data:    pos(AUD.DATA),
+        usuario: pos(AUD.USUARIO),
+        acao:    pos(AUD.ACAO),
+        linha:   pos(AUD.LINHA),
+        rnc:     pos1(AUD.RNC, 'Nº RNC', 'SC', 'SCGAR'),
+        campo:   pos(AUD.CAMPO),
+        depara:  pos1(AUD.DEPARA, 'De -> Para')
+      };
+
+      var agora = new Date();
+      var usuario = Session.getActiveUser().getEmail() || '';
+
+      var bloco = entradas.map(function (e) {
+        var l = new Array(largura).fill('');
+        if (cols.data    >= 0) l[cols.data] = agora;
+        if (cols.usuario >= 0) l[cols.usuario] = usuario;
+        if (cols.acao    >= 0) l[cols.acao] = acao;
+        if (cols.linha   >= 0) l[cols.linha] = e.linha || '';
+        if (cols.rnc     >= 0) l[cols.rnc] = e.rnc || '';
+        if (cols.campo   >= 0) l[cols.campo] = e.campo || '';
+        if (cols.depara  >= 0) l[cols.depara] = _audValor(e.de) + ' → ' + _audValor(e.para);
+        return l;
+      });
+
+      var inicio = Math.max(aba.getLastRow(), linhaCab) + 1;
+      var precisa = inicio + bloco.length - 1;
+      if (precisa > aba.getMaxRows()) aba.insertRowsAfter(aba.getMaxRows(), precisa - aba.getMaxRows());
+      aba.getRange(inicio, 1, bloco.length, largura).setValues(bloco);
+    } catch (erro) {
+      console.error('Auditoria não registrada: ' + erro.message);
+    }
+  }
+
   function _paraCelula(tipo, valor) {
     var t = String(valor == null ? '' : valor).trim();
     if (!t) return '';
@@ -869,6 +986,18 @@ var GAR_RNC = (function () {
       }
       faixa.setValues([valores]);
       SpreadsheetApp.flush();
+
+      // A abertura entra em UMA linha só, não uma por campo.
+      _registrarAuditoria('Abertura de RNC', [{
+        linha: nova,
+        rnc: dados.n_rnc,
+        campo: 'ABERTURA DA RNC',
+        de: '',
+        para: 'RNC ' + dados.n_rnc + (arquivos.length
+          ? ' · ' + arquivos.length + (arquivos.length === 1 ? ' evidência' : ' evidências')
+          : '')
+      }]);
+
       _limparCaches();
 
       _avisarPorEmail(dados, pasta);
@@ -890,15 +1019,23 @@ var GAR_RNC = (function () {
       _camposDeProcessos(_colunas(mapa), _listasDaAba())
         .forEach(function (c) { campos[c.id] = c; });
 
+      var codigo = _codigoDaLinha(aba, mapa, linha);
+      var registro = [];
       var n = 0;
       Object.keys(alteracoes).forEach(function (id) {
         var alvo = mapa[id];
         var campo = campos[id];
         if (!alvo || !campo || campo.travado) return;   // campo só leitura não grava
-        aba.getRange(linha, alvo.col).setValue(_paraCelula(campo.tipo, alteracoes[id]));
+        var cel = aba.getRange(linha, alvo.col);
+        var antes = cel.getDisplayValue();
+        var novo = _paraCelula(campo.tipo, alteracoes[id]);
+        cel.setValue(novo);
+        registro.push({ linha: linha, rnc: codigo, campo: campo.rotulo,
+                        de: antes, para: _textoDoValor(novo) });
         n++;
       });
       SpreadsheetApp.flush();
+      _registrarAuditoria('Edição', registro);
       _limparCaches();
       return { ok: true, gravados: n };
     } finally {

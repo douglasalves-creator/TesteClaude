@@ -868,3 +868,26 @@ coluna da planilha chega com um comportamento definido no bloco
 
 O nome do cache da lista passou a incluir esse bloco, então qualquer ajuste
 aqui aparece na hora, sem esperar os 10 minutos do cache antigo.
+
+## RNC — DESCRIÇÃO DO ITEM ao lado do fornecedor
+Na tabela do módulo Processos, a coluna **DESCRIÇÃO DO ITEM** passou a
+aparecer logo depois de **Nome do Fornecedor**, antes do Resumo da
+Ocorrência. Isso é uma regra de tela, não de planilha: em
+`CFG.PROCESSOS.depoisDe` diz-se "esta coluna vem logo depois daquela",
+pelo nome do cabeçalho. A planilha não mudou.
+
+## RNC — aba Auditoria
+Toda gravação do RNC passa a deixar rastro na aba **Auditoria**, do mesmo
+jeito que em Garantias: Data / Hora, Usuário, Ação, Linha, RNC, Campo e
+De → Para. As colunas são achadas pelo nome, então podem ser reordenadas
+lá dentro. A coluna do código aceita os dois nomes — **RNC** ou **SC** —
+porque a aba nasceu como cópia da de Garantias.
+
+- **Edição**: uma linha por campo alterado, com o valor de antes e o de
+  depois. Data aparece como 31/12/2026, não como texto cru.
+- **Abertura de RNC**: uma linha só, com o número da RNC e quantas
+  evidências foram anexadas — não uma linha por campo do formulário.
+
+Se a aba não existir, ou se o registro falhar por qualquer motivo, a
+gravação principal continua valendo: a auditoria nunca derruba o que o
+usuário está fazendo.

@@ -3815,12 +3815,23 @@ function camposRnc(){
 var RNC_NA_FRENTE = ['nº rnc', 'status tratativa', 'status - rnc'];
 
 function ordenarColunasRnc(campos){
-  return campos.slice().sort(function(a, b){
+  var ordenados = campos.slice().sort(function(a, b){
     var pa = RNC_NA_FRENTE.indexOf(a.id), pb = RNC_NA_FRENTE.indexOf(b.id);
     if (pa < 0) pa = 99;
     if (pb < 0) pb = 99;
     return pa - pb;
   });
+
+  // Coluna que o servidor mandou colocar logo depois de outra.
+  ordenados.filter(function(c){ return c.depoisDe; }).forEach(function(c){
+    var de = ordenados.indexOf(c);
+    var para = ordenados.findIndex(function(x){ return x.id === c.depoisDe; });
+    if (de < 0 || para < 0) return;
+    ordenados.splice(de, 1);
+    para = ordenados.findIndex(function(x){ return x.id === c.depoisDe; });
+    ordenados.splice(para + 1, 0, c);
+  });
+  return ordenados;
 }
 
 /* ---- formulário: as perguntas do modelo, em blocos ---- */
