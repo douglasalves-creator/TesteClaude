@@ -195,10 +195,6 @@ var GAR_RNC = (function () {
     cache.removeAll(nomes);
   }
 
-  function _limparCaches() {
-    _cacheLimpar(CHAVE_INICIO);
-    _cacheLimpar(CHAVE_LISTA);
-  }
 
   function _mapa(aba) {
     var titulos = aba.getRange(CFG.HEADER_ROW, 1, 1, aba.getLastColumn()).getDisplayValues()[0];
@@ -488,20 +484,27 @@ var GAR_RNC = (function () {
    * Acerta o contador lendo só a coluna Nº RNC — leve, para o formulário
    * mostrar o número certo já na primeira abertura.
    */
+  /**
+   * Só a coluna Nº RNC, em forma de linhas. É o bastante para o contador e
+   * para saber quais números já estão em uso — sem ler a aba inteira, que
+   * tem dezenas de colunas e é o que custa caro.
+   */
+  function _linhasDoNumero(aba, mapa) {
+    aba = aba || _aba();
+    mapa = mapa || _mapa(aba);
+    var col = mapa[_norm('Nº RNC')];
+    var ultima = aba.getLastRow();
+    if (!col || ultima <= CFG.HEADER_ROW) return [];
+    var vals = aba.getRange(CFG.HEADER_ROW + 1, col.col, ultima - CFG.HEADER_ROW, 1).getDisplayValues();
+    var idNum = _norm('Nº RNC');
+    return vals.map(function (l) {
+      var v = {}; v[idNum] = l[0]; return { v: v };
+    });
+  }
+
   function _acertarContadorPelaColuna() {
-    try {
-      var aba = _aba();
-      var mapa = _mapa(aba);
-      var col = mapa[_norm('Nº RNC')];
-      var ultima = aba.getLastRow();
-      if (!col || ultima <= CFG.HEADER_ROW) return;
-      var vals = aba.getRange(CFG.HEADER_ROW + 1, col.col, ultima - CFG.HEADER_ROW, 1).getDisplayValues();
-      var idNum = _norm('Nº RNC');
-      var linhas = vals.map(function (l) {
-        var v = {}; v[idNum] = l[0]; return { v: v };
-      });
-      _acertarContador(linhas);
-    } catch (e) { /* o contador não pode atrapalhar a abertura */ }
+    try { _acertarContador(_linhasDoNumero()); }
+    catch (e) { /* o contador não pode atrapalhar a abertura */ }
   }
 
   /** Só para mostrar na tela; quem vale é o _proximoNumero() da gravação. */
@@ -515,7 +518,7 @@ var GAR_RNC = (function () {
    * Contador próprio, guardado no projeto. Nunca repete, mesmo com duas
    * pessoas enviando ao mesmo tempo, e pula o que já existir na planilha.
    */
-  function _proximoNumero(linhas, mapa) {
+  function _proximoNumero(linhas) {
     var props = PropertiesService.getScriptProperties();
     var ultimo = Number(props.getProperty('rnc_ultimo_numero') || 0);
     if (!ultimo || ultimo < CFG.NUMERO_MINIMO) ultimo = CFG.NUMERO_MINIMO;
@@ -951,10 +954,11 @@ var GAR_RNC = (function () {
     if (!arquivos.length) throw new Error('Anexe ao menos uma evidência.');
     _conferirTamanho(arquivos);
 
-    // O número e a data são do sistema, não do formulário.
-    var r0 = _ler();
-    var opcoes = _opcoesDosCampos(function () { return r0; });
-    dados.n_rnc = _proximoNumero(r0.linhas, r0.mapa);
+    // O número e a data são do sistema, não do formulário. Para descobrir o
+    // número basta a coluna Nº RNC: ler a aba inteira aqui era o que mais
+    // pesava no envio.
+    var opcoes = _opcoesDosCampos(_ler);
+    dados.n_rnc = _proximoNumero(_linhasDoNumero());
     dados.data_rnc = Utilities.formatDate(new Date(), _fuso(), 'yyyy-MM-dd');
 
     // Pasta e arquivos primeiro: assim nenhuma linha fica sem as evidências.
@@ -1011,7 +1015,9 @@ var GAR_RNC = (function () {
           : '')
       }]);
 
-      _limparCaches();
+      // As listas do formulário não mudaram com a nova RNC, e o próximo
+      // número vem do contador — então só a tabela de Processos se refaz.
+      _cacheLimpar(CHAVE_LISTA);
 
       _avisarPorEmail(dados, pasta);
 
@@ -1049,7 +1055,8 @@ var GAR_RNC = (function () {
       });
       SpreadsheetApp.flush();
       _registrarAuditoria('Edição', registro);
-      _limparCaches();
+      // só a tabela de Processos mudou; as listas do formulário seguem boas
+      _cacheLimpar(CHAVE_LISTA);
       return { ok: true, gravados: n };
     } finally {
       trava.releaseLock();

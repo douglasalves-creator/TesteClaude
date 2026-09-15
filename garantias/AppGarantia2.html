@@ -1027,11 +1027,18 @@ function dataBR(iso){
    ================================================================== */
 var LISTA_ADIANTADA = null;   // resposta da lista, se ela chegar antes do resto
 
-if (typeof google === 'undefined' || !google.script || !google.script.run) {
-  mostrarErroJS('A ponte com o Google não carregou. Abra a tela pelo link do app da Web (termina em /exec), não pelo botão de pré-visualização do editor.');
-} else {
-  // Os DOIS pedidos saem ao mesmo tempo. Antes o segundo só saía depois de o
-  // primeiro voltar, e a espera era a soma dos dois; agora é a do mais demorado.
+/**
+ * Garantias só é pedida ao servidor quando alguém entra nela. Antes, os dois
+ * pedidos pesados saíam sempre, mesmo quem ia direto para o RNC — e o RNC
+ * ficava na fila atrás deles. Os DOIS continuam saindo juntos, então a espera
+ * é a do mais demorado, não a soma.
+ */
+var GAR_PEDIDA = false;
+
+function carregarGarantias(){
+  if (GAR_PEDIDA) return;
+  GAR_PEDIDA = true;
+
   google.script.run.withSuccessHandler(aoIniciar).withFailureHandler(falhaGrave).gar_carregarInicio();
 
   google.script.run
@@ -1079,9 +1086,10 @@ function iniciarDeVerdade(dados){
   if (dados.porPagina) POR_PAGINA = dados.porPagina;
 
 
-  irPara('portal');
+  // Volta para o módulo em que a pessoa já está, agora com os dados na mão.
+  irPara(MOD_ATUAL || 'portal');
 
-  // A lista já foi pedida junto com esta carga, lá no começo do arquivo.
+  // A lista já foi pedida junto com esta carga.
   // Se ela chegou primeiro, é aplicada agora.
   if (LISTA_ADIANTADA){
     aplicarLista(LISTA_ADIANTADA);
@@ -1109,9 +1117,18 @@ el('marca').addEventListener('click', function(){ irPara('portal'); });
 
 var TELAS_CHEIAS = ['portal', 'inicio', 'rnc'];   // telas escuras, sem o menu de cima
 var VOLTA_PARA = 'inicio';                       // para onde o botão Início volta
+var MOD_ATUAL = 'portal';                        // em que tela a pessoa está
+var MODS_GAR = ['inicio', 'solicitacao', 'processos', 'painel'];
 
 function irPara(mod){
   var cheia = TELAS_CHEIAS.indexOf(mod) >= 0;
+  MOD_ATUAL = mod;
+
+  // Entrou em Garantias: é agora que os dados dela são pedidos.
+  if (MODS_GAR.indexOf(mod) >= 0) carregarGarantias();
+  // Entrou no RNC: as listas do formulário já vão sendo buscadas enquanto a
+  // pessoa lê os cartões, para o formulário abrir sem espera.
+  if (mod === 'rnc') abrirRnc('rnc');
 
   document.body.classList.toggle('no-inicio', cheia);
   TELAS_CHEIAS.forEach(function(t){
@@ -1144,8 +1161,8 @@ function irPara(mod){
     atualizarBarraSel();
   }
 
-  if (mod === 'processos' && !LISTA) carregarLista(false);
-  if (mod === 'painel') montarPainel();
+  if (mod === 'processos' && INICIO && !LISTA) carregarLista(false);
+  if (mod === 'painel' && INICIO) montarPainel();
   if (ehRnc) abrirRnc(mod);
   window.scrollTo(0,0);
 }
@@ -3779,11 +3796,14 @@ function atualizarLinhaNaTela(linha){
    ================================================================== */
 var RNC = { ini: null, lista: null, colunas: null, filtrados: [], busca: '', atual: null, original: {} };
 
+var RNC_PEDIDA = false;
+
 function abrirRnc(mod){
-  if (!RNC.ini){
+  if (!RNC.ini && !RNC_PEDIDA){
+    RNC_PEDIDA = true;
     google.script.run
-      .withSuccessHandler(function(r){ RNC.ini = r; montarFormRnc(); })
-      .withFailureHandler(function(e){ mostrarErroJS('RNC: ' + e.message); })
+      .withSuccessHandler(function(r){ RNC.ini = r; RNC_PEDIDA = false; montarFormRnc(); })
+      .withFailureHandler(function(e){ RNC_PEDIDA = false; mostrarErroJS('RNC: ' + e.message); })
       .rnc_inicio();
   }
   if ((mod === 'rncproc' || mod === 'rncpainel') && !RNC.lista) carregarRnc();
@@ -4060,7 +4080,8 @@ el('rnc-busca').addEventListener('input', function(){
 el('rnc-atualizar').addEventListener('click', function(){
   carregarRnc(true);
   // o formulário volta a perguntar as listas ao servidor
-  google.script.run.withSuccessHandler(function(r){ RNC.ini = r; montarFormRnc(); }).rnc_inicio();
+  RNC_PEDIDA = false;
+  abrirRnc('rnc');
 });
 
 function larguraPadraoRnc(c){
@@ -4451,6 +4472,18 @@ el('rnc-salvar').addEventListener('click', function(){
     })
     .rnc_salvar(linha, mudou);
 });
+
+
+/* ==================================================================
+   Partida
+   ================================================================== */
+if (typeof google === 'undefined' || !google.script || !google.script.run) {
+  mostrarErroJS('A ponte com o Google não carregou. Abra a tela pelo link do app da Web (termina em /exec), não pelo botão de pré-visualização do editor.');
+} else {
+  // A tela de escolha não depende do servidor: aparece na hora. Cada família
+  // só é buscada quando a pessoa entra nela.
+  irPara('portal');
+}
 
 </script>
 </body>

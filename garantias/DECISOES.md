@@ -913,3 +913,29 @@ agora ocupa a largura inteira (`CFG.PROCESSOS.largos`), com o texto todo à
 mostra: quando o nome do material é comprido, ele dobra para a linha de
 baixo em vez de ser cortado com "…". A caixa cresce só o necessário — nada
 da altura fixa do campo de ATUALIZAÇÃO.
+
+## Velocidade — cada família só é carregada quando alguém entra nela
+Antes, abrir o app disparava sempre os dois pedidos pesados de Garantias
+(as configurações e o índice das 840 linhas) — inclusive para quem ia
+direto ao RNC. Como o Apps Script atende um pedido de cada vez por
+usuário, o RNC ficava na fila atrás deles. Era daí a espera de 10 segundos
+para abrir o formulário.
+
+Agora:
+- A tela de escolha aparece **sem pedir nada ao servidor**.
+- Garantias é buscada quando se entra em Garantias; RNC, quando se entra
+  no RNC. E o RNC começa a ser buscado já no clique do cartão, enquanto a
+  pessoa lê as opções — então o formulário abre sem espera.
+- Se alguém clicar num módulo antes de os dados chegarem, a tela se
+  completa sozinha quando eles chegam (`irPara(MOD_ATUAL)`).
+
+## Velocidade — o envio da RNC não lê mais a aba inteira
+Para descobrir o próximo número, o envio lia todas as linhas e todas as
+colunas da aba. Agora lê só a coluna **Nº RNC**, que é tudo de que ele
+precisa (`_linhasDoNumero`). Na medição com a planilha real, o envio caiu
+de 324 para 52 células lidas.
+
+Também: gravar uma edição em Processos, ou abrir uma RNC nova, não derruba
+mais o cache do formulário — as listas suspensas não mudaram, e só a
+tabela de Processos se refaz. Abrir o formulário logo depois de um envio
+passou de 2 leituras para nenhuma.
