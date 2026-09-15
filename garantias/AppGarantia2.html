@@ -1674,7 +1674,10 @@ function criarCampo(campo, valor, prefixo){
   ent.addEventListener('input', function(){ ent.dataset.tocado = '1'; });
   ent.addEventListener('change', function(){ ent.dataset.tocado = '1'; });
 
-  if (campo.tipo === 'formula' || campo.auto) { ent.readOnly = true; }
+  if (campo.tipo === 'formula' || campo.auto || campo.travado) {
+    ent.readOnly = true;
+    ent.classList.add('travado');
+  }
   caixa.appendChild(ent);
   return caixa;
 }
@@ -4290,9 +4293,29 @@ function cartaoRnc(dim){
   return cartao;
 }
 
-/* Campos que merecem caixa de texto grande na gaveta. */
-var RNC_AREAS = ['atualizacao', 'resumo da ocorrencia'];
-var RNC_ALTO  = 'atualizacao';
+/* Campo que ocupa a linha inteira, por ser o de texto mais comprido. */
+var RNC_ALTO = 'atualizacao';
+
+/* A data vem da planilha como 31/12/2025 e o campo de data pede 2025-12-31. */
+function dataParaCampo(texto){
+  var m = String(texto||'').trim().match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (m) return m[3] + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[1]).slice(-2);
+  m = String(texto||'').trim().match(/^\d{4}-\d{2}-\d{2}$/);
+  return m ? String(texto).trim() : '';
+}
+
+/* O valor que a gaveta mostra em cada campo. */
+function valorNaGaveta(c, bruto){
+  if (c.tipo === 'data' && !c.travado) return dataParaCampo(bruto);
+  return bruto;
+}
+
+/* Os campos na ordem pedida; o que não estiver na ordem entra depois. */
+function camposDaGavetaRnc(){
+  return camposRnc().slice().sort(function(a, b){
+    return (a.ordem || 999) - (b.ordem || 999);
+  });
+}
 
 function abrirGavetaRnc(linha){
   var item = RNC.lista.linhas.filter(function(l){ return l.linha === linha; })[0];
@@ -4304,11 +4327,14 @@ function abrirGavetaRnc(linha){
   corpo.innerHTML = '';
   var grade = document.createElement('div');
   grade.className = 'grade';
-  camposRnc().forEach(function(c){
-    var valor = item.v[c.id] || '';
+  camposDaGavetaRnc().forEach(function(c){
+    var valor = valorNaGaveta(c, item.v[c.id] || '');
     RNC.original[c.id] = valor;
-    var tipo = RNC_AREAS.indexOf(c.id) >= 0 ? 'area' : c.tipo;
-    var caixa = criarCampo({ id: c.id, rotulo: c.rotulo, tipo: tipo }, valor, 'rnced-');
+    // campo bloqueado vira texto simples só de leitura, inclusive as datas
+    var campo = { id: c.id, rotulo: c.rotulo,
+                  tipo: c.travado ? 'texto' : c.tipo,
+                  opcoes: c.opcoes, travado: !!c.travado };
+    var caixa = criarCampo(campo, valor, 'rnced-');
     if (c.id === RNC_ALTO) caixa.classList.add('campo-alto');
     grade.appendChild(caixa);
   });
@@ -4322,9 +4348,9 @@ function abrirGavetaRnc(linha){
   corpo.appendChild(evid);
   buscarEvidenciasRnc(linha, evid);
 
-  var cs = camposRnc();
+  var cs = camposDaGavetaRnc();
   el('rnc-gaveta-cod').textContent =
-    (cs[1] && item.v[cs[1].id]) || (cs[0] && item.v[cs[0].id]) || ('Linha ' + linha);
+    item.v['nº rnc'] || (cs[0] && item.v[cs[0].id]) || ('Linha ' + linha);
   el('rnc-gaveta-met').textContent = 'Linha ' + linha + ' da aba Lista EP';
   el('rnc-gaveta-dica').textContent = '';
   el('cortina').classList.add('abre');
@@ -4384,7 +4410,8 @@ el('rnc-fechar').addEventListener('click', fecharGavetaRnc);
 el('rnc-salvar').addEventListener('click', function(){
   if (!RNC.atual) return;
   var b = this, mudou = {};
-  camposRnc().forEach(function(c){
+  camposDaGavetaRnc().forEach(function(c){
+    if (c.travado) return;
     var e = el('rnced-' + slug(c.id));
     if (!e) return;
     var v = e.value || '';

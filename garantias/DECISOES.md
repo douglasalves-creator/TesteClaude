@@ -845,3 +845,26 @@ A planilha já tinha RNCs até 266, enquanto o contador guardado ainda estava em
 formulário, onde ele lê só a coluna Nº RNC), o contador acompanha o maior
 número que existe lá. Assim o número mostrado no formulário é o mesmo que será
 gravado, e números criados à mão na planilha nunca são repetidos.
+
+## RNC — módulo Processos: campos bloqueados, listas e datas
+A tela que abre ao clicar numa RNC deixou de ser "tudo texto". Agora cada
+coluna da planilha chega com um comportamento definido no bloco
+`CFG.PROCESSOS` do AppRnc1.gs, sempre pelo **nome do cabeçalho**:
+
+- `ocultos`  — a coluna **RNC** continua na planilha, mas sumiu da tela.
+- `travados` — **Nº RNC** e **Data de Emissão** são só leitura. O bloqueio
+  vale também no servidor: mesmo que alguém force pelo navegador, o
+  `salvar` ignora esses campos.
+- `datas`    — **Data de Emissão** e **Data de Conclusão** viram campo de
+  data de verdade, e o que é gravado na planilha é uma data, não texto.
+- `grandes`  — Resumo da Ocorrência e ATUALIZAÇÃO são caixas de texto altas.
+- `listas`   — só as exceções de nome (Nome do Fornecedor ← FORNECEDOR). As
+  demais casam sozinhas com a coluna de mesmo nome na aba **Listas**, que
+  agora tem também ETAPA, STATUS - RNC e STATUS TRATATIVA. Criar uma coluna
+  nova lá já basta para o campo virar lista suspensa.
+- `ordem`    — a sequência dos campos na tela que abre ao clicar na RNC. O
+  que não estiver na lista entra depois, na ordem da planilha. A **tabela**
+  segue na ordem da planilha, como antes.
+
+O nome do cache da lista passou a incluir esse bloco, então qualquer ajuste
+aqui aparece na hora, sem esperar os 10 minutos do cache antigo.

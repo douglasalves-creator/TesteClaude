@@ -33,6 +33,28 @@ var GAR_RNC = (function () {
       descricao_item: 'DESCRIÇÃO DO ITEM',
       elaborador:     'ELABORADOR',
       revisao:        'REVISÃO'
+    },
+
+    // Módulo Processos: como cada coluna da planilha se comporta na tela.
+    // Tudo por NOME de cabeçalho — mudar a ordem das colunas não afeta nada.
+    PROCESSOS: {
+      // não aparecem na tela (a coluna continua na planilha)
+      ocultos:  ['RNC'],
+      // só leitura
+      travados: ['Nº RNC', 'Data de Emissão'],
+      // viram campo de data
+      datas:    ['Data de Emissão', 'Data de Conclusão'],
+      // caixas de texto grandes
+      grandes:  ['Resumo da Ocorrência', 'ATUALIZAÇÃO'],
+      // quando o nome da coluna é diferente do título na aba Listas.
+      // O resto casa sozinho pelo próprio nome do cabeçalho.
+      listas:   { 'Nome do Fornecedor': 'FORNECEDOR' },
+      // ordem dos campos na tela que abre ao clicar numa RNC.
+      // O que não estiver aqui entra depois, na ordem da planilha.
+      ordem: ['Nº RNC', 'Data de Emissão', 'UFV', 'Nome do Fornecedor',
+              'TIPO DE OCORRÊNCIA', 'DESCRIÇÃO DO ITEM', 'Resumo da Ocorrência',
+              'Etapa', 'Status Tratativa', 'ATUALIZAÇÃO', 'ELABORADOR',
+              'REVISÃO', 'Data de Conclusão']
     }
   };
 
@@ -125,7 +147,10 @@ var GAR_RNC = (function () {
     JSON.stringify(CFG.LISTAS) + CFG.ABA_LISTAS + CFG.ABA + CFG.HEADER_ROW +
     PERGUNTAS.map(function (p) { return p.id + p.rotulo + p.tipo; }).join('|')
   );
-  var CHAVE_LISTA = 'rnc_lista_' + _digital(CFG.ABA + '#' + CFG.HEADER_ROW);
+  var CHAVE_LISTA = 'rnc_lista_' + _digital(
+    CFG.ABA + '#' + CFG.HEADER_ROW + '#' + CFG.ABA_LISTAS +
+    '#' + JSON.stringify(CFG.LISTAS) + '#' + JSON.stringify(CFG.PROCESSOS)
+  );
 
   function _cacheLer(chave) {
     var cache = CacheService.getScriptCache();
@@ -306,11 +331,60 @@ var GAR_RNC = (function () {
     }
     var r = _ler();
     var saida = {
-      campos: r.colunas.map(function (c) { return { id: c.id, rotulo: c.rotulo, tipo: 'texto' }; }),
+      campos: _camposDeProcessos(r.colunas, _listasDaAba()),
       linhas: r.linhas
     };
     _cacheGravar(CHAVE_LISTA, JSON.stringify(saida), 600);
     return saida;
+  }
+
+  /* ---------------- campos do módulo Processos ---------------- */
+
+  /** Um conjunto { nome normalizado: true } a partir de uma lista de nomes. */
+  function _conjunto(nomes) {
+    var c = {};
+    (nomes || []).forEach(function (n) { c[_norm(n)] = true; });
+    return c;
+  }
+
+  /**
+   * Como cada coluna da planilha aparece na tela de Processos:
+   * tipo (data / lista suspensa / texto), opções e se é só leitura.
+   * A coluna marcada como oculta simplesmente não vai para a tela.
+   */
+  function _camposDeProcessos(colunas, daAba) {
+    var P = CFG.PROCESSOS || {};
+    var ocultos  = _conjunto(P.ocultos);
+    var travados = _conjunto(P.travados);
+    var datas    = _conjunto(P.datas);
+    var grandes  = _conjunto(P.grandes);
+
+    // exceções de nome entre a coluna e o título na aba Listas
+    var apontados = {};
+    Object.keys(P.listas || {}).forEach(function (k) {
+      apontados[_norm(k)] = _norm(P.listas[k]);
+    });
+
+    var ordem = {};
+    (P.ordem || []).forEach(function (n, i) { ordem[_norm(n)] = i + 1; });
+
+    var campos = colunas.filter(function (c) { return !ocultos[c.id]; })
+      .map(function (c) {
+        var campo = { id: c.id, rotulo: c.rotulo, tipo: 'texto' };
+        var lista = daAba[apontados[c.id] || c.id] || null;
+
+        if (datas[c.id]) campo.tipo = 'data';
+        else if (grandes[c.id]) campo.tipo = 'area';
+        else if (lista && lista.length) { campo.tipo = 'select'; campo.opcoes = lista; }
+
+        if (travados[c.id]) campo.travado = true;
+        campo.ordem = ordem[c.id] || (900 + c.col);
+        return campo;
+      });
+
+    // a tabela continua na ordem da planilha; `ordem` é só para a tela
+    // que abre ao clicar numa RNC.
+    return campos;
   }
 
   /* ---------------- aba própria de listas ---------------- */
@@ -812,11 +886,16 @@ var GAR_RNC = (function () {
     try {
       var aba = _aba();
       var mapa = _mapa(aba);
+      var campos = {};
+      _camposDeProcessos(_colunas(mapa), _listasDaAba())
+        .forEach(function (c) { campos[c.id] = c; });
+
       var n = 0;
       Object.keys(alteracoes).forEach(function (id) {
         var alvo = mapa[id];
-        if (!alvo) return;
-        aba.getRange(linha, alvo.col).setValue(_paraCelula('texto', alteracoes[id]));
+        var campo = campos[id];
+        if (!alvo || !campo || campo.travado) return;   // campo só leitura não grava
+        aba.getRange(linha, alvo.col).setValue(_paraCelula(campo.tipo, alteracoes[id]));
         n++;
       });
       SpreadsheetApp.flush();
