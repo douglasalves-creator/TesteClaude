@@ -452,24 +452,33 @@ var GAR_RNC = (function () {
   }
 
   /**
-   * Toda vez que lemos a planilha, o contador acompanha o maior número que
-   * já existe lá. Assim o número mostrado no formulário é o mesmo que será
-   * gravado, mesmo que alguém crie RNCs direto na planilha.
+   * Quem manda no número é a PLANILHA. Toda vez que lemos a aba, o contador
+   * passa a ser o maior número que existe lá — para cima ou para baixo.
+   *
+   * É isso que permite desfazer testes: apagadas as linhas de teste, o
+   * número volta sozinho ao que a planilha mostra, sem mexer em nada.
    */
   function _acertarContador(linhas) {
     try {
-      var idNum = _norm('Nº RNC');
-      var maior = 0;
-      (linhas || []).forEach(function (l) {
-        var n = Number(String(l.v[idNum] || '').trim().split(/[^0-9]/)[0]);
-        if (n && n > maior) maior = n;
-      });
+      var maior = _maiorNumero(linhas);
       if (!maior) return;
       var props = PropertiesService.getScriptProperties();
       var guardado = Number(props.getProperty('rnc_ultimo_numero') || 0);
-      if (maior > guardado) props.setProperty('rnc_ultimo_numero', String(maior));
+      if (maior !== guardado) props.setProperty('rnc_ultimo_numero', String(maior));
     } catch (e) { /* o contador não pode atrapalhar a leitura */ }
   }
+
+  /** O maior Nº RNC das linhas lidas. "244.1" conta como 244. */
+  function _maiorNumero(linhas) {
+    var idNum = _norm('Nº RNC');
+    var maior = 0;
+    (linhas || []).forEach(function (l) {
+      var n = Number(String(l.v[idNum] || '').trim().split(/[^0-9]/)[0]);
+      if (n && n > maior) maior = n;
+    });
+    return maior;
+  }
+
 
   /**
    * Acerta o contador lendo só a coluna Nº RNC — leve, para o formulário

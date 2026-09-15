@@ -891,3 +891,17 @@ porque a aba nasceu como cópia da de Garantias.
 Se a aba não existir, ou se o registro falhar por qualquer motivo, a
 gravação principal continua valendo: a auditoria nunca derruba o que o
 usuário está fazendo.
+
+## RNC — o número volta sozinho quando as linhas de teste saem
+O contador do Nº RNC deixou de ser uma marca que só sobe. Agora ele é
+sempre o **maior número que existe na planilha**: sobe quando alguém cria
+uma RNC (pelo sistema ou à mão) e desce quando as linhas somem.
+
+Assim, desfazer um teste é apagar a linha de teste na aba — o formulário
+volta a mostrar o número certo na próxima abertura, sem ninguém precisar
+mexer em configuração.
+
+Não existe um "forçar número". Foi tentado e não funciona: como a planilha
+é a verdade, qualquer valor forçado seria desfeito na abertura seguinte, e
+de todo jeito o sistema pula números que já estão em uso na aba. O caminho
+é sempre o mesmo: arrumar a planilha.
