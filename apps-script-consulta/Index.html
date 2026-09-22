@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --aurora:#EC6E2D; --aurora-cl:#FDEBE0; --eclipse:#0A0F14; --cosmos:#0D3459;
+    --sirius:#F3F3F3; --nevoa:#D8D8D8; --branco:#FFFFFF;
+    --txt:#1B1E22; --txt-2:#5B6169; --txt-3:#8A9099;
+    --r:12px; --r-p:8px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Montserrat',sans-serif;background:var(--sirius);color:var(--txt);font-size:13px}
+  header{background:var(--eclipse);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:16px}
+  header b{font-size:15px;font-weight:800;letter-spacing:-.01em}
+  header .sub{font-size:11px;color:#9CA3AC}
+  .abas{display:flex;gap:8px;margin-left:auto}
+  .aba{background:transparent;border:1px solid #2A323C;color:#C7CCD3;padding:9px 20px;border-radius:99px;
+    font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .aba:hover{border-color:#4A5560;color:#fff}
+  .aba.on{background:var(--aurora);color:#fff;border-color:var(--aurora)}
+  main{display:flex;flex-direction:column;height:calc(100vh - 60px)}
+
+  .fbar{background:var(--branco);border-bottom:1px solid var(--nevoa);padding:10px 16px;
+    display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .busca{flex:1;max-width:340px;display:flex;align-items:center;gap:8px;background:var(--sirius);
+    border-radius:99px;padding:8px 14px;color:var(--txt-3)}
+  .busca input{border:0;background:transparent;outline:0;font-family:inherit;font-size:12.5px;flex:1;color:var(--txt)}
+  .b2{background:var(--branco);border:1px solid var(--nevoa);color:var(--txt-2);padding:8px 14px;
+    border-radius:99px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .b2:hover{border-color:var(--txt-3);color:var(--txt)}
+  .pill{background:var(--aurora);color:#fff;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px}
+  .cont{margin-left:auto;font-size:12px;color:var(--txt-2)}
+  .cont b{color:var(--txt)}
+
+  .fpanel{background:var(--branco);border-bottom:1px solid var(--nevoa);display:none;flex-shrink:0}
+  .fpanel.on{display:block}
+  .fgrade{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:14px 16px}
+  .fitem label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--txt-2);margin-bottom:5px}
+  .ms{position:relative}
+  .ms-bt{width:100%;text-align:left;background:var(--sirius);border:1px solid var(--nevoa);border-radius:8px;
+    padding:8px 10px;font-family:inherit;font-size:12px;color:var(--txt);cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center}
+  .ms-bt.tem{border-color:var(--aurora);background:var(--aurora-cl)}
+  .ms-bt .cx{font-size:9px;color:var(--txt-3)}
+  .ms-pop{display:none;position:absolute;top:calc(100% + 4px);left:0;width:min(300px,80vw);background:var(--branco);
+    border:1px solid var(--nevoa);border-radius:var(--r-p);box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:50}
+  .ms-pop.on{display:block}
+  .ms-topo{padding:8px;border-bottom:1px solid var(--nevoa)}
+  .ms-topo input{width:100%;border:1px solid var(--nevoa);border-radius:6px;padding:6px 8px;font-family:inherit;font-size:12px;outline:0;margin-bottom:6px}
+  .ms-acoes{display:flex;gap:6px}
+  .ms-acoes button{flex:1;background:var(--sirius);border:1px solid var(--nevoa);border-radius:6px;padding:5px;
+    font-family:inherit;font-size:10.5px;cursor:pointer;color:var(--txt-2)}
+  .ms-itens{max-height:220px;overflow:auto;padding:4px}
+  .ms-itens label{display:flex;align-items:center;gap:7px;padding:5px 6px;font-size:12px;font-weight:400;
+    text-transform:none;color:var(--txt);cursor:pointer;border-radius:5px}
+  .ms-itens label:hover{background:var(--sirius)}
+  .ms-vazio{padding:14px;text-align:center;color:var(--txt-3);font-size:11.5px}
+
+  .rol{flex:1;overflow:auto;background:var(--branco)}
+  table{border-collapse:separate;border-spacing:0;font-size:12px;table-layout:fixed}
+  th{position:sticky;top:0;background:var(--sirius);padding:9px 10px;text-align:center;font-size:9.5px;
+    font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--txt-2);
+    border-bottom:1px solid var(--nevoa);white-space:normal;word-break:break-word;line-height:1.4;
+    vertical-align:middle;cursor:pointer;user-select:none}
+  th:hover{color:var(--txt)}
+  .puxa{position:absolute;top:0;right:0;width:7px;height:100%;cursor:col-resize;z-index:5}
+  .puxa:hover,.puxa.arrasta{background:var(--aurora)}
+  body.redim,body.redim *{cursor:col-resize!important;user-select:none!important}
+  th .s{margin-left:5px;font-size:9px}
+  td{padding:7px 10px;border-bottom:1px solid #F0F0F0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;text-align:center}
+  tr:hover td{background:var(--aurora-cl)}
+
+  .pag{display:none;align-items:center;gap:10px;padding:10px 16px;background:var(--branco);
+    border-top:1px solid var(--nevoa);flex-shrink:0;position:relative}
+  .pag .grupo-botoes{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:10px}
+  .pag button{background:var(--branco);border:1px solid var(--nevoa);color:var(--txt-2);padding:7px 12px;
+    border-radius:8px;font-family:inherit;font-size:11.5px;cursor:pointer}
+  .pag button:disabled{opacity:.4;cursor:default}
+
+  .estado{padding:60px 24px;text-align:center;color:var(--txt-2);font-size:13px}
+  .estado b{display:block;color:var(--txt);font-size:15px;margin-bottom:6px}
+  .barra{height:2px;background:var(--nevoa);display:none;overflow:hidden;flex-shrink:0}
+  .barra div{height:100%;width:40%;background:var(--aurora);animation:mover 1s infinite}
+  @keyframes mover{0%{margin-left:-40%}100%{margin-left:100%}}
+</style>
+</head>
+<body>
+
+<header>
+  <div><b>SolarGrid</b><div class="sub" id="hSub">Consulta — só leitura</div></div>
+  <div class="abas" id="abas"></div>
+</header>
+<div class="barra" id="barra"><div></div></div>
+
+<main>
+  <div class="fbar" id="fbar" style="display:none">
+    <div class="busca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+      <circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg>
+      <input id="busca" placeholder="Buscar…" oninput="aplicar()"></div>
+    <button class="b2" onclick="document.getElementById('fpanel').classList.toggle('on')">Filtros<span class="pill" id="pillF" style="display:none">0</span></button>
+    <button class="b2" onclick="limparFiltros()">Limpar</button>
+    <button class="b2" onclick="resetLarguras()" title="Volta as colunas ao tamanho padrão">Colunas</button>
+    <button class="b2" onclick="recarregarAtual()">Atualizar</button>
+    <span class="cont" id="cont"></span>
+  </div>
+  <div class="fpanel" id="fpanel"><div class="fgrade" id="fgrade"></div></div>
+  <div class="rol" id="area"><div class="estado"><b>Escolha um módulo</b>Clique numa das abas, ali em cima.</div></div>
+  <div class="pag" id="pag"></div>
+</main>
+
+<script>
+var S = {
+  modulo: null,
+  est: null, cols: [], linhas: null, filtradas: [],
+  pagina: 1, porPagina: 60, ordem: {col:0, asc:true},
+  msSel: {}, msTexto: {}, msOpcoes: {}, larguras: {}
+};
+
+function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
+function nrm(s){ return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase(); }
+function lbl(nome){
+  return String(nome)
+    .replace(/\s*\([^)]*\)\s*$/,'')
+    .replace(/^FUP - /,'')
+    .trim();
+}
+function falhou(e){
+  var msg = (e && e.message) ? e.message : String(e);
+  document.getElementById('area').innerHTML = '<div class="estado"><b>Não consegui carregar</b>'+esc(msg)+'</div>';
+  document.getElementById('barra').style.display='none';
+}
+
+var SEP_CAMPO='\u0001', SEP_LINHA='\u0002';
+
+window.addEventListener('load', function(){
+  google.script.run.withSuccessHandler(function(sessao){
+    var h='';
+    Object.keys(sessao.titulos).forEach(function(id){
+      h+='<button class="aba" id="aba_'+id+'" onclick="irModulo(\''+id+'\')">'+esc(sessao.titulos[id])+'</button>';
+    });
+    document.getElementById('abas').innerHTML=h;
+    irModulo('compras');   // abre direto em Compras, sem precisar clicar
+  }).withFailureHandler(falhou).getSessao();
+});
+
+function irModulo(id){
+  S.modulo=id;
+  document.querySelectorAll('.aba').forEach(function(b){ b.classList.toggle('on', b.id==='aba_'+id); });
+  S.est=null; S.linhas=null; S.filtradas=[]; S.msSel={}; S.msTexto={}; S.msOpcoes={}; S.larguras={};
+  // Valor Praticado já vem da API em ordem alfabética de material; ordenar pelo
+  // número da linha (padrão dos outros módulos) só embaralharia isso.
+  S.ordem = (id==='valor') ? {col:1, asc:true} : {col:0, asc:true};
+  document.getElementById('fbar').style.display='';
+  document.getElementById('fpanel').classList.remove('on');
+  document.getElementById('busca').value='';
+  document.getElementById('pag').style.display='none';
+  carregar(false);
+}
+
+function carregar(forcar){
+  document.getElementById('area').innerHTML='<div class="estado"><b>Carregando</b>Lendo a planilha.</div>';
+  document.getElementById('barra').style.display='';
+  google.script.run.withSuccessHandler(function(e){
+    S.est=e;
+    S.larguras=e.larguras||{};
+    document.getElementById('hSub').textContent=e.titulo+' — '+e.totalLinhas.toLocaleString('pt-BR')+' linhas na base';
+    if(e.problemas && e.problemas.length) console.warn('Consulta — problemas de configuração:', e.problemas);
+
+    google.script.run.withSuccessHandler(function(ix){
+      parseIndice(ix);
+      document.getElementById('barra').style.display='none';
+      montarFiltros();
+      aplicar();
+    }).withFailureHandler(function(err){ document.getElementById('barra').style.display='none'; falhou(err); })
+      .getIndice(S.modulo, forcar);
+  }).withFailureHandler(function(err){ document.getElementById('barra').style.display='none'; falhou(err); })
+    .getEstrutura(S.modulo);
+}
+
+function recarregarAtual(){
+  if(!S.modulo) return;
+  carregar(true);
+}
+
+function parseIndice(ix){
+  S.cols=ix.colunas||[]; S.linhas=[];
+  if(!ix.dados) return;
+  var b=ix.dados.split(SEP_LINHA);
+  for(var i=0;i<b.length;i++){
+    var p=b[i].split(SEP_CAMPO);
+    p[0]=Number(p[0]);
+    S.linhas.push(p);
+  }
+}
+
+function iCol(nome){
+  var alvo=nrm(nome);
+  for(var i=0;i<S.cols.length;i++) if(nrm(S.cols[i])===alvo) return i+1;
+  return 0;
+}
+function ehEsq(nome){ return S.est && nrm(nome)===nrm(S.est.colEsquerda); }
+
+// ── filtros: cascata + fallback de texto para listas grandes ──
+function filtros(){
+  var q=document.getElementById('busca').value.trim().toLowerCase();
+  var termos=q?q.split(/\s+/):[];
+  var listas=[], textos=[];
+  Object.keys(S.msSel).forEach(function(k){
+    var vals=Object.keys(S.msSel[k]);
+    if(vals.length){ var set={}; vals.forEach(function(v){set[v]=1;}); listas.push({k:Number(k),set:set}); }
+  });
+  Object.keys(S.msTexto).forEach(function(k){
+    var v=String(S.msTexto[k]||'').trim().toLowerCase();
+    if(v) textos.push({k:Number(k),v:v});
+  });
+  return {termos:termos,listas:listas,textos:textos,n:listas.length+textos.length};
+}
+function passa(l,f,exceto){
+  for(var a=0;a<f.listas.length;a++){
+    if(f.listas[a].k===exceto) continue;
+    if(!f.listas[a].set[l[f.listas[a].k]]) return false;
+  }
+  for(var b=0;b<f.textos.length;b++){
+    if(f.textos[b].k===exceto) continue;
+    if(String(l[f.textos[b].k]||'').toLowerCase().indexOf(f.textos[b].v)<0) return false;
+  }
+  if(f.termos.length){
+    var t=l.join(' ').toLowerCase();
+    for(var i=0;i<f.termos.length;i++) if(t.indexOf(f.termos[i])<0) return false;
+  }
+  return true;
+}
+function ehForcadoLista(nome){
+  var f={}; (S.est.forcarLista||[]).forEach(function(n){ f[nrm(n)]=1; });
+  return !!f[nrm(nome)];
+}
+
+function opcoesDisponiveis(k){
+  var f=filtros();
+  var nome=S.cols[k-1];
+  var forcado=ehForcadoLista(nome);
+  var lim=(S.est&&S.est.maxOpcoesFiltro)||400;
+  var teto=forcado?5000:lim+1;
+  var vistos={}, lista=[];
+  for(var i=0;i<S.linhas.length;i++){
+    var l=S.linhas[i];
+    if(!passa(l,f,k)) continue;
+    var v=l[k];
+    if(v && !vistos[v]){ vistos[v]=1; lista.push(v); if(lista.length>teto) break; }
+  }
+  Object.keys(S.msSel[k]||{}).forEach(function(v){ if(!vistos[v]){ vistos[v]=1; lista.push(v); } });
+  lista.sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+  return lista;
+}
+
+function montarFiltros(){
+  var h=''; S.msSel={}; S.msTexto={}; S.msOpcoes={};
+  var lim=(S.est&&S.est.maxOpcoesFiltro)||400;
+  (S.est.filtros||[]).forEach(function(nome){
+    var k=iCol(nome); if(k<1) return;
+    var forcado=ehForcadoLista(nome);
+    var teto=forcado?5000:lim+1;
+    var vistos={}, lista=[];
+    for(var i=0;i<S.linhas.length;i++){
+      var v=S.linhas[i][k];
+      if(v && !vistos[v]){ vistos[v]=1; lista.push(v); if(lista.length>teto) break; }
+    }
+    h+='<div class="fitem"><label>'+esc(lbl(nome))+'</label>';
+    if(forcado || lista.length<=lim){
+      lista.sort(function(a,b){return a.localeCompare(b,'pt-BR');});
+      S.msOpcoes[k]=lista; S.msSel[k]={};
+      h+='<div class="ms" id="ms'+k+'"><button class="ms-bt" id="msbt'+k+'" onclick="msAbrir('+k+')">'+
+        '<span id="msrot'+k+'">Todos</span><span class="cx">▼</span></button>'+
+        '<div class="ms-pop" id="mspop'+k+'"><div class="ms-topo">'+
+        '<input id="msq'+k+'" placeholder="buscar…" oninput="msRender('+k+')">'+
+        '<div class="ms-acoes"><button onclick="msTodos('+k+',true)">Marcar todos</button>'+
+        '<button onclick="msTodos('+k+',false)">Limpar</button></div></div>'+
+        '<div class="ms-itens" id="msit'+k+'"></div></div></div>';
+    } else {
+      S.msTexto[k]='';
+      h+='<input id="txt'+k+'" placeholder="contém… ('+lista.length+'+ valores)" '+
+         'oninput="S.msTexto['+k+']=this.value;aplicar()">';
+    }
+    h+='</div>';
+  });
+  document.getElementById('fgrade').innerHTML=h;
+  Object.keys(S.msOpcoes).forEach(function(k){ msRender(k); msRotulo(k); });
+}
+function msAbrir(k){
+  var pop=document.getElementById('mspop'+k);
+  var abrindo=!pop.classList.contains('on');
+  var t=document.querySelectorAll('.ms-pop.on');
+  for(var i=0;i<t.length;i++) t[i].classList.remove('on');
+  if(abrindo){
+    S.msOpcoes[k]=opcoesDisponiveis(k);
+    msRender(k);
+    pop.classList.add('on');
+    var q=document.getElementById('msq'+k); if(q) q.focus();
+  }
+}
+function msRender(k){
+  var q=((document.getElementById('msq'+k)||{}).value||'').trim().toLowerCase();
+  var ops=S.msOpcoes[k]||[];
+  var vis=q?ops.filter(function(o){return o.toLowerCase().indexOf(q)>-1;}):ops;
+  var box=document.getElementById('msit'+k);
+  if(!box) return;
+  if(!vis.length){ box.innerHTML='<div class="ms-vazio">Nada encontrado</div>'; return; }
+  var h='';
+  vis.slice(0,600).forEach(function(o){
+    h+='<label><input type="checkbox" '+(S.msSel[k][o]?'checked':'')+
+       ' onchange="msMarcar('+k+',this.checked,this.getAttribute(\'data-v\'))" data-v="'+esc(o)+'">'+
+       '<span title="'+esc(o)+'">'+esc(o)+'</span></label>';
+  });
+  box.innerHTML=h;
+}
+function msMarcar(k,m,v){ if(m) S.msSel[k][v]=1; else delete S.msSel[k][v]; msRotulo(k); aplicar(); }
+function msTodos(k,marcar){
+  var q=((document.getElementById('msq'+k)||{}).value||'').trim().toLowerCase();
+  var ops=S.msOpcoes[k]||[];
+  var vis=q?ops.filter(function(o){return o.toLowerCase().indexOf(q)>-1;}):ops;
+  vis.forEach(function(o){ if(marcar) S.msSel[k][o]=1; else delete S.msSel[k][o]; });
+  msRender(k); msRotulo(k); aplicar();
+}
+function msRotulo(k){
+  var n=Object.keys(S.msSel[k]||{}).length;
+  var rot=document.getElementById('msrot'+k), bt=document.getElementById('msbt'+k);
+  if(!rot) return;
+  if(!n){ rot.textContent='Todos'; bt.classList.remove('tem'); }
+  else if(n===1){ rot.textContent=Object.keys(S.msSel[k])[0]; bt.classList.add('tem'); }
+  else { rot.textContent=n+' selecionados'; bt.classList.add('tem'); }
+}
+function limparFiltros(){
+  document.getElementById('busca').value='';
+  Object.keys(S.msSel).forEach(function(k){ S.msSel[k]={}; msRender(k); msRotulo(k); });
+  Object.keys(S.msTexto).forEach(function(k){
+    S.msTexto[k]='';
+    var el=document.getElementById('txt'+k); if(el) el.value='';
+  });
+  aplicar();
+}
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.ms')){
+    document.querySelectorAll('.ms-pop.on').forEach(function(p){ p.classList.remove('on'); });
+  }
+});
+
+function aplicar(){
+  if(!S.linhas) return;
+  var f=filtros();
+  var pill=document.getElementById('pillF');
+  pill.style.display=f.n?'':'none'; pill.textContent=f.n;
+
+  S.filtradas=S.linhas.filter(function(l){ return passa(l,f,null); });
+
+  var o=S.ordem;
+  S.filtradas.sort(function(a,b){
+    if(o.col===0) return o.asc?a[0]-b[0]:b[0]-a[0];
+    var r=String(a[o.col]).localeCompare(String(b[o.col]),'pt-BR',{numeric:true});
+    return o.asc?r:-r;
+  });
+
+  S.pagina=1; desenharTabela();
+}
+
+function ordenar(k){ if(S.ordem.col===k) S.ordem.asc=!S.ordem.asc; else S.ordem={col:k,asc:true}; aplicar(); }
+function irPara(p){ S.pagina=p; desenharTabela(); document.getElementById('area').scrollTop=0; }
+
+function desenharTabela(){
+  var area=document.getElementById('area'), pg=document.getElementById('pag');
+  var n=S.filtradas.length;
+  document.getElementById('cont').innerHTML='<b>'+n.toLocaleString('pt-BR')+'</b> encontrados';
+
+  if(!n){
+    area.innerHTML='<div class="estado"><b>Nenhum registro encontrado</b>Ajuste a busca ou limpe os filtros.</div>';
+    pg.style.display='none'; return;
+  }
+
+  var ini=(S.pagina-1)*S.porPagina, fim=Math.min(ini+S.porPagina,n);
+  var cols=S.est.listaCols;
+  var ks=cols.map(iCol);   // posição real de cada coluna exibida dentro da linha (pode não ser sequencial)
+
+  // A tabela precisa de uma largura DEFINIDA desde o primeiro desenho — não só
+  // quando o usuário arrasta uma coluna. Sem isso, table-layout:fixed não é
+  // aplicado de verdade (o navegador ainda ajusta um pouco pelo conteúdo), e
+  // no primeiro arraste, quando a largura passava a existir, o navegador
+  // "virava a chave" pro modo estrito de uma vez — parecendo que TODAS as
+  // colunas mudaram ao ajustar só uma.
+  var totalW=0; cols.forEach(function(c){ totalW+=largura(c); });
+
+  var h='<table style="width:'+totalW+'px"><colgroup>';
+  cols.forEach(function(c){ h+='<col style="width:'+largura(c)+'px">'; });
+  h+='</colgroup><thead><tr>';
+  cols.forEach(function(c,i){
+    var k=ks[i], s=S.ordem.col===k?'<span class="s">'+(S.ordem.asc?'▲':'▼')+'</span>':'';
+    h+='<th onclick="ordenar('+k+')" title="'+esc(lbl(c))+'">'+esc(lbl(c))+s+
+       '<span class="puxa" data-col="'+esc(c)+'" onclick="event.stopPropagation()"></span></th>';
+  });
+  h+='</tr></thead><tbody>';
+
+  for(var r=ini;r<fim;r++){
+    var l=S.filtradas[r];
+    h+='<tr>';
+    for(var i=0;i<cols.length;i++){
+      var c=cols[i], v=l[ks[i]]||'';
+      if(nrm(c)==='VALOR UNITARIO (BRL)' && v!=='') v=formatarBRL(v);
+      h+='<td title="'+esc(v)+'">'+esc(v)+'</td>';
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  area.innerHTML=h;
+  ligarRedim();
+
+  var tp=Math.ceil(n/S.porPagina);
+  if(tp<=1){ pg.style.display='none'; }
+  else{
+    pg.style.display='flex';
+    pg.innerHTML='<span class="cont">Página <b>'+S.pagina+'</b> de '+tp+'</span>'+
+      '<div class="grupo-botoes">'+
+      '<button onclick="irPara(1)" '+(S.pagina===1?'disabled':'')+'>« Início</button>'+
+      '<button onclick="irPara('+(S.pagina-1)+')" '+(S.pagina===1?'disabled':'')+'>Anterior</button>'+
+      '<button onclick="irPara('+(S.pagina+1)+')" '+(S.pagina===tp?'disabled':'')+'>Próxima</button>'+
+      '<button onclick="irPara('+tp+')" '+(S.pagina===tp?'disabled':'')+'>Fim »</button>'+
+      '</div>';
+  }
+}
+
+function formatarBRL(v){
+  var n=parseFloat(String(v).replace(/[^\d,.\-]/g,'').replace(/\./g,'').replace(',','.'));
+  if(isNaN(n)) return v;
+  return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function largPadrao(nome){
+  var n=nrm(nome);
+  if(n==='SC') return 100;
+  if(n.indexOf('DESCRIÇÃO COMPLETA')===0) return 300;
+  if(n.indexOf('COMENTÁRIOS')===0) return 220;
+  if(n.indexOf('STATUS')===0) return 170;
+  if(n==='FORNECEDOR') return 200;
+  if(n.indexOf('DATA')===0 || n.indexOf('PREVISAO')===0) return 115;
+  if(n.indexOf('VALOR')===0) return 130;
+  if(n.indexOf('QUANTIDADE')===0) return 110;
+  return 145;
+}
+function largura(nome){ return S.larguras[nome] || largPadrao(nome); }
+
+// ═══ Redimensionar colunas (arraste + botão "Colunas" pra restaurar) ═══
+function ligarRedim(){
+  var hs=document.querySelectorAll('#area .puxa');
+  for(var i=0;i<hs.length;i++) hs[i].addEventListener('mousedown', comecarRedim);
+}
+var RZ=null, rzTimer=null, arrastouAgora=false;
+function comecarRedim(ev){
+  ev.preventDefault(); ev.stopPropagation();
+  var nome=this.getAttribute('data-col');
+  RZ={nome:nome,x0:ev.clientX,w0:largura(nome),el:this};
+  this.classList.add('arrasta'); document.body.classList.add('redim');
+}
+function finalizarRedim(){
+  if(!RZ) return;
+  RZ.el.classList.remove('arrasta'); document.body.classList.remove('redim');
+  RZ=null;
+  clearTimeout(rzTimer);
+  rzTimer=setTimeout(function(){
+    google.script.run.withFailureHandler(function(){}).salvarLarguras(S.larguras, S.modulo);
+  },700);
+}
+document.addEventListener('mousemove',function(ev){
+  if(!RZ) return;
+  // Trava de segurança: se o botão do mouse não estiver mais pressionado, o
+  // "soltar" aconteceu fora da tela ou o navegador perdeu o evento de mouseup
+  // (acontece ao arrastar até a borda da janela). Sem isso, o arraste ficava
+  // "preso" e o próximo movimento do mouse — mesmo só passando por cima pra
+  // clicar num filtro — reescrevia a largura de qualquer jeito, com um valor
+  // sem sentido. Isso é a causa do "ajustei e depois bagunçou sozinho".
+  if(ev.buttons===0){ finalizarRedim(); return; }
+  arrastouAgora=true;   // o mouse se moveu de verdade durante o arraste
+  var w=Math.max(50,Math.min(900,RZ.w0+(ev.clientX-RZ.x0)));
+  S.larguras[RZ.nome]=w;
+  var cols=S.est.listaCols, i=cols.indexOf(RZ.nome);
+  if(i<0) return;
+  var cs=document.querySelectorAll('#area colgroup col');
+  if(cs[i]) cs[i].style.width=w+'px';
+  var t=document.querySelector('#area table');
+  if(t){ var tot=0; cols.forEach(function(c){ tot+=largura(c); }); t.style.width=tot+'px'; }
+});
+document.addEventListener('mouseup', finalizarRedim);
+// Mais uma rede de segurança: se o cursor sair da janela do navegador durante
+// o arraste (perdendo o mouseup de vez), encerra o arraste assim que ele voltar.
+window.addEventListener('blur', finalizarRedim);
+document.addEventListener('mouseleave', finalizarRedim);
+// Depois de arrastar, o mouse pode "soltar" em cima de OUTRO cabeçalho — o
+// navegador então dispara um clique nesse outro cabeçalho, e esse clique
+// acionava ordenar() na coluna errada (o bug do "mexe na outra"/"ordena
+// sozinho"). Captura o clique ANTES dele chegar no <th> e cancela, só desta
+// vez, se um arraste acabou de acontecer.
+document.addEventListener('click', function(ev){
+  if(arrastouAgora){ ev.stopPropagation(); ev.preventDefault(); arrastouAgora=false; }
+}, true);
+function resetLarguras(){
+  S.larguras={};
+  google.script.run.withFailureHandler(function(){}).limparLarguras(S.modulo);
+  if(S.linhas) desenharTabela();
+  toast('Colunas no tamanho padrão.');
+}
+function toast(msg){
+  var t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'+
+    'background:var(--eclipse);color:#fff;padding:10px 18px;border-radius:99px;font-size:12.5px;'+
+    'z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.25)';
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); },2200);
+}
+</script>
+</body>
+</html>
