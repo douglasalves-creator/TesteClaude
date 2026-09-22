@@ -173,7 +173,13 @@ function carregar(forcar){
     S.est=e;
     S.larguras=e.larguras||{};
     document.getElementById('hSub').textContent=e.titulo+' — '+e.totalLinhas.toLocaleString('pt-BR')+' linhas na base';
-    if(e.problemas && e.problemas.length) console.warn('Consulta — problemas de configuração:', e.problemas);
+    // Antes isso só ia pro console e ninguém via: se uma coluna configurada não
+    // existir na planilha, ela simplesmente sumia da tabela, sem aviso nenhum.
+    if(e.problemas && e.problemas.length){
+      console.warn('Consulta — problemas de configuração:', e.problemas);
+      toast(e.problemas.length===1 ? e.problemas[0]
+            : e.problemas.length+' colunas configuradas não foram encontradas na planilha (veja o console).');
+    }
 
     google.script.run.withSuccessHandler(function(ix){
       parseIndice(ix);

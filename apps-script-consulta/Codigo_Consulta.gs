@@ -284,8 +284,21 @@ function lerBlocos_(sh, primeira, nLinhas, grupos) {
 //  ESTRUTURA + ÍNDICE (leitura só; sem travas, sem máscaras de edição)
 // ══════════════════════════════════════════════════════════════
 
+// A chave do cache carrega uma assinatura da configuração (aba, linha de
+// cabeçalho, colunas e filtros). Assim, quando alguém mexe em COLUNAS_LISTA,
+// a chave muda sozinha e a estrutura velha some na hora — sem isso, a lista
+// de colunas antiga continuava sendo servida do cache por até 6 horas, mesmo
+// com o código novo já implantado.
+function assinaturaConfig_(cfg) {
+  const txt = JSON.stringify([cfg.ABA_DADOS, cfg.LINHA_CABECALHO, cfg.COLUNAS_LISTA, cfg.FILTROS]);
+  let h = 0;
+  for (let i = 0; i < txt.length; i++) h = (h * 31 + txt.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
 function chaveCache_(id, sufixo) {
-  return 'consulta_' + id + '_' + sufixo + '_' + conjunto_(id).CACHE_VERSAO;
+  const cfg = conjunto_(id);
+  return 'consulta_' + id + '_' + sufixo + '_' + cfg.CACHE_VERSAO + assinaturaConfig_(cfg);
 }
 
 function gravarCacheGrande_(chave, texto, seg) {
