@@ -126,6 +126,19 @@ const CONJUNTOS = {
 
     FILTROS: ['DESCRIÇÃO COMPLETA'],
 
+    // Largura inicial das colunas nesta aba. UFV, DESCRIÇÃO COMPLETA e
+    // FORNECEDOR são textos longos e ficam do mesmo tamanho; o resto é curto e
+    // não precisa de espaço. Quem arrastar a coluna continua mandando mais que
+    // isto — o botão "Colunas" devolve a estes valores.
+    LARGURAS: {
+      'UFV': 360,
+      'DESCRIÇÃO COMPLETA': 360,
+      'FORNECEDOR': 360,
+      'MEDIDA': 90,
+      'VALOR UNITARIO (BRL)': 150,
+      'DATA FORMALIZAÇÃO PEDIDO DE COMPRA E/OU CANCELAMENTO SC': 120
+    },
+
     COLUNA_ESQUERDA: 'DESCRIÇÃO COMPLETA',
     MAX_TEXTO: 45,
     MAX_OPCOES_FILTRO: 400,
@@ -406,7 +419,8 @@ function getEstrutura(id) {
     problemas: problemas,
     larguras: lerLarguras_(Session.getActiveUser().getEmail(), id),
     forcarLista: cfg.FORCAR_LISTA_FILTRO || [],
-    rotulos: cfg.ROTULOS || {}
+    rotulos: cfg.ROTULOS || {},
+    largurasPadrao: cfg.LARGURAS || {}
   };
 }
 

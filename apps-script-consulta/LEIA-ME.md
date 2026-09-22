@@ -51,6 +51,11 @@ Critérios de desempate: se duas datas ficarem à mesma distância do dia de hoj
 (uma antes, outra depois), vale a que já passou; se for a mesma data, vale o
 registro mais embaixo na planilha.
 
+UFV, DESCRIÇÃO COMPLETA e FORNECEDOR abrem com 360px (mesma largura, por
+serem textos longos); as outras são estreitas. Isso fica em `LARGURAS`, na
+configuração do módulo. Largura que a pessoa arrastar continua valendo por
+cima disso — o botão **Colunas** devolve a estes valores.
+
 Os filtros, a busca, a ordenação por cabeçalho e o ajuste de largura das
 colunas funcionam igual aos outros módulos. O resultado fica em cache por
 6 horas — o botão **Atualizar** recalcula na hora.

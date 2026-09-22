@@ -450,10 +450,13 @@ function formatarBRL(v){
 }
 
 function largPadrao(nome){
+  // nrm() tira os acentos, então a comparação aqui também precisa ser sem
+  // acento — com 'DESCRIÇÃO'/'COMENTÁRIOS' a regra nunca batia, e essas
+  // colunas caíam nos 145px do final em todos os módulos.
   var n=nrm(nome);
   if(n==='SC') return 100;
-  if(n.indexOf('DESCRIÇÃO COMPLETA')===0) return 300;
-  if(n.indexOf('COMENTÁRIOS')===0) return 220;
+  if(n.indexOf('DESCRICAO COMPLETA')===0) return 300;
+  if(n.indexOf('COMENTARIOS')===0) return 220;
   if(n.indexOf('STATUS')===0) return 170;
   if(n==='FORNECEDOR') return 200;
   if(n.indexOf('DATA')===0 || n.indexOf('PREVISAO')===0) return 115;
@@ -461,7 +464,15 @@ function largPadrao(nome){
   if(n.indexOf('QUANTIDADE')===0) return 110;
   return 145;
 }
-function largura(nome){ return S.larguras[nome] || largPadrao(nome); }
+function largura(nome){
+  if(S.larguras[nome]) return S.larguras[nome];         // o que a pessoa arrastou
+  var d=S.est&&S.est.largurasPadrao;                    // padrão do módulo, se houver
+  if(d){
+    var alvo=nrm(nome);
+    for(var k in d) if(nrm(k)===alvo) return d[k];
+  }
+  return largPadrao(nome);
+}
 
 // ═══ Redimensionar colunas (arraste + botão "Colunas" pra restaurar) ═══
 function ligarRedim(){
