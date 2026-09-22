@@ -106,11 +106,23 @@ const CONJUNTOS = {
     COL_VALOR: 'VALOR UNITARIO (BRL)',
     COL_DATA: 'DATA FORMALIZAÇÃO PEDIDO DE COMPRA E/OU CANCELAMENTO SC',
 
+    // Ordem das colunas na tela. DESCRIÇÃO/VALOR/DATA são as que mandam no
+    // cálculo; as outras (UFV, MEDIDA, FORNECEDOR) vêm de carona, sempre da
+    // mesma linha que deu o valor — ou seja, descrevem essa última compra.
     COLUNAS_LISTA: [
+      'UFV',
       'DESCRIÇÃO COMPLETA',
+      'MEDIDA',
       'VALOR UNITARIO (BRL)',
-      'DATA FORMALIZAÇÃO PEDIDO DE COMPRA E/OU CANCELAMENTO SC'
+      'DATA FORMALIZAÇÃO PEDIDO DE COMPRA E/OU CANCELAMENTO SC',
+      'FORNECEDOR'
     ],
+
+    // Nomes só de tela — na planilha as colunas continuam com o nome original.
+    ROTULOS: {
+      'VALOR UNITARIO (BRL)': 'ÚLTIMO VALOR PRATICADO',
+      'DATA FORMALIZAÇÃO PEDIDO DE COMPRA E/OU CANCELAMENTO SC': 'DATA DA COMPRA'
+    },
 
     FILTROS: ['DESCRIÇÃO COMPLETA'],
 
@@ -380,7 +392,8 @@ function getEstrutura(id) {
     totalLinhas: est.totalLinhas,
     problemas: problemas,
     larguras: lerLarguras_(Session.getActiveUser().getEmail(), id),
-    forcarLista: cfg.FORCAR_LISTA_FILTRO || []
+    forcarLista: cfg.FORCAR_LISTA_FILTRO || [],
+    rotulos: cfg.ROTULOS || {}
   };
 }
 
@@ -509,38 +522,42 @@ function construirIndiceAgregado_(id) {
   const primeira = cfg.LINHA_CABECALHO + 1;
   const nLinhas = Math.max(0, sh.getLastRow() - cfg.LINHA_CABECALHO);
 
-  const colunas = [cfg.COL_DESCRICAO, cfg.COL_VALOR, cfg.COL_DATA];
-  const resultado = { colunas: colunas, dados: '', n: 0, doCache: false };
-
   const porNome = {};
   est.colunasCarregar.forEach(c => { porNome[nrm_(c.nome)] = c.col; });
-  const cDesc = porNome[nrm_(cfg.COL_DESCRICAO)];
-  const cVal  = porNome[nrm_(cfg.COL_VALOR)];
-  const cData = porNome[nrm_(cfg.COL_DATA)];
 
-  if (nLinhas > 0 && cDesc && cVal && cData) {
-    const grupos = agruparColunas_([cDesc, cVal, cData]);
+  // Colunas de saída, na ordem de COLUNAS_LISTA (as que existem de verdade).
+  const saida = est.listaCols.filter(n => porNome[nrm_(n)]);
+  const resultado = { colunas: saida, dados: '', n: 0, doCache: false };
+
+  const iDesc = saida.map(nrm_).indexOf(nrm_(cfg.COL_DESCRICAO));
+  const iVal  = saida.map(nrm_).indexOf(nrm_(cfg.COL_VALOR));
+  const iData = saida.map(nrm_).indexOf(nrm_(cfg.COL_DATA));
+
+  if (nLinhas > 0 && iDesc > -1 && iVal > -1 && iData > -1) {
+    const cols = saida.map(n => porNome[nrm_(n)]);
+    const grupos = agruparColunas_(cols);
     const blocos = lerBlocos_(sh, primeira, nLinhas, grupos);
-    const rota = [cDesc, cVal, cData].map(function (col) {
+    const rota = cols.map(function (col) {
       for (let g = 0; g < grupos.length; g++) {
         if (col >= grupos[g].ini && col <= grupos[g].fim) return { b: g, off: col - grupos[g].ini };
       }
       return { b: 0, off: 0 };
     });
+    const celula = function (i, k) { return blocos[rota[k].b][i][rota[k].off]; };
 
     const hoje = new Date();
     const hojeTs = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime();
 
     const melhor = {};   // chave = descrição normalizada
     for (let i = 0; i < nLinhas; i++) {
-      const brutoDesc = blocos[rota[0].b][i][rota[0].off];
+      const brutoDesc = celula(i, iDesc);
       const desc = String(brutoDesc == null ? '' : brutoDesc).replace(/\s+/g, ' ').trim();
       if (!desc || desc.charCodeAt(0) === 35) continue;
 
-      const valor = paraNumero_(blocos[rota[1].b][i][rota[1].off]);
+      const valor = paraNumero_(celula(i, iVal));
       if (valor === null) continue;
 
-      const data = paraData_(blocos[rota[2].b][i][rota[2].off]);
+      const data = paraData_(celula(i, iData));
       if (!data) continue;
 
       const ts = new Date(data.getFullYear(), data.getMonth(), data.getDate()).getTime();
@@ -550,21 +567,36 @@ function construirIndiceAgregado_(id) {
 
       // Mais perto de hoje ganha; empatou na distância, a data passada ganha;
       // empatou na data, a linha de baixo (registro mais novo) ganha.
-      if (!atual ||
-          dist < atual.dist ||
-          (dist === atual.dist && ts <= hojeTs && atual.ts > hojeTs) ||
-          (dist === atual.dist && ts === atual.ts)) {
-        melhor[chave] = { desc: desc, valor: valor, ts: ts, dist: dist, data: data, linha: primeira + i };
+      if (atual &&
+          !(dist < atual.dist ||
+            (dist === atual.dist && ts <= hojeTs && atual.ts > hojeTs) ||
+            (dist === atual.dist && ts === atual.ts))) continue;
+
+      // A linha vencedora leva junto as colunas de contexto (UFV, MEDIDA,
+      // FORNECEDOR…): elas descrevem essa compra, não o material em geral.
+      const campos = new Array(saida.length);
+      for (let k = 0; k < saida.length; k++) {
+        if (k === iDesc)      campos[k] = desc;
+        else if (k === iVal)  campos[k] = moedaBR_(valor);
+        else if (k === iData) campos[k] = dataBR_(data);
+        else {
+          const b = celula(i, k);
+          let v = (b instanceof Date) ? dataBR_(b)
+                : (b == null ? '' : String(b).replace(/\s+/g, ' ').trim());
+          if (v.charCodeAt(0) === 35) v = '';   // erro de fórmula vira branco
+          campos[k] = v;
+        }
+        campos[k] = campos[k].replace(/[\u0001\u0002]/g, ' ');
       }
+
+      melhor[chave] = { desc: desc, ts: ts, dist: dist, linha: primeira + i, campos: campos };
     }
 
     const partes = [];
     Object.keys(melhor)
       .map(k => melhor[k])
       .sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'))
-      .forEach(function (m) {
-        partes.push([m.linha, m.desc.replace(/[\u0001\u0002]/g, ' '), moedaBR_(m.valor), dataBR_(m.data)].join(SEP_CAMPO));
-      });
+      .forEach(function (m) { partes.push([m.linha].concat(m.campos).join(SEP_CAMPO)); });
 
     resultado.dados = partes.join(SEP_LINHA);
     resultado.n = partes.length;
@@ -573,7 +605,6 @@ function construirIndiceAgregado_(id) {
   gravarCacheGrande_(chaveCache_(id, 'indice'), JSON.stringify(resultado), cfg.CACHE_HORAS * 3600);
   return resultado;
 }
-
 
 function dataBR_(d) {
   const dia = d.getDate(), mes = d.getMonth() + 1;

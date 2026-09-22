@@ -123,6 +123,13 @@ var S = {
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
 function nrm(s){ return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase(); }
 function lbl(nome){
+  // O módulo pode renomear uma coluna só na tela (ex.: VALOR UNITARIO (BRL)
+  // vira ÚLTIMO VALOR PRATICADO). Na planilha o nome continua o original.
+  var r=S.est&&S.est.rotulos;
+  if(r){
+    var alvo=nrm(nome);
+    for(var k in r) if(nrm(k)===alvo) return r[k];
+  }
   return String(nome)
     .replace(/\s*\([^)]*\)\s*$/,'')
     .replace(/^FUP - /,'')
@@ -151,9 +158,7 @@ function irModulo(id){
   S.modulo=id;
   document.querySelectorAll('.aba').forEach(function(b){ b.classList.toggle('on', b.id==='aba_'+id); });
   S.est=null; S.linhas=null; S.filtradas=[]; S.msSel={}; S.msTexto={}; S.msOpcoes={}; S.larguras={};
-  // Valor Praticado já vem da API em ordem alfabética de material; ordenar pelo
-  // número da linha (padrão dos outros módulos) só embaralharia isso.
-  S.ordem = (id==='valor') ? {col:1, asc:true} : {col:0, asc:true};
+  S.ordem = {col:0, asc:true};
   document.getElementById('fbar').style.display='';
   document.getElementById('fpanel').classList.remove('on');
   document.getElementById('busca').value='';
@@ -172,6 +177,9 @@ function carregar(forcar){
 
     google.script.run.withSuccessHandler(function(ix){
       parseIndice(ix);
+      // No Valor Praticado não existe "ordem da planilha": cada linha é um
+      // material. Começa em ordem alfabética de descrição.
+      if(S.modulo==='valor'){ var kd=iCol(S.est.colEsquerda); if(kd) S.ordem={col:kd, asc:true}; }
       document.getElementById('barra').style.display='none';
       montarFiltros();
       aplicar();

@@ -22,6 +22,20 @@ Nova versão → Implantar**.
 Cada material aparece **uma única vez** (lista sem repetição da coluna
 `DESCRIÇÃO COMPLETA`), com o **último valor praticado** ao lado.
 
+Colunas, nesta ordem:
+
+| Na tela | Coluna da planilha |
+|---|---|
+| UFV | `UFV` |
+| DESCRIÇÃO COMPLETA | `DESCRIÇÃO COMPLETA` |
+| MEDIDA | `MEDIDA` |
+| ÚLTIMO VALOR PRATICADO | `VALOR UNITARIO (BRL)` |
+| DATA DA COMPRA | `DATA FORMALIZAÇÃO PEDIDO DE COMPRA E/OU CANCELAMENTO SC` |
+| FORNECEDOR | `FORNECEDOR` |
+
+UFV, MEDIDA e FORNECEDOR são sempre os **da linha que deu o valor** — ou seja,
+descrevem aquela última compra, não o material em geral.
+
 Para achar esse valor, o sistema varre todo o intervalo da coluna
 `DATA FORMALIZAÇÃO PEDIDO DE COMPRA E/OU CANCELAMENTO SC` e fica com a data
 **mais próxima do dia de hoje**; o `VALOR UNITARIO (BRL)` dessa linha é o que
