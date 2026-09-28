@@ -8,7 +8,7 @@ var GAR_RNC = (function () {
 
   var CFG = {
     SPREADSHEET_ID: '10XC9wnG3g9oaZVcja77ogyVVnLtKUBTLLoGQZgSQ1tE',
-    ABA: 'Lista EP ( Para conciliação)',
+    ABA: 'Lista EP',
     HEADER_ROW: 6,
     PASTA_DRIVE_ID: '1TjVagrbktvQwpTy0GO94M91Hhwvky-hR',
     ANEXO_MAX_MB: 25,
@@ -17,6 +17,24 @@ var GAR_RNC = (function () {
     COL_STATUS: 'Status - RNC',  // coluna que recebe "Emitida"
     STATUS_NOVO: 'Emitida',
     EMAIL_NOVA_RNC: 'supplychain.eng@solargrid.com.br',
+
+    // Quem recebe em cópia todos os avisos de RNC (abertura e mudança de
+    // status). Um e-mail só, com estes endereços em cópia.
+    EMAIL_COPIA_RNC: [
+      'marcella.caldas@solargrid.com.br',
+      'fabio.martins@solargrid.com.br',
+      'felipe.taveira@solargrid.com.br',
+      'tatiana.vallim@solargrid.com.br',
+      'pedro.andrade@solargrid.com.br',
+      'carolina.almeida@solargrid.com.br'
+    ],
+
+    // Mudou alguma destas colunas no módulo Processos? Todo mundo é avisado.
+    // Pelo NOME do cabeçalho, como o resto do sistema.
+    COLUNAS_QUE_AVISAM: ['Status - RNC', 'Status Tratativa'],
+
+    // O que aparece no aviso, para quem lê saber de qual RNC se trata.
+    CONTEXTO_DO_AVISO: ['Nº RNC', 'UFV', 'Nome do Fornecedor', 'Resumo da Ocorrência'],
 
     // Aba que guarda o histórico de tudo que for criado ou alterado.
     // '' desliga o registro.
@@ -718,6 +736,13 @@ var GAR_RNC = (function () {
 
   /* ---------------- aviso por e-mail ---------------- */
 
+  /** Os endereços que entram em cópia, separados por vírgula. */
+  function _copia() {
+    return (CFG.EMAIL_COPIA_RNC || []).filter(function (e) {
+      return String(e || '').indexOf('@') > 0;
+    }).join(',');
+  }
+
   function _avisarPorEmail(dados, pasta) {
     if (!CFG.EMAIL_NOVA_RNC) return;
     try {
@@ -748,10 +773,83 @@ var GAR_RNC = (function () {
         htmlBody: html,
         name: quem
       };
+      var copia = _copia();
+      if (copia) envio.cc = copia;
       if (quem.indexOf('@') > 0) envio.replyTo = quem;
       MailApp.sendEmail(envio);
     } catch (e) {
       console.error('Falha ao enviar o aviso da RNC: ' + e.message);
+    }
+  }
+
+  /**
+   * Avisa a mesma turma quando o Status - RNC ou o Status Tratativa mudam.
+   * Quais colunas avisam está em CFG.COLUNAS_QUE_AVISAM, pelo nome do
+   * cabeçalho. Um e-mail só, mesmo que as duas mudem de uma vez.
+   */
+  function _avisarMudancaDeStatus(aba, mapa, linha, codigo, registro) {
+    if (!CFG.EMAIL_NOVA_RNC) return;
+
+    var avisam = _conjunto(CFG.COLUNAS_QUE_AVISAM);
+    var mudancas = (registro || []).filter(function (e) { return avisam[_norm(e.campo)]; });
+    if (!mudancas.length) return;
+
+    try {
+      var quem = Session.getActiveUser().getEmail() || '(não identificado)';
+
+      // o contexto (UFV, fornecedor…) sai da própria linha, numa leitura só
+      var atuais = aba.getRange(linha, 1, 1, aba.getLastColumn()).getDisplayValues()[0];
+      var contexto = (CFG.CONTEXTO_DO_AVISO || []).map(function (nome) {
+        var col = mapa[_norm(nome)];
+        if (!col) return null;
+        var v = String(atuais[col.col - 1] || '').trim();
+        return v ? { rotulo: col.cab, valor: v } : null;
+      }).filter(function (x) { return x; });
+
+      var titulo = mudancas.length === 1
+        ? mudancas[0].campo + ' alterado'
+        : 'Status alterados';
+
+      var html =
+        '<div style="font-family:Arial,Helvetica,sans-serif;color:#0A0F14;max-width:660px">' +
+          '<div style="background:#EC6E2D;color:#fff;padding:18px 20px;border-radius:12px 12px 0 0">' +
+            '<div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85">SolarGrid — RNC</div>' +
+            '<div style="font-size:19px;font-weight:700;margin-top:2px">RNC ' + _esc(codigo || '') +
+            ' · ' + _esc(titulo) + '</div>' +
+          '</div>' +
+          '<div style="border:1px solid #D8D8D8;border-top:none;border-radius:0 0 12px 12px;padding:14px">' +
+            '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+              mudancas.map(function (m) {
+                return '<tr><td style="padding:6px 10px;border-bottom:1px solid #E6E6E6;color:#5b6670;width:38%">' +
+                  _esc(m.campo) + '</td>' +
+                  '<td style="padding:6px 10px;border-bottom:1px solid #E6E6E6;font-weight:600">' +
+                  _esc(_audValor(m.de)) + ' &rarr; ' + _esc(_audValor(m.para)) + '</td></tr>';
+              }).join('') +
+              contexto.map(function (c) {
+                return '<tr><td style="padding:6px 10px;border-bottom:1px solid #E6E6E6;color:#5b6670">' +
+                  _esc(c.rotulo) + '</td>' +
+                  '<td style="padding:6px 10px;border-bottom:1px solid #E6E6E6">' +
+                  _quebras(c.valor) + '</td></tr>';
+              }).join('') +
+            '</table>' +
+            '<p style="margin:14px 0 0;font-size:12px;color:#5b6670">Alterado por ' + _esc(quem) +
+            ' · linha ' + linha + ' da aba ' + _esc(CFG.ABA) + '.</p>' +
+          '</div>' +
+        '</div>';
+
+      var envio = {
+        to: CFG.EMAIL_NOVA_RNC,
+        subject: '[RNC] RNC ' + (codigo || linha) + ' — ' + titulo,
+        htmlBody: html,
+        name: quem
+      };
+      var copia = _copia();
+      if (copia) envio.cc = copia;
+      if (quem.indexOf('@') > 0) envio.replyTo = quem;
+      MailApp.sendEmail(envio);
+    } catch (e) {
+      // o aviso nunca pode derrubar a gravação
+      console.error('Falha ao avisar a mudança de status: ' + e.message);
     }
   }
 
@@ -1091,6 +1189,7 @@ var GAR_RNC = (function () {
       });
       SpreadsheetApp.flush();
       _registrarAuditoria('Edição', registro);
+      _avisarMudancaDeStatus(aba, mapa, linha, codigo, registro);
       // só a tabela de Processos mudou; as listas do formulário seguem boas
       _cacheLimpar(CHAVE_LISTA);
       return { ok: true, gravados: n };

@@ -962,3 +962,26 @@ como corrigir um engano.
 
 Qual coluna é essa está em `CFG.PROCESSOS.conclusao`, pelo nome do
 cabeçalho, como todo o resto.
+
+## RNC — aba renomeada e avisos por e-mail para a equipe
+A aba passou a se chamar apenas **Lista EP** (era "Lista EP ( Para
+conciliação)"). É uma linha só no `CFG.ABA` do AppRNC.gs.
+
+O arquivo do RNC agora se chama **AppRNC.gs**, como está no projeto do
+Apps Script.
+
+**Quem recebe.** Todo aviso de RNC vai num e-mail só: para
+supplychain.eng@solargrid.com.br, com Marcella, Fábio, Felipe, Tatiana,
+Pedro e Carolina em cópia (`CFG.EMAIL_COPIA_RNC`).
+
+**Quando sai aviso.**
+- Na **abertura** de uma RNC, como já era.
+- Sempre que **Status - RNC** ou **Status Tratativa** mudarem no módulo
+  Processos. Quais colunas avisam está em `CFG.COLUNAS_QUE_AVISAM`, pelo
+  nome do cabeçalho — acrescentar outra coluna ali já basta.
+
+O aviso de mudança traz o de → para de cada status que mudou e, para quem
+lê saber de qual RNC se trata, o Nº RNC, a UFV, o fornecedor e o resumo
+(`CFG.CONTEXTO_DO_AVISO`). Se as duas colunas mudarem na mesma gravação,
+sai **um** e-mail com as duas linhas, não dois. E o aviso nunca derruba a
+gravação: se o e-mail falhar, o que foi salvo continua valendo.
