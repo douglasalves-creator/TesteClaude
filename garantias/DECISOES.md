@@ -967,7 +967,7 @@ cabeçalho, como todo o resto.
 A aba passou a se chamar apenas **Lista EP** (era "Lista EP ( Para
 conciliação)"). É uma linha só no `CFG.ABA` do AppRNC.gs.
 
-O arquivo do RNC agora se chama **AppRNC.gs**, como está no projeto do
+O arquivo do RNC agora se chama **AppRNC1.gs**, como está no projeto do
 Apps Script.
 
 **Quem recebe.** Todo aviso de RNC vai num e-mail só: para
