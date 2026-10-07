@@ -37,6 +37,10 @@ const CONFIG = {
   // "Real Acumulado". Use false se o "Real Acumulado" já incluir a última semana.
   REALIZADO_SOMA_SEMANA: true,
 
+  // PROJETADO = só o que está "Em Aberto" no fluxo escolhido (o que já foi pago
+  // já aparece no Realizado e não pode contar duas vezes). Use false para somar tudo.
+  PROJETADO_SO_EM_ABERTO: true,
+
   // Saídas sempre aparecem positivas no painel. Se uma aba guardar os pagamentos
   // como número negativo, o painel percebe sozinho e inverte o sinal na tela
   // (e desinverte ao gravar).
@@ -342,7 +346,8 @@ function carregarDados() {
     urlPlanilha: ss.getUrl(),
     cfg: {
       ATENCAO: CONFIG.ATENCAO, ESTOURO: CONFIG.ESTOURO,
-      REALIZADO_SOMA_SEMANA: CONFIG.REALIZADO_SOMA_SEMANA, EMPRESA: CONFIG.EMPRESA
+      REALIZADO_SOMA_SEMANA: CONFIG.REALIZADO_SOMA_SEMANA, EMPRESA: CONFIG.EMPRESA,
+      PROJETADO_SO_EM_ABERTO: CONFIG.PROJETADO_SO_EM_ABERTO
     },
     abas: { orc: lerAba_(ss, 'orc', tz), real: lerAba_(ss, 'real', tz), fluxo: lerAba_(ss, 'fluxo', tz) },
     just: lerJustificativas_(ss, tz)
@@ -492,7 +497,7 @@ function salvarJustificativa(p) {
     if (!sheet) {
       sheet = ss.insertSheet(CONFIG.ABA_JUSTIFICATIVAS);
       sheet.getRange(1, 1, 1, CAB_JUST.length).setValues([CAB_JUST])
-        .setFontWeight('bold').setBackground('#16191c').setFontColor('#ffffff');
+        .setFontWeight('bold').setBackground('#0A0F14').setFontColor('#ffffff');
       sheet.setFrozenRows(1);
       sheet.setColumnWidth(1, 60);
       sheet.hideColumns(1);

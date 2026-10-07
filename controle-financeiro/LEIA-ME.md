@@ -27,23 +27,21 @@
 
 | Tela | Para quê |
 |---|---|
-| **Visão executiva** | Orçado, Projetado, Realizado e Saldo livre. Mostra os alertas e as maiores divergências. |
-| **Usinas e centros de custo** | Usina → Centro de custo, com as diferenças (Δ) e um semáforo. Clique num centro de custo para ver os detalhes. |
-| **Linha do tempo** | Mostra como a previsão mudou a cada envio semanal do Fluxo de Caixa e quanto estava previsto para cada mês. |
+| **Resumo** | Tabela igual à da planilha: Centro de custo, Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**, agrupada por usina. Clique num centro de custo para ver os lançamentos e escrever uma observação. |
+| **Linha do tempo** | Como a previsão mudou a cada envio semanal do Fluxo de Caixa, mês a mês. |
 | **Lançamentos** | As três abas linha a linha, com opção de editar, incluir, excluir ou marcar como pago. |
 
 **Regras usadas:**
-- **Projetado** = o fluxo enviado na data escolhida no filtro (padrão: o mais recente).
+- **Projetado** = itens **Em Aberto** do fluxo escolhido (padrão: o mais recente). O que já foi pago está no Realizado.
 - **Realizado** = "Real Acumulado" + "REAL S" (última semana).
-- **Saldo livre** = Orçado − (Realizado + Projetado em aberto).
-- **Semáforo:** amarelo acima de 90% do orçado; vermelho acima de 100%.
-- As justificativas ficam numa aba nova, **"Painel - Justificativas"**, que é criada sozinha na primeira vez que você salva uma.
+- Valores negativos nos deltas aparecem em vermelho.
+- As observações ficam numa aba nova, **"Painel - Justificativas"**, que é criada sozinha.
 - A aba **Realizado Controladoria** fica só para leitura. As abas **Orçamento** e **Fluxo de Caixa** podem ser editadas pelo painel.
 
 ## 5. Ajustes sem programar
 
 Todos ficam no topo do `Codigo.gs`, em `CONFIG`:
 
-- `ATENCAO` / `ESTOURO`: limites do semáforo (0.90 = 90%).
+- `PROJETADO_SO_EM_ABERTO`: troque para `false` se o Projetado tiver que somar também o que já está "Pago" no fluxo.
 - `EDITAVEL`: quais abas podem ser alteradas pelo painel.
 - `REALIZADO_SOMA_SEMANA`: troque para `false` se o "Real Acumulado" já incluir a última semana.
