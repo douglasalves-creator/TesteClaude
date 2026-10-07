@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Financeiro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  /* Cores: troque aqui para ajustar à identidade da empresa. */
+  :root{
+    --ink:#101418; --ink-2:#4a5158; --ink-3:#7d858c;
+    --paper:#ffffff; --canvas:#f3f4f1; --line:#e1e3de; --line-2:#eef0ec; --soft:#f7f8f5;
+    --head:#0f1a24; --head-2:#1b2a37; --head-ink:#a9b6c1; --brand:#f5a524;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;            /* Orçado · Projetado · Realizado */
+    --good:#0ca30c; --good-t:#006300; --good-bg:#e7f5e7;
+    --warn:#fab219; --warn-t:#7a5000; --warn-bg:#fdf3dd;
+    --serious:#ec835a; --serious-t:#9a3d17; --serious-bg:#fdeee6;
+    --crit:#d03b3b; --crit-t:#a32626; --crit-bg:#fbeaea;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--canvas); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased}
+  .num,.tnum{font-variant-numeric:tabular-nums}
+  button,input,select,textarea{font-family:inherit; font-size:inherit; color:inherit}
+  button{cursor:pointer}
+  :focus-visible{outline:2px solid var(--s1); outline-offset:2px}
+  .wrap{max-width:1440px; margin:0 auto; padding:0 24px}
+
+  /* Topo */
+  header.top{background:linear-gradient(180deg,var(--head) 0%,var(--head-2) 100%); color:#fff}
+  .top-in{display:flex; align-items:center; gap:18px; padding:16px 0 0; flex-wrap:wrap}
+  .mark{width:34px; height:34px; border-radius:9px; background:var(--brand); display:grid; place-items:center; flex:0 0 auto}
+  .mark svg{width:20px; height:20px}
+  .ttl h1{margin:0; font-size:18px; font-weight:600; letter-spacing:-.01em}
+  .ttl p{margin:1px 0 0; font-size:12.5px; color:var(--head-ink)}
+  .top-r{margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .stamp{font-size:12px; color:var(--head-ink); text-align:right; line-height:1.35}
+  .stamp b{color:#fff; font-weight:500}
+  .btn{border:1px solid var(--line); background:var(--paper); color:var(--ink); padding:7px 13px; border-radius:8px; font-weight:500; display:inline-flex; align-items:center; gap:6px; text-decoration:none; transition:background .15s,border-color .15s; white-space:nowrap}
+  .btn:hover{background:var(--line-2)}
+  .btn:disabled{opacity:.55; cursor:not-allowed}
+  .btn-dark{background:transparent; border-color:#33475a; color:#fff}
+  .btn-dark:hover{background:#22374a}
+  .btn-pri{background:var(--ink); border-color:var(--ink); color:#fff}
+  .btn-pri:hover{background:#2a3138}
+  .btn-sm{padding:4px 10px; font-size:12.5px; border-radius:7px}
+  .btn-danger{color:var(--crit-t); border-color:#f0caca}
+  .btn-danger:hover{background:var(--crit-bg)}
+  .ico{width:15px; height:15px; flex:0 0 auto}
+  .spin{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  nav.tabs{display:flex; gap:4px; margin-top:14px; overflow-x:auto}
+  nav.tabs button{background:transparent; border:0; color:var(--head-ink); padding:10px 14px 12px; font-weight:500; border-bottom:2px solid transparent; white-space:nowrap}
+  nav.tabs button:hover{color:#fff}
+  nav.tabs button.on{color:#fff; border-bottom-color:var(--brand)}
+
+  /* Filtros */
+  .filters{position:sticky; top:0; z-index:20; background:rgba(243,244,241,.94); backdrop-filter:blur(6px); border-bottom:1px solid var(--line)}
+  .f-in{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; padding:12px 0}
+  .fld{display:flex; flex-direction:column; gap:3px; min-width:0}
+  .fld label{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); font-weight:600}
+  .fld select,.fld input{border:1px solid var(--line); background:var(--paper); border-radius:8px; padding:6px 9px; height:34px; min-width:0}
+  .fld select{max-width:260px}
+  .chk{display:flex; align-items:center; gap:6px; height:34px; font-size:13px; color:var(--ink-2); white-space:nowrap; cursor:pointer}
+  .f-in .sp{flex:1}
+
+  main{padding:20px 0 60px}
+  .sec{display:none}
+  .sec.on{display:block}
+  .grid{display:grid; gap:16px}
+  .g-kpi{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .g-2{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+  @media (max-width:1000px){ .g-2{grid-template-columns:minmax(0,1fr)} }
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:12px; box-shadow:0 1px 2px rgba(16,20,24,.05)}
+  .card-h{display:flex; align-items:center; gap:10px; padding:14px 16px 0; flex-wrap:wrap}
+  .card-h h2{margin:0; font-size:14px; font-weight:600}
+  .card-h .hint{font-size:12px; color:var(--ink-3)}
+  .card-h .r{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .card-b{padding:12px 16px 16px}
+  .mt{margin-top:16px}
+
+  /* KPIs */
+  .kpi{padding:16px 18px 15px; position:relative; overflow:hidden}
+  .kpi-l{display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em}
+  .sw{width:10px; height:10px; border-radius:3px; background:var(--c); flex:0 0 auto}
+  .kpi-v{font-size:28px; font-weight:600; letter-spacing:-.02em; margin:6px 0 4px; line-height:1.1}
+  .kpi-s{font-size:12.5px; color:var(--ink-2)}
+  .kpi-s b{font-weight:600; color:var(--ink)}
+  .kpi.hero{background:var(--head); border-color:var(--head); color:#fff}
+  .kpi.hero .kpi-l{color:var(--head-ink)}
+  .kpi.hero .kpi-s{color:var(--head-ink)}
+  .kpi.hero .kpi-s b{color:#fff}
+  .chip{display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap}
+  .chip.bad{background:var(--crit-bg); color:var(--crit-t)}
+  .chip.good{background:var(--good-bg); color:var(--good-t)}
+  .chip.neu{background:var(--line-2); color:var(--ink-2)}
+  .kpi.hero .chip.bad{background:rgba(208,59,59,.22); color:#ffb4b4}
+  .kpi.hero .chip.good{background:rgba(12,163,12,.22); color:#9be29b}
+  .bar{height:8px; border-radius:99px; background:var(--line-2); position:relative; margin-top:10px; overflow:visible}
+  .kpi.hero .bar{background:#2a3b4b}
+  .bar i{position:absolute; top:0; bottom:0; border-radius:99px}
+  .bar .mk{position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink); border-radius:2px}
+  .kpi.hero .bar .mk{background:#fff}
+
+  .alerts{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px}
+  .alert{display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; border:1px solid var(--line); background:var(--paper); cursor:pointer; text-align:left}
+  .alert:hover{border-color:var(--ink-3)}
+  .alert .n{font-size:20px; font-weight:600}
+  .alert .t{font-size:12.5px; color:var(--ink-2); line-height:1.25}
+
+  /* Status */
+  .st{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:2px 8px 2px 6px; border-radius:999px; white-space:nowrap}
+  .st svg{width:13px; height:13px}
+  .st-estouro{background:var(--crit-bg); color:var(--crit-t)}
+  .st-atencao{background:var(--warn-bg); color:var(--warn-t)}
+  .st-ok{background:var(--good-bg); color:var(--good-t)}
+  .st-sem{background:var(--serious-bg); color:var(--serious-t)}
+  .st-nada{background:var(--line-2); color:var(--ink-3)}
+
+  /* Tabelas */
+  .scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table{width:100%; border-collapse:collapse}
+  th{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600; text-align:left; padding:10px 12px; background:var(--soft); border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0}
+  th.sort{cursor:pointer; user-select:none}
+  th.sort:hover{color:var(--ink)}
+  th .ar{opacity:.9}
+  td{padding:9px 12px; border-bottom:1px solid var(--line-2); font-size:13px; vertical-align:middle}
+  tbody tr:hover td{background:#fafbf8}
+  .r,td.r,th.r{text-align:right}
+  td.r{white-space:nowrap; font-variant-numeric:tabular-nums}
+  .muted{color:var(--ink-3)}
+  .pos{color:var(--crit-t)} .neg{color:var(--good-t)}
+  tr.u td{background:var(--soft); font-weight:600; border-bottom:1px solid var(--line)}
+  tr.u:hover td{background:#eff1ec}
+  tr.u td:first-child{cursor:pointer}
+  tr.c td:first-child{padding-left:38px}
+  tr.c{cursor:pointer}
+  tr.tot td{font-weight:700; border-top:2px solid var(--ink); border-bottom:0; background:var(--paper)}
+  .chev{display:inline-block; width:16px; transition:transform .15s; color:var(--ink-3)}
+  .chev.open{transform:rotate(90deg)}
+  .nm{max-width:360px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle}
+  .cons{display:flex; align-items:center; gap:8px; min-width:150px}
+  .cons .bar{flex:1; margin:0; height:6px}
+  .cons span{font-size:12px; width:42px; text-align:right; font-variant-numeric:tabular-nums}
+  .jdot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--s1)}
+  .tbl-tools{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .search{border:1px solid var(--line); border-radius:8px; padding:6px 10px; height:32px; width:240px; max-width:100%; background:var(--paper)}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--paper)}
+  .seg button{border:0; background:transparent; padding:5px 11px; font-size:12.5px; color:var(--ink-2); border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--ink); color:#fff}
+  .empty{padding:40px 20px; text-align:center; color:var(--ink-3)}
+  .more{padding:12px; text-align:center}
+
+  /* Matriz linha do tempo */
+  .mx td,.mx th{padding:7px 10px}
+  .mx td.cell{text-align:right; font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; border-left:1px solid #fff}
+  .mx tr.last td{font-weight:600}
+
+  /* Gaveta de detalhe */
+  .scrim{position:fixed; inset:0; background:rgba(15,26,36,.45); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s}
+  .scrim.on{opacity:1; pointer-events:auto}
+  .drawer{position:fixed; top:0; right:0; bottom:0; width:min(920px,100%); background:var(--canvas); z-index:41; transform:translateX(100%); transition:transform .25s ease; display:flex; flex-direction:column; box-shadow:-20px 0 60px -20px rgba(0,0,0,.4)}
+  .drawer.on{transform:none}
+  .drawer > header{background:var(--head); color:#fff; padding:16px 20px; display:flex; gap:14px; align-items:flex-start}
+  .drawer > header h2{margin:0; font-size:16px; font-weight:600}
+  .drawer > header p{margin:2px 0 0; font-size:12.5px; color:var(--head-ink)}
+  .x{margin-left:auto; background:transparent; border:0; color:#fff; font-size:22px; line-height:1; padding:2px 8px; border-radius:6px}
+  .x:hover{background:#22374a}
+  .drawer .body{padding:18px 20px 40px; overflow-y:auto; flex:1}
+  .mini{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
+  .mini .card{padding:12px 14px}
+  .mini .v{font-size:19px; font-weight:600; margin-top:3px}
+  .deltas{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:10px}
+  .deltas .card{padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:8px}
+  .deltas .l{font-size:12px; color:var(--ink-2)}
+  .h3{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:var(--ink-3); margin:22px 0 8px; display:flex; align-items:center; gap:8px}
+  .h3 .r{margin-left:auto}
+  .form{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 14px}
+  .form .full{grid-column:1/-1}
+  .form .fld input,.form .fld select,.form .fld textarea{border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:var(--paper); width:100%}
+  .form .fld textarea{min-height:64px; resize:vertical}
+  .form-f{display:flex; justify-content:flex-end; gap:8px; align-items:center; margin-top:12px}
+  .form-f .meta{margin-right:auto; font-size:12px; color:var(--ink-3)}
+  @media (max-width:640px){ .form{grid-template-columns:minmax(0,1fr)} }
+
+  /* Janela de edição */
+  .modal-w{position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,26,36,.5)}
+  .modal-w.on{display:flex}
+  .modal{background:var(--paper); border-radius:14px; width:min(640px,100%); max-height:calc(100vh - 40px); display:flex; flex-direction:column; box-shadow:0 30px 70px -20px rgba(0,0,0,.5)}
+  .modal > header{padding:16px 20px 4px; display:flex; align-items:center}
+  .modal > header h2{margin:0; font-size:16px; font-weight:600}
+  .modal > header .x{color:var(--ink)}
+  .modal > header .x:hover{background:var(--line-2)}
+  .modal .mb{padding:10px 20px; overflow-y:auto}
+  .modal .mf{padding:12px 20px 18px; display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--line-2)}
+  .modal .msg{font-size:12.5px; color:var(--crit-t); margin-right:auto; align-self:center}
+
+  /* Estados */
+  .state{text-align:center; padding:90px 20px; color:var(--ink-2)}
+  .state h3{margin:0 0 8px; font-size:17px; color:var(--ink)}
+  .state p{margin:0 auto; max-width:560px}
+  .loader{width:34px; height:34px; border:3px solid var(--line); border-top-color:var(--s1); border-radius:50%; margin:0 auto 16px; animation:spin .8s linear infinite}
+  .warnbox{background:var(--warn-bg); border:1px solid #f1d79b; color:var(--warn-t); border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:16px}
+  .warnbox b{color:#5c3c00}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; z-index:80; opacity:0; transition:all .2s; pointer-events:none; max-width:90vw}
+  .toast.on{opacity:1; transform:translateX(-50%)}
+  .toast.err{background:var(--crit-t)}
+  .chart-box{position:relative}
+  .legend-note{font-size:12px; color:var(--ink-3); margin-top:6px}
+  .linkish{background:none; border:0; padding:0; color:var(--s1); font-weight:500; text-decoration:underline; text-underline-offset:2px}
+  .pill{display:inline-block; font-size:11.5px; padding:1px 7px; border-radius:6px; background:var(--line-2); color:var(--ink-2); white-space:nowrap}
+  .pill.pago{background:var(--good-bg); color:var(--good-t)}
+  .pill.aberto{background:#fdeee6; color:var(--serious-t)}
+  .acts{white-space:nowrap; text-align:right}
+  .icon-btn{border:1px solid transparent; background:transparent; border-radius:6px; padding:3px 5px; color:var(--ink-3)}
+  .icon-btn:hover{background:var(--line-2); color:var(--ink); border-color:var(--line)}
+  .icon-btn svg{width:15px; height:15px; display:block}
+  .sub-tabs{display:flex; gap:6px; flex-wrap:wrap}
+  .sub-tabs button{border:1px solid var(--line); background:var(--paper); border-radius:999px; padding:5px 13px; font-size:13px; color:var(--ink-2)}
+  .sub-tabs button.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .sub-tabs .c{opacity:.7; margin-left:4px; font-size:12px}
+  @media (max-width:800px){ .filters{position:static} }
+  @media (max-width:640px){ .wrap{padding:0 16px} .kpi-v{font-size:24px} .stamp{display:none} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-in">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0f1a24" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      </div>
+      <div class="ttl">
+        <h1>Painel Financeiro · Usinas</h1>
+        <p>Orçado × Projetado × Realizado por usina e centro de custo</p>
+      </div>
+      <div class="top-r">
+        <div class="stamp" id="stamp"></div>
+        <a class="btn btn-dark btn-sm" id="lnkPlan" href="#" target="_blank" rel="noopener">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Planilha</a>
+        <button class="btn btn-dark btn-sm" id="btnAtualizar" type="button">
+          <svg class="ico" id="icoAtualizar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Atualizar</button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button type="button" data-tab="exec" class="on">Visão executiva</button>
+      <button type="button" data-tab="tree">Usinas e centros de custo</button>
+      <button type="button" data-tab="tempo">Linha do tempo</button>
+      <button type="button" data-tab="lanc">Lançamentos</button>
+    </nav>
+  </div>
+</header>
+
+<div class="filters" id="filtros" hidden>
+  <div class="wrap"><div class="f-in">
+    <div class="fld"><label for="fU">Usina</label><select id="fU"></select></div>
+    <div class="fld"><label for="fC">Centro de custo</label><select id="fC"></select></div>
+    <div class="fld"><label for="fDe">De (mês)</label><input type="month" id="fDe"></div>
+    <div class="fld"><label for="fAte">Até (mês)</label><input type="month" id="fAte"></div>
+    <div class="fld"><label>Período rápido</label><div class="seg" id="segPer" style="height:34px">
+      <button type="button" data-per="">Tudo</button><button type="button" data-per="mes">Mês atual</button><button type="button" data-per="tri">Próx. 3 meses</button><button type="button" data-per="ano">Ano atual</button></div></div>
+    <div class="fld"><label for="fSnap">Projetado: fluxo enviado em</label><select id="fSnap"></select></div>
+    <label class="chk"><input type="checkbox" id="fSoOrc"> Só o que tem orçamento</label>
+    <div class="sp"></div>
+    <button class="btn btn-sm" id="btnLimpar" type="button">Limpar filtros</button>
+  </div></div>
+</div>
+
+<main class="wrap" id="main">
+  <div class="state" id="loading"><div class="loader"></div><h3>Lendo a planilha…</h3><p>Orçamento, Fluxo de Caixa e Realizado Controladoria.</p></div>
+  <div id="avisos"></div>
+
+  <section class="sec" id="sec-exec">
+    <div class="grid g-kpi" id="kpis"></div>
+    <div class="alerts" id="alertas"></div>
+    <div class="grid g-2 mt">
+      <div class="card">
+        <div class="card-h"><h2>Por usina</h2><span class="hint">clique numa barra para filtrar a usina</span></div>
+        <div class="card-b"><div class="chart-box" id="boxUsinas"><canvas id="chUsinas" aria-label="Orçado, projetado e realizado por usina" role="img"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Maiores divergências</h2><span class="hint">consumo acima do orçado</span></div>
+        <div class="card-b" style="padding:8px 0 4px"><div class="scroll" id="topDiv"></div></div>
+      </div>
+    </div>
+    <div class="card mt">
+      <div class="card-h"><h2>Evolução da previsão</h2><span class="hint">total do Fluxo de Caixa a cada envio semanal, comparado ao que falta pagar do orçado</span></div>
+      <div class="card-b"><div class="chart-box" style="height:260px"><canvas id="chEvol" aria-label="Evolução do projetado por data do fluxo" role="img"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="sec-tree">
+    <div class="card">
+      <div class="card-h">
+        <h2>Usinas e centros de custo</h2>
+        <div class="r tbl-tools">
+          <input class="search" id="qTree" type="search" placeholder="Buscar usina ou centro de custo">
+          <div class="seg" id="segSt">
+            <button type="button" data-st="" class="on">Todos</button>
+            <button type="button" data-st="estouro">Estourado</button>
+            <button type="button" data-st="atencao">Atenção</button>
+            <button type="button" data-st="sem">Sem orçamento</button>
+            <button type="button" data-st="ok">No limite</button>
+          </div>
+          <button class="btn btn-sm" id="btnExp" type="button">Expandir tudo</button>
+        </div>
+      </div>
+      <div class="card-b" style="padding:12px 0 0">
+        <div class="scroll" id="tree"></div>
+      </div>
+    </div>
+    <p class="legend-note">Saldo livre = Orçado − (Realizado + Projetado em aberto). Consumo = (Realizado + Projetado em aberto) ÷ Orçado. Clique num centro de custo para ver os lançamentos, editar e registrar a justificativa.</p>
+  </section>
+
+  <section class="sec" id="sec-tempo">
+    <div class="card">
+      <div class="card-h"><h2>Como a previsão mudou a cada envio</h2><span class="hint">total do Fluxo de Caixa por data de envio</span></div>
+      <div class="card-b"><div class="chart-box" style="height:300px"><canvas id="chTempo" aria-label="Projetado por data do fluxo" role="img"></canvas></div></div>
+    </div>
+    <div class="card mt">
+      <div class="card-h"><h2>Previsão por mês de pagamento</h2><span class="hint">cada linha é um envio do fluxo; cada coluna é o mês programado para pagar</span></div>
+      <div class="card-b" style="padding:12px 0 0"><div class="scroll" id="matriz"></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="sec-lanc">
+    <div class="card">
+      <div class="card-h">
+        <div class="sub-tabs" id="subLanc"></div>
+        <div class="r tbl-tools">
+          <input class="search" id="qLanc" type="search" placeholder="Buscar fornecedor, documento, comentário…">
+          <button class="btn btn-sm btn-pri" id="btnNovo" type="button">+ Novo lançamento</button>
+        </div>
+      </div>
+      <div class="card-b" style="padding:12px 0 0"><div class="scroll" id="lanc"></div></div>
+    </div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header><div><h2 id="dwT"></h2><p id="dwS"></p></div><button class="x" id="dwX" type="button" aria-label="Fechar">×</button></header>
+  <div class="body" id="dwB"></div>
+</aside>
+
+<div class="modal-w" id="modal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <header><h2 id="mdT"></h2><button class="x" id="mdX" type="button" aria-label="Fechar">×</button></header>
+    <div class="mb" id="mdB"></div>
+    <div class="mf"><span class="msg" id="mdMsg"></span><button class="btn" id="mdCancel" type="button">Cancelar</button><button class="btn btn-pri" id="mdOk" type="button">Salvar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =================================================================== */
+/* Estado                                                               */
+/* =================================================================== */
+const S = {
+  d: null, rows: { orc: [], fluxo: [], real: [] },
+  f: { u: '', c: '', de: '', ate: '', snap: '', soOrc: false },
+  tab: 'exec', sort: { k: 'orc', dir: -1 }, open: new Set(), allOpen: false,
+  stF: '', qTree: '', lancAba: 'fluxo', qLanc: '', lancLim: 300,
+  charts: {}, drawer: null
+};
+const COR = { s1: '#2a78d6', s2: '#eb6834', s3: '#1baf7a', grid: '#eceae4', ink3: '#7d858c' };
+const NOME_ABA = { orc: 'Orçamento', fluxo: 'Fluxo de Caixa', real: 'Realizado' };
+const $ = (s) => document.querySelector(s);
+
+/* =================================================================== */
+/* Formatação                                                           */
+/* =================================================================== */
+const _brl0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const _brl2 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const _n1 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const _n2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function brl(v) { return _brl0.format(Math.round(v || 0)).replace('-R$', '−R$'); }
+function brl2(v) { return v === null || v === undefined || v === '' ? '—' : _brl2.format(v); }
+function compact(v) {
+  const a = Math.abs(v || 0), s = v < 0 ? '−' : '';
+  if (a >= 1e6) return s + 'R$ ' + _n1.format(a / 1e6) + ' mi';
+  if (a >= 1e3) return s + 'R$ ' + Math.round(a / 1e3).toLocaleString('pt-BR') + ' mil';
+  return s + 'R$ ' + Math.round(a).toLocaleString('pt-BR');
+}
+function pct(v) { return v === null || !isFinite(v) ? '—' : Math.round(v * 100) + '%'; }
+function dt(iso) { if (!iso) return ''; const p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+function dtc(iso) { if (!iso) return '(sem data)'; const p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0].slice(2); }
+const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function mes(ym) { const p = ym.split('-'); return MES[+p[1] - 1] + '/' + p[0].slice(2); }
+function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function nk(s) { return String(s === null || s === undefined ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+function parseBR(s) {
+  if (typeof s === 'number') return s;
+  let t = String(s || '').trim().replace(/[R$\s]/g, '');
+  if (!t) return null;
+  if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(t);
+  return isFinite(n) ? n : null;
+}
+function deltaTxt(v) {
+  if (!v || Math.abs(v) < 0.5) return '<span class="muted">—</span>';
+  return '<span class="' + (v > 0 ? 'pos' : 'neg') + '">' + (v > 0 ? '▲ ' : '▼ ') + brl(Math.abs(v)) + '</span>';
+}
+function deltaChip(v, base, txtAcima, txtAbaixo) {
+  if (!base) return '';
+  if (Math.abs(v) < 0.5) return '<span class="chip neu">igual ao orçado</span>';
+  const p = Math.abs(v / base);
+  return '<span class="chip ' + (v > 0 ? 'bad' : 'good') + '">' + (v > 0 ? '▲ ' : '▼ ') + compact(Math.abs(v)) +
+    ' (' + Math.round(p * 100) + '%) ' + (v > 0 ? txtAcima : txtAbaixo) + '</span>';
+}
+
+/* =================================================================== */
+/* Ícones e status                                                      */
+/* =================================================================== */
+const IC = {
+  x: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"/></svg>',
+  ex: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 1.8L15 14H1z" stroke-linejoin="round"/><path d="M8 6.3v3.4M8 11.8v.1"/></svg>',
+  ok: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M5 8.2l2 2 4-4.2"/></svg>',
+  q: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M6.2 6.2a1.9 1.9 0 1 1 2.5 1.8c-.5.2-.7.6-.7 1.1M8 11.6v.1"/></svg>',
+  ed: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5l2.5 2.5L5.5 13H3v-2.5z"/></svg>',
+  del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.7 9h6.6l.7-9"/></svg>',
+  pago: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>'
+};
+const ST = {
+  estouro: { t: 'Estourado', i: IC.x },
+  atencao: { t: 'Atenção', i: IC.ex },
+  ok: { t: 'No limite', i: IC.ok },
+  sem: { t: 'Sem orçamento', i: IC.q },
+  nada: { t: 'Sem movimento', i: '' }
+};
+function stBadge(s) { const x = ST[s]; return '<span class="st st-' + s + '">' + x.i + x.t + '</span>'; }
+
+/* =================================================================== */
+/* Comunicação com a planilha                                           */
+/* =================================================================== */
+function run(fn, arg) {
+  return new Promise((ok, err) => {
+    const r = google.script.run.withSuccessHandler(ok).withFailureHandler((e) => err(e && e.message ? e.message : String(e)));
+    arg === undefined ? r[fn]() : r[fn](arg);
+  });
+}
+function toast(msg, erro) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'toast on' + (erro ? ' err' : '');
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast' + (erro ? ' err' : ''); }, erro ? 6000 : 2800);
+}
+
+function atualizar(silencioso) {
+  const ico = $('#icoAtualizar'); ico.classList.add('spin'); $('#btnAtualizar').disabled = true;
+  return run('carregarDados').then((d) => {
+    receber(d);
+    if (!silencioso) toast('Dados atualizados da planilha.');
+  }).catch((e) => {
+    if (!S.d) {
+      $('#loading').innerHTML = '<h3>Não consegui ler a planilha</h3><p>' + esc(e) + '</p>';
+    } else toast(e, true);
+  }).finally(() => { ico.classList.remove('spin'); $('#btnAtualizar').disabled = false; });
+}
+
+function decodificar(aba) {
+  return aba.linhas.map((l) => {
+    const o = { _r: l[0] };
+    aba.campos.forEach((c, j) => {
+      let v = l[j + 1];
+      if (aba.dic[c.k]) v = aba.dic[c.k][v];
+      o[c.k] = v;
+    });
+    return o;
+  });
+}
+
+function receber(d) {
+  S.d = d;
+  S.rows = { orc: decodificar(d.abas.orc), fluxo: decodificar(d.abas.fluxo), real: decodificar(d.abas.real) };
+  $('#loading').style.display = 'none';
+  $('#filtros').hidden = false;
+  $('#stamp').innerHTML = esc(d.planilha) + '<br>Atualizado em <b>' + esc(d.geradoEm) + '</b>';
+  $('#lnkPlan').href = d.urlPlanilha;
+  avisos();
+  preparar();
+  render();
+}
+
+function avisos() {
+  const msgs = [];
+  Object.values(S.d.abas).forEach((a) => {
+    if (a.erro) msgs.push('<b>' + esc(a.aba) + ':</b> ' + esc(a.erro));
+    else if (a.faltando.length) msgs.push('<b>' + esc(a.aba) + ':</b> colunas não encontradas — ' + a.faltando.map(esc).join(', '));
+  });
+  $('#avisos').innerHTML = msgs.length ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '';
+}
+
+/* =================================================================== */
+/* Preparação: liga Usina + Centro de Custo nas três abas               */
+/* =================================================================== */
+function ccReal(r) {
+  const full = String(r.ccFull || '').trim();
+  if (full) return full;
+  return [r.ccCod, r.ccDesc].map((x) => String(x || '').trim()).filter(Boolean).join(' - ');
+}
+function canonCC(txt) {
+  const t = String(txt || '').trim();
+  if (!t) return '(sem centro de custo)';
+  const idx = S.ccIdx;
+  let k = nk(t);
+  if (idx[k]) return idx[k];
+  const m = t.match(/^([0-9][0-9.\-\/]*)/);
+  if (m && idx[nk(m[1])]) return idx[nk(m[1])];
+  const desc = t.replace(/^[0-9][0-9.\-\/]*\s*[-–—:|]?\s*/, '');
+  if (desc && idx[nk(desc)]) return idx[nk(desc)];
+  return t;
+}
+function tipoReal(v) {
+  const n = nk(v);
+  if (n.indexOf('acum') !== -1) return 'A';
+  if (n.indexOf('real') === 0) return 'S';
+  return 'A';
+}
+
+function preparar() {
+  const { orc, fluxo, real } = S.rows;
+  S.ccIdx = {};
+  real.forEach((r) => {
+    const full = ccReal(r);
+    if (!full) return;
+    [full, r.ccCod, r.ccDesc].forEach((x) => { const k = nk(x); if (k && !(k in S.ccIdx)) S.ccIdx[k] = full; });
+  });
+  S.uNome = {}; S.ccNome = {};
+  const tag = (r, proj, cc) => {
+    const p = String(proj || '').trim();
+    r._u = nk(p) || '~';
+    if (!(r._u in S.uNome)) S.uNome[r._u] = p || '(sem usina)';
+    r._ck = nk(cc) || '~';
+    if (!(r._ck in S.ccNome)) S.ccNome[r._ck] = cc;
+  };
+  orc.forEach((r) => { tag(r, r.projeto, canonCC(r.cc)); r._d = r.venc; });
+  fluxo.forEach((r) => { tag(r, r.projeto, canonCC(r.cc)); r._d = r.dataProg; r._pago = nk(r.situacao).indexOf('pago') === 0; });
+  real.forEach((r) => { tag(r, r.projeto, ccReal(r) || '(sem centro de custo)'); r._d = r.pagto; r._t = tipoReal(r.tipo); });
+
+  const snaps = {};
+  fluxo.forEach((r) => { snaps[r.dataFluxo || ''] = true; });
+  S.snaps = Object.keys(snaps).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a < b ? 1 : -1));
+  if (!S.snaps.includes(S.f.snap)) S.f.snap = S.snaps[0] || '';
+  if (S.f.u && !(S.f.u in S.uNome)) S.f.u = '';
+  montarFiltros();
+}
+
+function periodoRapido(tipo) {
+  const h = new Date(), y = h.getFullYear(), m = h.getMonth();
+  const ym = (yy, mm) => { const d = new Date(yy, mm, 1); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); };
+  if (tipo === 'mes') return [ym(y, m), ym(y, m)];
+  if (tipo === 'tri') return [ym(y, m), ym(y, m + 2)];
+  if (tipo === 'ano') return [y + '-01', y + '-12'];
+  return ['', ''];
+}
+function marcarPeriodo() {
+  let atual = null;
+  ['', 'mes', 'tri', 'ano'].forEach((t) => { const p = periodoRapido(t); if (p[0] === S.f.de && p[1] === S.f.ate) atual = t; });
+  document.querySelectorAll('#segPer button').forEach((b) => b.classList.toggle('on', b.dataset.per === atual));
+}
+
+function montarFiltros() {
+  const us = Object.keys(S.uNome).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR'));
+  $('#fU').innerHTML = '<option value="">Todas as usinas</option>' +
+    us.map((k) => '<option value="' + esc(k) + '"' + (k === S.f.u ? ' selected' : '') + '>' + esc(S.uNome[k]) + '</option>').join('');
+  const ccs = {};
+  ['orc', 'fluxo', 'real'].forEach((a) => S.rows[a].forEach((r) => { if (!S.f.u || r._u === S.f.u) ccs[r._ck] = true; }));
+  const lista = Object.keys(ccs).sort((a, b) => String(S.ccNome[a]).localeCompare(String(S.ccNome[b]), 'pt-BR'));
+  if (S.f.c && !ccs[S.f.c]) S.f.c = '';
+  $('#fC').innerHTML = '<option value="">Todos os centros de custo</option>' +
+    lista.map((k) => '<option value="' + esc(k) + '"' + (k === S.f.c ? ' selected' : '') + '>' + esc(S.ccNome[k]) + '</option>').join('');
+  $('#fSnap').innerHTML = S.snaps.length
+    ? S.snaps.map((s, i) => '<option value="' + esc(s) + '"' + (s === S.f.snap ? ' selected' : '') + '>' + (s ? dt(s) : '(sem data do fluxo)') + (i === 0 ? ' · mais recente' : '') + '</option>').join('')
+    : '<option value="">(sem fluxo)</option>';
+  $('#fDe').value = S.f.de; $('#fAte').value = S.f.ate; $('#fSoOrc').checked = S.f.soOrc;
+  marcarPeriodo();
+}
+
+/* =================================================================== */
+/* Filtros e números                                                    */
+/* =================================================================== */
+function noPeriodo(d) {
+  if (!S.f.de && !S.f.ate) return true;
+  if (!d) return false;
+  const m = d.slice(0, 7);
+  return (!S.f.de || m >= S.f.de) && (!S.f.ate || m <= S.f.ate);
+}
+function passa(r, sem) {
+  sem = sem || {};
+  if (!sem.u && S.f.u && r._u !== S.f.u) return false;
+  if (!sem.c && S.f.c && r._ck !== S.f.c) return false;
+  return noPeriodo(r._d);
+}
+function filtrar(sem) {
+  return {
+    orc: S.rows.orc.filter((r) => passa(r, sem)),
+    fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && passa(r, sem)),
+    real: S.rows.real.filter((r) => passa(r, sem))
+  };
+}
+function novoM() { return { orc: 0, proj: 0, projAb: 0, projPg: 0, real: 0, realAc: 0, realSem: 0 }; }
+function somaM(a, b) { Object.keys(a).forEach((k) => { a[k] += b[k]; }); }
+function derivar(m) {
+  const cfg = S.d.cfg;
+  m.comp = m.real + m.projAb;
+  m.saldo = m.orc - m.comp;
+  m.pct = m.orc > 0 ? m.comp / m.orc : null;
+  m.dPO = m.proj - m.orc; m.dRO = m.real - m.orc; m.dRP = m.real - m.proj;
+  if (m.orc <= 0.005) m.st = m.comp > 0.005 || m.proj > 0.005 ? 'sem' : 'nada';
+  else if (m.pct > cfg.ESTOURO + 1e-9) m.st = 'estouro';
+  else if (m.pct >= cfg.ATENCAO) m.st = 'atencao';
+  else m.st = 'ok';
+  return m;
+}
+function agregar(F) {
+  const soma = S.d.cfg.REALIZADO_SOMA_SEMANA;
+  const U = new Map();
+  const cc = (r) => {
+    let u = U.get(r._u);
+    if (!u) { u = { k: r._u, nome: S.uNome[r._u], ccs: new Map() }; U.set(r._u, u); }
+    let c = u.ccs.get(r._ck);
+    if (!c) { c = { k: r._ck, uk: r._u, usina: u.nome, nome: S.ccNome[r._ck], m: novoM() }; u.ccs.set(r._ck, c); }
+    return c.m;
+  };
+  F.orc.forEach((r) => { cc(r).orc += r.valor || 0; });
+  F.fl.forEach((r) => { const m = cc(r), v = r.valor || 0; m.proj += v; if (r._pago) m.projPg += v; else m.projAb += v; });
+  F.real.forEach((r) => {
+    const m = cc(r), v = r.valor || 0;
+    if (r._t === 'S') { m.realSem += v; if (soma) m.real += v; } else { m.realAc += v; m.real += v; }
+  });
+  const tot = novoM();
+  const usinas = [];
+  U.forEach((u) => {
+    u.m = novoM();
+    u.lista = [];
+    u.ccs.forEach((c) => {
+      if (S.f.soOrc && c.m.orc <= 0.005) return;
+      derivar(c.m); somaM(u.m, c.m); u.lista.push(c);
+    });
+    if (!u.lista.length) return;
+    somaM(tot, u.m); derivar(u.m); usinas.push(u);
+  });
+  derivar(tot);
+  return { usinas, tot };
+}
+
+/* =================================================================== */
+/* Render geral                                                         */
+/* =================================================================== */
+function render() {
+  if (!S.d) return;
+  S.F = filtrar();
+  S.A = agregar(S.F);
+  document.querySelectorAll('.sec').forEach((s) => s.classList.toggle('on', s.id === 'sec-' + S.tab));
+  if (S.tab === 'exec') renderExec();
+  if (S.tab === 'tree') renderTree();
+  if (S.tab === 'tempo') renderTempo();
+  if (S.tab === 'lanc') renderLanc();
+  if (S.drawer) renderDrawer();
+}
+
+function snapTxt() { return S.f.snap ? 'fluxo de ' + dt(S.f.snap) : 'sem fluxo'; }
+
+/* ---------------- Visão executiva ---------------- */
+function consBar(m, hero) {
+  const esc_ = Math.max(m.orc, m.comp) || 1;
+  const wR = (m.real / esc_) * 100, wA = (m.projAb / esc_) * 100, mk = (m.orc / esc_) * 100;
+  return '<div class="bar"><i style="left:0;width:' + wR.toFixed(2) + '%;background:var(--s3)"></i>' +
+    '<i style="left:' + wR.toFixed(2) + '%;width:' + wA.toFixed(2) + '%;background:var(--s2)"></i>' +
+    (m.orc > 0 ? '<span class="mk" style="left:calc(' + Math.min(mk, 100).toFixed(2) + '% - 1px)" title="Orçado"></span>' : '') + '</div>';
+}
+
+function renderExec() {
+  const t = S.A.tot;
+  const nCC = S.A.usinas.reduce((s, u) => s + u.lista.length, 0);
+  $('#kpis').innerHTML = [
+    '<div class="card kpi"><div class="kpi-l"><span class="sw" style="--c:var(--s1)"></span>Orçado</div>' +
+      '<div class="kpi-v">' + compact(t.orc) + '</div><div class="kpi-s">' + S.A.usinas.length + ' usinas · ' + nCC + ' centros de custo</div></div>',
+    '<div class="card kpi"><div class="kpi-l"><span class="sw" style="--c:var(--s2)"></span>Projetado</div>' +
+      '<div class="kpi-v">' + compact(t.proj) + '</div><div class="kpi-s">' + esc(snapTxt()) + ' · em aberto <b>' + compact(t.projAb) + '</b></div>' +
+      '<div style="margin-top:8px">' + deltaChip(t.dPO, t.orc, 'acima do orçado', 'abaixo do orçado') + '</div></div>',
+    '<div class="card kpi"><div class="kpi-l"><span class="sw" style="--c:var(--s3)"></span>Realizado</div>' +
+      '<div class="kpi-v">' + compact(t.real) + '</div><div class="kpi-s">Última semana: <b>' + compact(t.realSem) + '</b></div>' +
+      '<div style="margin-top:8px">' + deltaChip(t.dRO, t.orc, 'acima do orçado', 'abaixo do orçado') + '</div></div>',
+    '<div class="card kpi hero"><div class="kpi-l">Saldo livre do orçamento</div>' +
+      '<div class="kpi-v">' + compact(t.saldo) + '</div>' +
+      '<div class="kpi-s">Consumo <b>' + pct(t.pct) + '</b> · realizado + em aberto = <b>' + compact(t.comp) + '</b></div>' + consBar(t, true) + '</div>'
+  ].join('');
+
+  const cont = { estouro: 0, atencao: 0, sem: 0, ok: 0 };
+  let valEst = 0, valSem = 0;
+  S.A.usinas.forEach((u) => u.lista.forEach((c) => {
+    if (cont[c.m.st] !== undefined) cont[c.m.st]++;
+    if (c.m.st === 'estouro') valEst += -c.m.saldo;
+    if (c.m.st === 'sem') valSem += c.m.comp;
+  }));
+  const al = (st, n, txt) => '<button type="button" class="alert" data-goto="' + st + '">' + stBadge(st) +
+    '<span class="n">' + n + '</span><span class="t">' + txt + '</span></button>';
+  $('#alertas').innerHTML =
+    al('estouro', cont.estouro, 'centros de custo estourados<br><b>' + compact(valEst) + '</b> acima do orçado') +
+    al('atencao', cont.atencao, 'centros de custo acima de ' + Math.round(S.d.cfg.ATENCAO * 100) + '%<br>do orçamento') +
+    al('sem', cont.sem, 'centros de custo sem orçamento<br><b>' + compact(valSem) + '</b> comprometidos') +
+    al('ok', cont.ok, 'centros de custo<br>dentro do orçado');
+
+  // Top divergências
+  const todos = [];
+  S.A.usinas.forEach((u) => u.lista.forEach((c) => todos.push(c)));
+  const top = todos.filter((c) => c.m.saldo < -0.5).sort((a, b) => a.m.saldo - b.m.saldo).slice(0, 8);
+  $('#topDiv').innerHTML = top.length
+    ? '<table><thead><tr><th>Centro de custo</th><th class="r">Orçado</th><th class="r">Comprometido</th><th class="r">Acima</th></tr></thead><tbody>' +
+      top.map((c) => '<tr class="c" data-cc="' + esc(c.uk) + '|' + esc(c.k) + '"><td style="padding-left:16px"><span class="nm" style="max-width:260px" title="' + esc(c.nome) + '">' + esc(c.nome) + '</span>' +
+        '<div class="muted" style="font-size:11.5px">' + esc(c.usina) + '</div></td><td class="r">' + compact(c.m.orc) + '</td><td class="r">' + compact(c.m.comp) +
+        '</td><td class="r"><span class="pos">' + compact(-c.m.saldo) + '</span></td></tr>').join('') + '</tbody></table>'
+    : '<div class="empty">' + IC.ok.replace('<svg', '<svg width="22" height="22" style="color:var(--good)"') + '<br>Nenhum centro de custo acima do orçado com os filtros atuais.</div>';
+
+  chartUsinas();
+  S.charts.evol = chartEvol('chEvol', S.charts.evol);
+}
+
+function baseChartOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 350 },
+    plugins: {
+      legend: { position: 'top', align: 'start', labels: { usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 9, boxHeight: 9, color: '#4a5158', font: { family: 'IBM Plex Sans', size: 12 } } },
+      tooltip: { backgroundColor: '#101418', padding: 10, titleFont: { family: 'IBM Plex Sans', weight: '600' }, bodyFont: { family: 'IBM Plex Sans' },
+        callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + brl(c.raw) } }
+    }
+  };
+}
+
+function chartUsinas() {
+  if (S.charts.us) S.charts.us.destroy();
+  const us = S.A.usinas.slice().sort((a, b) => Math.max(b.m.orc, b.m.comp) - Math.max(a.m.orc, a.m.comp)).slice(0, 14);
+  $('#boxUsinas').style.height = Math.max(240, us.length * 50 + 70) + 'px';
+  const o = baseChartOpts();
+  o.indexAxis = 'y';
+  o.scales = {
+    x: { grid: { color: COR.grid }, border: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true, maxTicksLimit: 6, callback: (v) => compact(v) } },
+    y: { grid: { display: false }, ticks: { color: '#101418', font: { family: 'IBM Plex Sans', size: 12 }, callback: function (v) { const s = this.getLabelForValue(v); return s.length > 26 ? s.slice(0, 25) + '…' : s; } } }
+  };
+  o.onClick = (e, els) => { if (els.length) { S.f.u = us[els[0].index].k; S.f.c = ''; montarFiltros(); render(); } };
+  o.onHover = (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
+  const ds = (label, key, cor) => ({ label, data: us.map((u) => u.m[key]), backgroundColor: cor, borderRadius: 4, borderSkipped: 'start', barPercentage: 0.86, categoryPercentage: 0.78 });
+  S.charts.us = new Chart($('#chUsinas'), {
+    type: 'bar',
+    data: { labels: us.map((u) => u.nome), datasets: [ds('Orçado', 'orc', COR.s1), ds('Projetado', 'proj', COR.s2), ds('Realizado', 'real', COR.s3)] },
+    options: o
+  });
+}
+
+/** Total projetado em cada envio do fluxo (respeita usina, centro de custo e período). */
+function serieEvol() {
+  const por = {};
+  S.rows.fluxo.forEach((r) => {
+    if (!r.dataFluxo || !passa(r)) return;
+    por[r.dataFluxo] = (por[r.dataFluxo] || 0) + (r.valor || 0);
+  });
+  const ds = Object.keys(por).sort();
+  return { labels: ds, vals: ds.map((d) => por[d]) };
+}
+function chartEvol(id, antigo) {
+  if (antigo) antigo.destroy();
+  const s = serieEvol();
+  const ref = Math.max(0, S.A.tot.orc - S.A.tot.real);
+  const o = baseChartOpts();
+  o.interaction = { mode: 'index', intersect: false };
+  o.scales = {
+    x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
+    y: { grid: { color: COR.grid }, border: { display: false }, beginAtZero: true, ticks: { color: COR.ink3, callback: (v) => compact(v) } }
+  };
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: {
+      labels: s.labels.map(dtc),
+      datasets: [
+        { label: 'Projetado no fluxo', data: s.vals, borderColor: COR.s2, backgroundColor: COR.s2, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 2, tension: 0.25 },
+        { label: 'Orçado ainda não pago (Orçado − Realizado)', data: s.labels.map(() => ref), borderColor: COR.s1, backgroundColor: COR.s1, borderWidth: 2, borderDash: [6, 4], pointRadius: 0, pointHoverRadius: 0 }
+      ]
+    },
+    options: o
+  });
+}
+
+/* ---------------- Árvore Usina → Centro de custo ---------------- */
+const COLS_TREE = [
+  { k: 'nome', t: 'Usina / Centro de custo' }, { k: 'orc', t: 'Orçado', r: 1 }, { k: 'proj', t: 'Projetado', r: 1 },
+  { k: 'real', t: 'Realizado', r: 1 }, { k: 'dPO', t: 'Δ Proj − Orç', r: 1 }, { k: 'dRO', t: 'Δ Real − Orç', r: 1 },
+  { k: 'saldo', t: 'Saldo livre', r: 1 }, { k: 'pct', t: 'Consumo' }, { k: 'st', t: 'Status' }, { k: 'j', t: '' }
+];
+const ORD_ST = { estouro: 0, sem: 1, atencao: 2, ok: 3, nada: 4 };
+function cmp(a, b) {
+  const k = S.sort.k;
+  let va, vb;
+  if (k === 'nome') { va = a.nome; vb = b.nome; return String(va).localeCompare(String(vb), 'pt-BR') * S.sort.dir; }
+  if (k === 'st') { va = ORD_ST[a.m.st]; vb = ORD_ST[b.m.st]; }
+  else { va = a.m[k] === null ? -Infinity : a.m[k]; vb = b.m[k] === null ? -Infinity : b.m[k]; }
+  return (va - vb) * S.sort.dir;
+}
+function justKey(uk, ck) { return uk + '||' + ck; }
+function linhaM(m) {
+  return '<td class="r">' + brl(m.orc) + '</td><td class="r">' + brl(m.proj) + '</td><td class="r">' + brl(m.real) + '</td>' +
+    '<td class="r">' + deltaTxt(m.dPO) + '</td><td class="r">' + deltaTxt(m.dRO) + '</td>' +
+    '<td class="r ' + (m.saldo < -0.5 ? 'pos' : '') + '">' + brl(m.saldo) + '</td>' +
+    '<td><div class="cons">' + consBar(m) + '<span>' + pct(m.pct) + '</span></div></td><td>' + stBadge(m.st) + '</td>';
+}
+function renderTree() {
+  const q = nk(S.qTree);
+  const usinas = S.A.usinas.map((u) => {
+    const nomeU = nk(u.nome).indexOf(q) !== -1;
+    const lista = u.lista.filter((c) => (!S.stF || c.m.st === S.stF) && (!q || nomeU || nk(c.nome).indexOf(q) !== -1));
+    return { u, lista };
+  }).filter((x) => x.lista.length);
+  usinas.sort((a, b) => cmp(a.u, b.u));
+  const filtrando = !!(q || S.stF || S.f.u);
+
+  let h = '<table style="min-width:1180px"><thead><tr>' + COLS_TREE.map((c) => c.k === 'j' ? '<th title="Justificativa registrada"></th>' :
+    '<th class="sort ' + (c.r ? 'r' : '') + '" data-sort="' + c.k + '">' + c.t + (S.sort.k === c.k ? ' <span class="ar">' + (S.sort.dir < 0 ? '↓' : '↑') + '</span>' : '') + '</th>').join('') + '</tr></thead><tbody>';
+  if (!usinas.length) h += '<tr><td colspan="10" class="empty">Nada encontrado com esses filtros.</td></tr>';
+  const tot = novoM();
+  usinas.forEach(({ u, lista }) => {
+    const aberto = filtrando || S.allOpen || S.open.has(u.k);
+    const m = (S.stF || q) ? derivar(lista.reduce((acc, c) => { somaM(acc, c.m); return acc; }, novoM())) : u.m;
+    somaM(tot, m);
+    h += '<tr class="u" data-u="' + esc(u.k) + '"><td><span class="chev ' + (aberto ? 'open' : '') + '">▸</span> <span class="nm" title="' + esc(u.nome) + '">' + esc(u.nome) + '</span> <span class="muted" style="font-weight:400;font-size:12px">· ' + lista.length + '</span></td>' + linhaM(m) + '<td></td></tr>';
+    if (aberto) {
+      lista.slice().sort(cmp).forEach((c) => {
+        const j = S.d.just[justKey(c.uk, c.k)];
+        h += '<tr class="c" data-cc="' + esc(c.uk) + '|' + esc(c.k) + '"><td><span class="nm" title="' + esc(c.nome) + '">' + esc(c.nome) + '</span></td>' + linhaM(c.m) +
+          '<td>' + (j ? '<span class="jdot" title="Justificativa: ' + esc(j.status) + ' — ' + esc(j.comentario) + '"></span>' : '') + '</td></tr>';
+      });
+    }
+  });
+  if (usinas.length) h += '<tr class="tot"><td>Total</td>' + linhaM(derivar(tot)) + '<td></td></tr>';
+  h += '</tbody></table>';
+  $('#tree').innerHTML = h;
+  $('#btnExp').textContent = S.allOpen ? 'Recolher tudo' : 'Expandir tudo';
+}
+
+/* ---------------- Linha do tempo ---------------- */
+function rampa(t) {
+  const a = [221, 235, 252], b = [16, 66, 129]; // azul claro → azul escuro
+  const k = 0.08 + 0.92 * Math.max(0, Math.min(1, t));
+  return 'rgb(' + a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(',') + ')';
+}
+function renderTempo() {
+  S.charts.tempo = chartEvol('chTempo', S.charts.tempo);
+  const snaps = S.snaps.filter(Boolean).slice(0, 12);
+  if (!snaps.length) { $('#matriz').innerHTML = '<div class="empty">Sem envios de fluxo com "Data do Fluxo" preenchida.</div>'; return; }
+  const mat = {}, meses = {};
+  snaps.forEach((s) => { mat[s] = {}; });
+  S.rows.fluxo.forEach((r) => {
+    if (!mat[r.dataFluxo] || !passa(r)) return;
+    const m = r.dataProg ? r.dataProg.slice(0, 7) : '';
+    meses[m] = true;
+    mat[r.dataFluxo][m] = (mat[r.dataFluxo][m] || 0) + (r.valor || 0);
+  });
+  const ms = Object.keys(meses).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a < b ? -1 : 1));
+  let max = 0;
+  snaps.forEach((s) => ms.forEach((m) => { max = Math.max(max, mat[s][m] || 0); }));
+  const totais = snaps.map((s) => ms.reduce((a, m) => a + (mat[s][m] || 0), 0));
+  let h = '<table class="mx" style="min-width:' + (260 + ms.length * 96) + 'px"><thead><tr><th>Envio do fluxo</th>' +
+    ms.map((m) => '<th class="r">' + (m ? mes(m) : 'sem data') + '</th>').join('') + '<th class="r">Total</th><th class="r">vs envio anterior</th></tr></thead><tbody>';
+  snaps.forEach((s, i) => {
+    h += '<tr class="' + (i === 0 ? 'last' : '') + '"><td style="white-space:nowrap">' + dt(s) + (i === 0 ? ' <span class="pill">mais recente</span>' : '') + '</td>';
+    ms.forEach((m) => {
+      const v = mat[s][m] || 0, t = max ? v / max : 0;
+      const bg = v ? rampa(t) : 'transparent';
+      h += '<td class="cell" style="background:' + bg + ';color:' + (t > 0.5 ? '#fff' : 'var(--ink)') + '" title="Envio de ' + dt(s) + ' · ' + (m ? mes(m) : 'sem data') + ': ' + brl2(v) + '">' + (v ? compact(v) : '<span class="muted">—</span>') + '</td>';
+    });
+    const ant = totais[i + 1];
+    h += '<td class="r"><b>' + compact(totais[i]) + '</b></td><td class="r">' + (ant === undefined ? '<span class="muted">—</span>' : deltaTxt(totais[i] - ant)) + '</td></tr>';
+  });
+  h += '</tbody></table>';
+  $('#matriz').innerHTML = h;
+}
+
+/* ---------------- Lançamentos ---------------- */
+const COLS_LANC = {
+  orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['cc', 'Centro de custo'], ['setor', 'Setor'], ['valor', 'Valor', 'valor']],
+  fluxo: [['dataProg', 'Data prog.', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['cc', 'Centro de custo'], ['coment', 'Comentário'], ['situacao', 'Situação', 'sit'], ['valor', 'Valor', 'valor']],
+  real: [['pagto', 'Pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina'], ['_cc', 'Centro de custo'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['tipo', 'Real / Acum.'], ['valor', 'Valor', 'valor']]
+};
+function lancRows(aba, F) {
+  F = F || S.F;
+  return aba === 'orc' ? F.orc : aba === 'fluxo' ? F.fl : F.real;
+}
+function celula(r, col) {
+  const k = col[0], tp = col[2];
+  if (tp === 'data') return '<td style="white-space:nowrap">' + (r[k] ? dt(r[k]) : '<span class="muted">—</span>') + '</td>';
+  if (tp === 'valor') return '<td class="r">' + brl2(r[k]) + '</td>';
+  if (tp === 'sit') return '<td><span class="pill ' + (r._pago ? 'pago' : 'aberto') + '">' + esc(r[k] || 'Em Aberto') + '</span></td>';
+  const v = k === '_cc' ? ccReal(r) : r[k];
+  return '<td><span class="nm" style="max-width:240px" title="' + esc(v) + '">' + esc(v) + '</span></td>';
+}
+function acoes(aba, r) {
+  if (!S.d.abas[aba].editavel) return '';
+  return '<td class="acts">' +
+    (aba === 'fluxo' && !r._pago ? '<button class="icon-btn" data-pago="' + r._r + '" title="Marcar como pago">' + IC.pago + '</button>' : '') +
+    '<button class="icon-btn" data-ed="' + aba + '|' + r._r + '" title="Editar">' + IC.ed + '</button>' +
+    '<button class="icon-btn" data-del="' + aba + '|' + r._r + '" title="Excluir">' + IC.del + '</button></td>';
+}
+function tabelaLanc(aba, rows, lim, enxuta) {
+  const cols = COLS_LANC[aba].filter((c) => !enxuta || ['projeto', 'cc', '_cc'].indexOf(c[0]) === -1);
+  const ed = S.d.abas[aba].editavel;
+  const lista = rows.slice().sort((a, b) => (b[cols[0][0]] || '').localeCompare(a[cols[0][0]] || ''));
+  const vis = lim ? lista.slice(0, lim) : lista;
+  const total = rows.reduce((s, r) => s + (r.valor || 0), 0);
+  let h = '<table style="min-width:' + (enxuta ? 640 : aba === 'orc' ? 760 : 1100) + 'px"><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="r"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
+  if (!vis.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
+  vis.forEach((r) => { h += '<tr>' + cols.map((c) => celula(r, c)).join('') + acoes(aba, r) + '</tr>'; });
+  if (vis.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</td><td class="r">' + brl2(total) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
+  h += '</tbody></table>';
+  if (lim && lista.length > lim) h += '<div class="more"><button class="btn btn-sm" data-more="1">Mostrar mais (' + (lista.length - lim) + ' restantes)</button></div>';
+  return h;
+}
+function renderLanc() {
+  const ns = { orc: S.F.orc.length, fluxo: S.F.fl.length, real: S.F.real.length };
+  $('#subLanc').innerHTML = ['fluxo', 'orc', 'real'].map((a) => '<button type="button" data-la="' + a + '" class="' + (S.lancAba === a ? 'on' : '') + '">' +
+    NOME_ABA[a] + (a === 'fluxo' && S.f.snap ? ' · ' + dtc(S.f.snap) : '') + '<span class="c">' + ns[a].toLocaleString('pt-BR') + '</span></button>').join('');
+  $('#btnNovo').style.display = S.d.abas[S.lancAba].editavel ? '' : 'none';
+  const q = nk(S.qLanc);
+  let rows = lancRows(S.lancAba);
+  if (q) rows = rows.filter((r) => COLS_LANC[S.lancAba].some((c) => nk(c[0] === '_cc' ? ccReal(r) : (c[2] === 'data' ? dt(r[c[0]]) : r[c[0]])).indexOf(q) !== -1));
+  $('#lanc').innerHTML = tabelaLanc(S.lancAba, rows, S.lancLim);
+}
+
+/* =================================================================== */
+/* Gaveta: detalhe do centro de custo                                   */
+/* =================================================================== */
+function abrirCC(uk, ck) {
+  S.drawer = { uk, ck };
+  $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
+  renderDrawer(true);
+}
+function fecharDrawer() {
+  S.drawer = null;
+  $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); $('#drawer').setAttribute('aria-hidden', 'true');
+}
+function renderDrawer(novo) {
+  const { uk, ck } = S.drawer;
+  const sel = (r) => r._u === uk && r._ck === ck;
+  const F = filtrar({ u: true, c: true });
+  const Fx = { orc: F.orc.filter(sel), fl: F.fl.filter(sel), real: F.real.filter(sel) };
+  const A = agregar(Fx);
+  const m = A.usinas[0] && A.usinas[0].lista[0] ? A.usinas[0].lista[0].m : derivar(novoM());
+  $('#dwT').textContent = S.ccNome[ck] || '';
+  $('#dwS').textContent = (S.uNome[uk] || '') + ' · ' + snapTxt() + (S.f.de || S.f.ate ? ' · período ' + (S.f.de ? mes(S.f.de) : '…') + ' a ' + (S.f.ate ? mes(S.f.ate) : '…') : '');
+  const j = S.d.just[justKey(uk, ck)] || {};
+  const dl = (l, v, sub) => '<div class="card deltas-i"><div><div class="l">' + l + '</div>' + (sub ? '<div class="muted" style="font-size:11.5px">' + sub + '</div>' : '') + '</div><div class="r" style="font-weight:600">' + deltaTxt(v) + '</div></div>';
+  const mini = (cor, l, v, sub) => '<div class="card"><div class="kpi-l">' + (cor ? '<span class="sw" style="--c:' + cor + '"></span>' : '') + l + '</div><div class="v">' + brl(v) + '</div>' + (sub ? '<div class="muted" style="font-size:12px">' + sub + '</div>' : '') + '</div>';
+  const preserva = !novo && document.getElementById('jStatus') ? {
+    status: $('#jStatus').value, resp: $('#jResp').value, com: $('#jCom').value, acao: $('#jAcao').value
+  } : null;
+
+  let h = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' + stBadge(m.st) +
+    '<span class="muted" style="font-size:12.5px">Consumo ' + pct(m.pct) + ' · saldo livre <b style="color:' + (m.saldo < 0 ? 'var(--crit-t)' : 'var(--ink)') + '">' + brl(m.saldo) + '</b></span></div>';
+  h += '<div class="mini">' + mini('var(--s1)', 'Orçado', m.orc) + mini('var(--s2)', 'Projetado', m.proj, 'em aberto ' + brl(m.projAb)) +
+    mini('var(--s3)', 'Realizado', m.real, 'última semana ' + brl(m.realSem)) + mini('', 'Saldo livre', m.saldo) + '</div>';
+  h += '<div class="deltas">' + dl('Projetado − Orçado', m.dPO) + dl('Realizado − Orçado', m.dRO) + dl('Realizado − Projetado', m.dRP) + '</div>';
+
+  h += '<div class="h3">Justificativa / ajuste</div><div class="card" style="padding:14px"><div class="form">' +
+    '<div class="fld"><label for="jStatus">Situação</label><select id="jStatus">' +
+      ['', 'Pendente', 'Em análise', 'Ajustar orçamento', 'Ajustar fluxo', 'Ajustar lançamento', 'Resolvido'].map((s) => '<option' + (s === j.status ? ' selected' : '') + '>' + s + '</option>').join('') + '</select></div>' +
+    '<div class="fld"><label for="jResp">Responsável</label><input id="jResp" value="' + esc(j.responsavel || '') + '"></div>' +
+    '<div class="fld full"><label for="jCom">Comentário sobre a divergência</label><textarea id="jCom">' + esc(j.comentario || '') + '</textarea></div>' +
+    '<div class="fld full"><label for="jAcao">Ação / ajuste a fazer</label><textarea id="jAcao">' + esc(j.acao || '') + '</textarea></div>' +
+    '</div><div class="form-f"><span class="meta">' + (j.em ? 'Última atualização: ' + esc(j.em) + (j.por ? ' · ' + esc(j.por) : '') : 'Fica salvo na aba "Painel - Justificativas".') + '</span>' +
+    '<button class="btn btn-pri btn-sm" id="jSalvar" type="button">Salvar justificativa</button></div></div>';
+
+  [['fluxo', Fx.fl, 'Fluxo de Caixa · ' + snapTxt()], ['orc', Fx.orc, 'Orçamento'], ['real', Fx.real, 'Realizado Controladoria']].forEach(([aba, rows, t]) => {
+    h += '<div class="h3">' + t + ' <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">· ' + rows.length + '</span>' +
+      (S.d.abas[aba].editavel ? '<span class="r"><button class="btn btn-sm" data-novo="' + aba + '" type="button">+ Novo</button></span>' : '') + '</div>' +
+      '<div class="card"><div class="scroll">' + tabelaLanc(aba, rows, 0, true) + '</div></div>';
+  });
+  const body = $('#dwB'); const scroll = body.scrollTop;
+  body.innerHTML = h;
+  if (preserva) { $('#jStatus').value = preserva.status; $('#jResp').value = preserva.resp; $('#jCom').value = preserva.com; $('#jAcao').value = preserva.acao; }
+  body.scrollTop = novo ? 0 : scroll;
+}
+
+function salvarJust() {
+  const { uk, ck } = S.drawer;
+  const p = { chave: justKey(uk, ck), usina: S.uNome[uk], cc: S.ccNome[ck], status: $('#jStatus').value,
+    responsavel: $('#jResp').value.trim(), comentario: $('#jCom').value.trim(), acao: $('#jAcao').value.trim() };
+  const b = $('#jSalvar'); b.disabled = true; b.textContent = 'Salvando…';
+  run('salvarJustificativa', p).then((r) => {
+    S.d.just[p.chave] = r; toast('Justificativa salva.');
+    renderDrawer(true); if (S.tab === 'tree') renderTree();
+  }).catch((e) => { toast(e, true); b.disabled = false; b.textContent = 'Salvar justificativa'; });
+}
+
+/* =================================================================== */
+/* Edição de linhas                                                     */
+/* =================================================================== */
+function acharLinha(aba, linha) { return S.rows[aba].find((r) => r._r === +linha); }
+function sugestoes(aba, k) {
+  const set = new Set();
+  S.rows[aba].forEach((r) => { if (r[k]) set.add(String(r[k])); });
+  if (k === 'projeto') Object.values(S.uNome).forEach((n) => { if (n !== '(sem usina)') set.add(n); });
+  if (k === 'cc') Object.values(S.ccNome).forEach((n) => { if (n && n[0] !== '(') set.add(String(n)); });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR')).slice(0, 800);
+}
+const ROTULO = { setor: 'Setor', venc: 'Data de vencimento', valor: 'Valor', projeto: 'Usina (Projeto)', cc: 'Centro de custo',
+  dataProg: 'Data programada de pagamento', fornecedor: 'Fornecedor', coment: 'Comentário', situacao: 'Situação', dataFluxo: 'Data do fluxo',
+  favorecido: 'Favorecido', ccCod: 'C. Custo', ccDesc: 'Centro de custo', doc: 'Documento', pagto: 'Pagamento', obs: 'Consolidado', tipo: 'Real / Acumulado', ccFull: 'Código + Centro de Custo' };
+
+let MD = null;
+function abrirModal(titulo, corpo, okTxt, onOk, perigo) {
+  MD = onOk;
+  $('#mdT').textContent = titulo; $('#mdB').innerHTML = corpo; $('#mdMsg').textContent = '';
+  const ok = $('#mdOk'); ok.textContent = okTxt; ok.disabled = false;
+  ok.className = 'btn ' + (perigo ? 'btn-danger' : 'btn-pri');
+  $('#modal').classList.add('on');
+  const f = $('#mdB').querySelector('input,select,textarea'); if (f) setTimeout(() => f.focus(), 30);
+}
+function fecharModal() { $('#modal').classList.remove('on'); MD = null; }
+
+function abrirEditor(aba, row, preset) {
+  const def = S.d.abas[aba];
+  const faltam = new Set(def.faltando);
+  const campos = def.campos.filter((c) => !faltam.has(c.nome));
+  const val = row || Object.assign({}, preset || {});
+  let h = '<div class="form">';
+  campos.forEach((c) => {
+    const v = val[c.k];
+    const full = c.k === 'coment' || c.k === 'obs' ? ' full' : '';
+    h += '<div class="fld' + full + '"><label for="e_' + c.k + '">' + (ROTULO[c.k] || c.nome) + '</label>';
+    if (c.tipo === 'data') h += '<input type="date" id="e_' + c.k + '" value="' + esc(v || '') + '">';
+    else if (c.tipo === 'valor') h += '<input id="e_' + c.k + '" inputmode="decimal" placeholder="0,00" value="' + (v === null || v === undefined || v === '' ? '' : _n2.format(v)) + '">';
+    else if (c.k === 'situacao') {
+      const ops = ['Em Aberto', 'Pago']; if (v && !ops.includes(v)) ops.push(v);
+      h += '<select id="e_' + c.k + '">' + ops.map((o) => '<option' + (o === (v || 'Em Aberto') ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
+    } else if (c.k === 'coment' || c.k === 'obs') h += '<textarea id="e_' + c.k + '">' + esc(v || '') + '</textarea>';
+    else {
+      h += '<input id="e_' + c.k + '" list="dl_' + c.k + '" value="' + esc(v || '') + '" autocomplete="off"><datalist id="dl_' + c.k + '">' +
+        sugestoes(aba, c.k).map((s) => '<option value="' + esc(s) + '">').join('') + '</datalist>';
+    }
+    h += '</div>';
+  });
+  h += '</div><p class="muted" style="font-size:12px;margin:12px 0 0">Grava direto na aba <b>' + esc(def.aba) + '</b>' + (row ? ', linha ' + row._r : ', na primeira linha livre') + '.</p>';
+
+  abrirModal((row ? 'Editar' : 'Novo') + ' · ' + NOME_ABA[aba], h, row ? 'Salvar alterações' : 'Incluir na planilha', () => {
+    const novo = {};
+    for (const c of campos) {
+      const el = document.getElementById('e_' + c.k);
+      let v = el.value.trim();
+      if (c.tipo === 'valor') {
+        if (v === '') v = null;
+        else { v = parseBR(v); if (v === null) return 'Valor inválido em "' + (ROTULO[c.k] || c.nome) + '".'; v = Math.round(v * 100) / 100; }
+      }
+      novo[c.k] = v;
+    }
+    if (novo.valor === null || novo.valor === undefined) return 'Informe o valor.';
+    if (!novo.projeto) return 'Informe a usina (Projeto).';
+    if (row) {
+      const depois = {}, antes = {};
+      campos.forEach((c) => {
+        antes[c.k] = row[c.k];
+        const a = row[c.k], b = novo[c.k];
+        const igual = c.tipo === 'valor' ? (a === null || a === undefined ? b === null : b !== null && Math.abs(a - b) < 0.005) : String(a || '') === String(b || '');
+        if (!igual) depois[c.k] = b;
+      });
+      if (!Object.keys(depois).length) { fecharModal(); return; }
+      return run('salvarLinha', { aba, linha: row._r, sinal: def.sinal, antes, depois }).then((r) => {
+        Object.assign(row, r); preparar(); render(); fecharModal(); toast('Linha ' + row._r + ' atualizada na planilha.');
+      });
+    }
+    return run('novaLinha', { aba, sinal: def.sinal, valores: novo }).then((r) => {
+      S.rows[aba].push(r); preparar(); render(); fecharModal(); toast('Incluído na linha ' + r._r + ' da aba ' + def.aba + '.');
+    });
+  });
+}
+
+function excluir(aba, row) {
+  const def = S.d.abas[aba];
+  const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
+  const resumo = COLS_LANC[aba].map((c) => {
+    const v = c[0] === '_cc' ? ccReal(row) : row[c[0]];
+    return v === '' || v === null || v === undefined ? '' : '<div><span class="muted">' + c[1] + ':</span> ' + esc(c[2] === 'data' ? dt(v) : c[2] === 'valor' ? brl2(v) : v) + '</div>';
+  }).join('');
+  abrirModal('Excluir linha ' + row._r + ' · ' + NOME_ABA[aba], '<p style="margin-top:0">A linha inteira será apagada da aba <b>' + esc(def.aba) + '</b>. Isso não pode ser desfeito pelo painel.</p>' +
+    '<div class="card" style="padding:12px 14px;font-size:13px">' + resumo + '</div>', 'Excluir', () =>
+    run('excluirLinha', { aba, linha: row._r, sinal: def.sinal, antes }).then(() => {
+      fecharModal(); toast('Linha excluída. Recarregando…'); return atualizar(true);
+    }), true);
+}
+
+function marcarPago(row) {
+  const def = S.d.abas.fluxo;
+  const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
+  run('salvarLinha', { aba: 'fluxo', linha: row._r, sinal: def.sinal, antes, depois: { situacao: 'Pago' } }).then((r) => {
+    Object.assign(row, r); preparar(); render(); toast('Marcado como pago (linha ' + row._r + ').');
+  }).catch((e) => toast(e, true));
+}
+
+function novoPreset(aba, ctx) {
+  const p = {};
+  const uk = ctx ? ctx.uk : S.f.u, ck = ctx ? ctx.ck : S.f.c;
+  if (uk && S.uNome[uk]) p.projeto = S.uNome[uk];
+  if (ck && S.ccNome[ck] && S.ccNome[ck][0] !== '(') p.cc = S.ccNome[ck];
+  if (aba === 'fluxo') { p.situacao = 'Em Aberto'; p.dataFluxo = S.f.snap || ''; }
+  return p;
+}
+
+/* =================================================================== */
+/* Eventos                                                              */
+/* =================================================================== */
+$('#tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  S.tab = b.dataset.tab;
+  document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b));
+  render();
+});
+$('#fU').addEventListener('change', (e) => { S.f.u = e.target.value; S.f.c = ''; montarFiltros(); render(); });
+$('#fC').addEventListener('change', (e) => { S.f.c = e.target.value; render(); });
+$('#fDe').addEventListener('change', (e) => { S.f.de = e.target.value; marcarPeriodo(); render(); });
+$('#fAte').addEventListener('change', (e) => { S.f.ate = e.target.value; marcarPeriodo(); render(); });
+$('#segPer').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-per]'); if (!b) return;
+  [S.f.de, S.f.ate] = periodoRapido(b.dataset.per); montarFiltros(); render();
+});
+$('#fSnap').addEventListener('change', (e) => { S.f.snap = e.target.value; render(); });
+$('#fSoOrc').addEventListener('change', (e) => { S.f.soOrc = e.target.checked; render(); });
+$('#btnLimpar').addEventListener('click', () => { S.f = { u: '', c: '', de: '', ate: '', snap: S.snaps[0] || '', soOrc: false }; S.stF = ''; S.qTree = ''; $('#qTree').value = ''; setSeg(); montarFiltros(); render(); });
+$('#btnAtualizar').addEventListener('click', () => atualizar());
+
+function setSeg() { document.querySelectorAll('#segSt button').forEach((x) => x.classList.toggle('on', x.dataset.st === S.stF)); }
+$('#segSt').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; S.stF = b.dataset.st; setSeg(); renderTree(); });
+$('#qTree').addEventListener('input', (e) => { S.qTree = e.target.value; renderTree(); });
+$('#btnExp').addEventListener('click', () => { S.allOpen = !S.allOpen; if (!S.allOpen) S.open.clear(); renderTree(); });
+$('#qLanc').addEventListener('input', (e) => { S.qLanc = e.target.value; S.lancLim = 300; renderLanc(); });
+$('#subLanc').addEventListener('click', (e) => { const b = e.target.closest('button[data-la]'); if (!b) return; S.lancAba = b.dataset.la; S.lancLim = 300; renderLanc(); });
+$('#btnNovo').addEventListener('click', () => abrirEditor(S.lancAba, null, novoPreset(S.lancAba)));
+
+$('#alertas').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-goto]'); if (!b) return;
+  S.stF = b.dataset.goto; setSeg(); S.tab = 'tree';
+  document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === 'tree'));
+  render();
+});
+
+// Cliques dentro de tabelas (árvore, top divergências, lançamentos e gaveta)
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  const th = t.closest('th[data-sort]');
+  if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTree(); return; }
+  const ed = t.closest('[data-ed]');
+  if (ed) { const [aba, l] = ed.dataset.ed.split('|'); const r = acharLinha(aba, l); if (r) abrirEditor(aba, r); return; }
+  const del = t.closest('[data-del]');
+  if (del) { const [aba, l] = del.dataset.del.split('|'); const r = acharLinha(aba, l); if (r) excluir(aba, r); return; }
+  const pg = t.closest('[data-pago]');
+  if (pg) { const r = acharLinha('fluxo', pg.dataset.pago); if (r) marcarPago(r); return; }
+  const nv = t.closest('[data-novo]');
+  if (nv) { abrirEditor(nv.dataset.novo, null, novoPreset(nv.dataset.novo, S.drawer)); return; }
+  if (t.closest('[data-more]')) { S.lancLim += 500; renderLanc(); return; }
+  if (t.closest('#jSalvar')) { salvarJust(); return; }
+  const u = t.closest('tr.u');
+  if (u) { const k = u.dataset.u; if (S.open.has(k)) S.open.delete(k); else S.open.add(k); S.allOpen = false; renderTree(); return; }
+  const cc = t.closest('tr.c[data-cc]');
+  if (cc) { const i = cc.dataset.cc.indexOf('|'); abrirCC(cc.dataset.cc.slice(0, i), cc.dataset.cc.slice(i + 1)); }
+});
+$('#scrim').addEventListener('click', fecharDrawer);
+$('#dwX').addEventListener('click', fecharDrawer);
+$('#mdX').addEventListener('click', fecharModal);
+$('#mdCancel').addEventListener('click', fecharModal);
+$('#mdOk').addEventListener('click', () => {
+  if (!MD) return;
+  const ok = $('#mdOk'), txt = ok.textContent;
+  const r = MD();
+  if (typeof r === 'string') { $('#mdMsg').textContent = r; return; }
+  if (r && r.then) {
+    ok.disabled = true; ok.textContent = 'Gravando…'; $('#mdMsg').textContent = '';
+    r.catch((e) => { $('#mdMsg').textContent = e; ok.disabled = false; ok.textContent = txt; });
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if ($('#modal').classList.contains('on')) fecharModal(); else if (S.drawer) fecharDrawer();
+});
+
+if (window.Chart) {
+  Chart.defaults.font.family = 'IBM Plex Sans, system-ui, sans-serif';
+  Chart.defaults.color = '#4a5158';
+}
+atualizar(true);
+</script>
+</body>
+</html>
