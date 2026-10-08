@@ -172,6 +172,25 @@
   .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--eclipse); color:var(--branco); padding:11px 18px; border-radius:999px; font-size:13px; z-index:80; opacity:0; transition:all .2s; pointer-events:none; max-width:90vw}
   .toast.on{opacity:1; transform:translateX(-50%)}
   .toast.err{background:var(--neg)}
+  /* Botões de usina */
+  .usel{padding:22px 0 0}
+  .usel-h{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+  .usel-h b{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3)}
+  .usel-h button{background:none; border:0; padding:0; font-size:12px; font-weight:600; color:var(--aurora)}
+  .usinas{display:flex; flex-wrap:wrap; gap:8px}
+  .uchip{border:1.5px solid var(--nevoa); background:var(--branco); border-radius:12px; padding:10px 16px; font-weight:600; font-size:13px; color:var(--ink-2); display:inline-flex; align-items:center; gap:10px; transition:all .15s}
+  .uchip:hover{border-color:var(--aurora); color:var(--ink)}
+  .uchip .bx{width:16px; height:16px; border-radius:5px; border:1.5px solid var(--nevoa); display:grid; place-items:center; flex:0 0 auto}
+  .uchip.on{background:var(--aurora); border-color:var(--aurora); color:var(--branco)}
+  .uchip.on .bx{border-color:var(--branco); background:var(--branco)}
+  .uchip.on .bx::after{content:''; width:8px; height:4px; border-left:2px solid var(--aurora); border-bottom:2px solid var(--aurora); transform:rotate(-45deg) translate(1px,-1px)}
+  .pick{background:var(--branco); border-radius:var(--radius); padding:70px 20px; text-align:center; color:var(--ink-2)}
+  .pick .ic{width:46px; height:46px; border-radius:50%; background:#FDEBDF; color:var(--aurora); display:grid; place-items:center; margin:0 auto 14px; font-size:22px; font-weight:700}
+  .pick h3{margin:0 0 6px; font-size:17px; color:var(--ink)}
+  .pick p{margin:0}
+  .card-h .seg button{padding:4px 12px}
+  .demo{background:var(--eclipse); color:var(--branco); border-radius:10px; padding:10px 16px; font-size:12.5px; margin-top:16px; display:flex; gap:10px; align-items:center}
+  .demo b{color:var(--amarelo)}
   @media (max-width:640px){ .wrap{padding:0 16px} .top-r .stamp{display:none} .kpi .v{font-size:19px} }
 </style>
 </head>
@@ -189,20 +208,25 @@
     </div>
     <nav class="tabs" id="tabs">
       <button type="button" data-tab="resumo" class="on">Resumo</button>
-      <button type="button" data-tab="tempo">Linha do tempo</button>
+      <button type="button" data-tab="tempo">Envios do fluxo</button>
       <button type="button" data-tab="lanc">Lançamentos</button>
     </nav>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="filters" id="filtros" hidden>
-    <select id="fU" aria-label="Usina"></select>
+  <div id="filtros" hidden>
+  <div class="usel">
+    <div class="usel-h"><b>Usinas</b><button type="button" id="uTodas">Selecionar todas</button><button type="button" id="uLimpar">Limpar</button></div>
+    <div class="usinas" id="usinas"></div>
+  </div>
+  <div class="filters">
     <div class="seg" id="segPer" aria-label="Período">
       <button type="button" data-per="">Tudo</button><button type="button" data-per="mes">Mês atual</button><button type="button" data-per="tri">Próx. 3 meses</button><button type="button" data-per="ano">Ano atual</button>
     </div>
     <span class="lbl">Fluxo de</span>
     <select id="fSnap" aria-label="Fluxo de caixa usado no Projetado"></select>
+  </div>
   </div>
   <div id="avisos"></div>
 </div>
@@ -211,15 +235,25 @@
   <div class="state" id="loading"><div class="loader"></div><h3>Lendo a planilha…</h3></div>
 
   <section class="sec" id="sec-resumo">
-    <div class="kpis" id="kpis"></div>
-    <div class="card">
-      <div class="card-h">
-        <h2>Centros de custo</h2>
-        <div class="r"><input class="search" id="qTree" type="search" placeholder="Buscar centro de custo"></div>
+    <div class="pick" id="pick"><div class="ic">↑</div><h3>Selecione uma usina</h3><p>Clique no nome de uma ou mais usinas acima para ver os centros de custo.</p></div>
+    <div id="resumoBody" hidden>
+      <div class="kpis" id="kpis"></div>
+      <div class="card">
+        <div class="card-h">
+          <h2 id="ttlCC">Centros de custo</h2>
+          <div class="r"><input class="search" id="qTree" type="search" placeholder="Buscar centro de custo"></div>
+        </div>
+        <div class="scroll" id="tree"></div>
       </div>
-      <div class="scroll" id="tree"></div>
+      <p class="note">Clique num centro de custo para ver os lançamentos e registrar observações. Valores em R$.</p>
+      <div class="card mt">
+        <div class="card-h">
+          <h2>Orçado × Projetado × Realizado no tempo</h2>
+          <div class="r"><div class="seg" id="segModo"><button type="button" data-modo="mes" class="on">Mês a mês</button><button type="button" data-modo="acum">Acumulado</button></div></div>
+        </div>
+        <div class="chart-box" style="height:320px"><canvas id="chCurvas" role="img" aria-label="Orçado, projetado e realizado por mês"></canvas></div>
+      </div>
     </div>
-    <p class="note">Clique num centro de custo para ver os lançamentos e registrar observações. Valores em R$.</p>
   </section>
 
   <section class="sec" id="sec-tempo">
@@ -269,7 +303,7 @@
 /* =================================================================== */
 const S = {
   d: null, rows: { orc: [], fluxo: [], real: [] },
-  f: { u: '', de: '', ate: '', snap: '' },
+  f: { us: new Set(), de: '', ate: '', snap: '' }, modo: 'mes', chartC: null,
   tab: 'resumo', sort: { k: 'nome', dir: 1 }, fechadas: new Set(),
   qTree: '', lancAba: 'fluxo', qLanc: '', lancLim: 300, chart: null, drawer: null
 };
@@ -315,7 +349,65 @@ const IC = {
 /* =================================================================== */
 /* Comunicação com a planilha                                           */
 /* =================================================================== */
+/* =================================================================== */
+/* Modo demonstração: abre fora da planilha com dados fictícios          */
+/* =================================================================== */
+const DEMO = !(window.google && google.script && google.script.run);
+const DEMO_API = DEMO ? (function () {
+  let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const hoje = new Date(), Y = hoje.getFullYear(), M = hoje.getMonth() + 1;
+  const pad = (n) => ('0' + n).slice(-2);
+  const iso = (y, m, d) => { const x = new Date(y, m - 1, d); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
+  const usinas = ['UFV Agrestina I', 'UFV Agrestina II', 'UFV Bom Conselho', 'UFV Bonito I', 'UFV Carangola'];
+  const ccs = [['1.01.001', 'MATERIAIS ELÉTRICOS'], ['1.01.002', 'ESTRUTURAS METÁLICAS'], ['1.02.001', 'MÃO DE OBRA CIVIL'],
+    ['1.02.002', 'MONTAGEM ELETROMECÂNICA'], ['1.03.001', 'FRETES E LOGÍSTICA'], ['1.04.001', 'SUBESTAÇÃO']];
+  const forn = ['WEG S.A.', 'Gerdau', 'Transportes Rápido', 'Montadora Sol', 'Prysmian', 'Engecivil Ltda'];
+  const C = {
+    orc: [['setor', 'SETOR', 'texto'], ['venc', 'DATA DE VENCIMENTO', 'data'], ['valor', 'VALOR A PAGAR', 'valor'], ['projeto', 'PROJETO', 'texto'], ['cc', 'CENTRO DE CUSTO', 'texto']],
+    real: [['favorecido', 'Favorecido', 'texto'], ['ccCod', 'C. Custo', 'texto'], ['ccDesc', 'Centro de Custo', 'texto'], ['projeto', 'Projeto', 'texto'], ['doc', 'Documento', 'texto'],
+      ['pagto', 'Pagto.', 'data'], ['obs', 'Consolidado', 'texto'], ['valor', 'Pagamentos', 'valor'], ['tipo', 'Real / Acumulado', 'texto'], ['ccFull', 'Código + Centro de Custo', 'texto']],
+    fluxo: [['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor', 'texto'], ['valor', 'Valor', 'valor'], ['coment', 'Comentário', 'texto'],
+      ['projeto', 'Projeto', 'texto'], ['cc', 'Centro de Custo', 'texto'], ['situacao', 'Situação', 'texto'], ['dataFluxo', 'Data do Fluxo', 'data']]
+  };
+  const L = { orc: [], real: [], fluxo: [] }, just = {};
+  let n = 2;
+  usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
+    const base = 30000 + rnd() * 70000;
+    for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), Math.round(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
+    const fator = (ui === 4 && ci === 1) || (ui === 1 && ci === 3) ? 1.45 : 0.9;
+    for (let m = 1; m <= M; m++) {
+      const k = 1 + Math.floor(rnd() * 2);
+      for (let j = 0; j < k; j++) L.real.push([n++, forn[(ci + j) % 6], c[0], c[1], u, 'NF ' + (1000 + n), iso(Y, m, 4 + j * 9), 'Parcela ' + m, Math.round(base * fator / k * (0.75 + rnd() * 0.5)), m === M && j === 0 ? 'REAL S' : 'Real Acumulado', c[0] + ' - ' + c[1]]);
+    }
+  }));
+  const seg = new Date(hoje); seg.setDate(seg.getDate() - ((seg.getDay() + 6) % 7));
+  const snaps = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(seg); d.setDate(d.getDate() - 7 * i); snaps.push(iso(d.getFullYear(), d.getMonth() + 1, d.getDate())); }
+  snaps.forEach((s, si) => usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
+    for (let m = M; m <= M + 3; m++) {
+      if (rnd() < 0.3) continue;
+      L.fluxo.push([n++, iso(Y, m, 15), forn[ci], Math.round((35000 + rnd() * 55000) * (1 + si * 0.03)), 'Parcela ' + (m > 12 ? m - 12 : m), u, c[1], m === M && si > 4 ? 'Pago' : 'Em Aberto', s]);
+    }
+  })));
+  const aba = (id, nome, ed) => ({ id, aba: nome, editavel: ed, sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], linhaCab: 1, erro: '' });
+  const idx = (id, linha) => L[id].findIndex((l) => l[0] === +linha);
+  const obj = (id, l) => { const o = { _r: l[0] }; C[id].forEach((c, j) => { o[c[0]] = l[j + 1]; }); return o; };
+  return {
+    carregarDados: () => ({
+      geradoEm: new Date().toLocaleString('pt-BR').slice(0, 17), usuario: '', planilha: 'Demonstração', urlPlanilha: '#',
+      cfg: { ATENCAO: 0.9, ESTOURO: 1, REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' },
+      abas: { orc: aba('orc', 'Orçamento', true), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
+      just: just
+    }),
+    salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
+    novaLinha: (p) => { const l = [n++].concat(C[p.aba].map((c) => p.valores[c[0]] === undefined ? '' : p.valores[c[0]])); L[p.aba].push(l); return obj(p.aba, l); },
+    excluirLinha: (p) => { L[p.aba].splice(idx(p.aba, p.linha), 1); return true; },
+    salvarJustificativa: (p) => { just[p.chave] = Object.assign({}, p, { em: new Date().toLocaleString('pt-BR').slice(0, 17), por: 'demonstração' }); return just[p.chave]; }
+  };
+})() : null;
+
 function run(fn, arg) {
+  if (DEMO) return new Promise((ok, err) => setTimeout(() => { try { ok(JSON.parse(JSON.stringify(DEMO_API[fn](arg)))); } catch (e) { err(e.message); } }, 200));
   return new Promise((ok, err) => {
     const r = google.script.run.withSuccessHandler(ok).withFailureHandler((e) => err(e && e.message ? e.message : String(e)));
     arg === undefined ? r[fn]() : r[fn](arg);
@@ -351,7 +443,8 @@ function receber(d) {
     if (a.erro) msgs.push('<b>' + esc(a.aba) + ':</b> ' + esc(a.erro));
     else if (a.faltando.length) msgs.push('<b>' + esc(a.aba) + ':</b> colunas não encontradas — ' + a.faltando.map(esc).join(', '));
   });
-  $('#avisos').innerHTML = msgs.length ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '';
+  $('#avisos').innerHTML = (DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel usa os dados reais e grava nas abas.</div>' : '') +
+    (msgs.length ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '');
   preparar();
   render();
 }
@@ -397,7 +490,7 @@ function preparar() {
   fluxo.forEach((r) => { snaps[r.dataFluxo || ''] = true; });
   S.snaps = Object.keys(snaps).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a < b ? 1 : -1));
   if (!S.snaps.includes(S.f.snap)) S.f.snap = S.snaps[0] || '';
-  if (S.f.u && !(S.f.u in S.uNome)) S.f.u = '';
+  S.f.us.forEach((k) => { if (!(k in S.uNome)) S.f.us.delete(k); });
   montarFiltros();
 }
 
@@ -411,8 +504,7 @@ function periodoRapido(tipo) {
 }
 function montarFiltros() {
   const us = Object.keys(S.uNome).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR'));
-  $('#fU').innerHTML = '<option value="">Todas as usinas</option>' +
-    us.map((k) => '<option value="' + esc(k) + '"' + (k === S.f.u ? ' selected' : '') + '>' + esc(S.uNome[k]) + '</option>').join('');
+  $('#usinas').innerHTML = us.filter((k) => k !== '~').map((k) => '<button type="button" class="uchip' + (S.f.us.has(k) ? ' on' : '') + '" data-uk="' + esc(k) + '"><span class="bx"></span>' + esc(S.uNome[k]) + '</button>').join('');
   $('#fSnap').innerHTML = S.snaps.length
     ? S.snaps.map((s) => '<option value="' + esc(s) + '"' + (s === S.f.snap ? ' selected' : '') + '>' + (s ? dt(s) : '(sem data)') + '</option>').join('')
     : '<option value="">—</option>';
@@ -431,7 +523,9 @@ function noPeriodo(d) {
   const m = d.slice(0, 7);
   return (!S.f.de || m >= S.f.de) && (!S.f.ate || m <= S.f.ate);
 }
-function passa(r) { return (!S.f.u || r._u === S.f.u) && noPeriodo(r._d); }
+function passa(r) { return (!S.f.us.size || S.f.us.has(r._u)) && noPeriodo(r._d); }
+function selKey() { return Array.from(S.f.us).sort().join('+'); }
+function selNome() { return Array.from(S.f.us).map((k) => S.uNome[k]).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(' + '); }
 function filtrar() {
   return {
     orc: S.rows.orc.filter(passa),
@@ -470,6 +564,17 @@ function agregar(F) {
     derivar(u.m); somaM(tot, u.m); usinas.push(u);
   });
   return { usinas, tot: derivar(tot) };
+}
+
+/** Junta os centros de custo das usinas selecionadas (mesmo CC em usinas diferentes vira uma linha só). */
+function porCC(A) {
+  const M = new Map();
+  A.usinas.forEach((u) => u.lista.forEach((c) => {
+    let x = M.get(c.k);
+    if (!x) { x = { k: c.k, nome: c.nome, m: novoM() }; M.set(c.k, x); }
+    somaM(x.m, c.m);
+  }));
+  return Array.from(M.values()).map((x) => { derivar(x.m); return x; });
 }
 
 /* =================================================================== */
@@ -511,29 +616,79 @@ function celulas(m) {
 function justKey(uk, ck) { return uk + '||' + ck; }
 
 function renderResumo() {
+  const tem = S.f.us.size > 0;
+  $('#pick').hidden = tem; $('#resumoBody').hidden = !tem;
+  if (!tem) { if (S.chartC) { S.chartC.destroy(); S.chartC = null; } return; }
   $('#kpis').innerHTML = kpisHtml(S.A.tot);
+  $('#ttlCC').textContent = 'Centros de custo · ' + selNome();
   const q = nk(S.qTree);
-  const grupos = S.A.usinas.map((u) => ({ u, lista: u.lista.filter((c) => !q || nk(c.nome).indexOf(q) !== -1) }))
-    .filter((g) => g.lista.length).sort((a, b) => cmp(a.u, b.u));
-  const umaUsina = grupos.length === 1;
+  const lista = porCC(S.A).filter((c) => !q || nk(c.nome).indexOf(q) !== -1).sort(cmp);
   let h = '<table style="min-width:900px"><thead><tr>' + COLS.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
     (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '</tr></thead><tbody>';
-  if (!grupos.length) h += '<tr><td colspan="6" class="empty">Nada encontrado.</td></tr>';
+  if (!lista.length) h += '<tr><td colspan="6" class="empty">Nada encontrado.</td></tr>';
   const tot = novoM();
-  grupos.forEach(({ u, lista }) => {
-    const m = q ? derivar(lista.reduce((a, c) => somaM(a, c.m), novoM())) : u.m;
-    somaM(tot, m);
-    const aberto = umaUsina || q || !S.fechadas.has(u.k);
-    if (!umaUsina) h += '<tr class="u" data-u="' + esc(u.k) + '"><td><span class="chev' + (aberto ? ' open' : '') + '">▸</span> ' + esc(u.nome) + '</td>' + celulas(m) + '</tr>';
-    if (aberto) lista.slice().sort(cmp).forEach((c) => {
-      const j = S.d.just[justKey(c.uk, c.k)];
-      h += '<tr class="c" data-cc="' + esc(c.uk) + '|' + esc(c.k) + '"><td' + (umaUsina ? ' style="padding-left:16px"' : '') + '><span class="nm" title="' + esc(c.nome) + '">' + esc(c.nome) + '</span>' +
-        (j && (j.comentario || j.acao) ? '<span class="dot" title="Tem observação"></span>' : '') + '</td>' + celulas(c.m) + '</tr>';
-    });
+  lista.forEach((c) => {
+    somaM(tot, c.m);
+    const j = S.d.just[justKey(selKey(), c.k)];
+    h += '<tr class="c" data-cc="' + esc(c.k) + '"><td style="padding-left:16px"><span class="nm" title="' + esc(c.nome) + '">' + esc(c.nome) + '</span>' +
+      (j && (j.comentario || j.acao) ? '<span class="dot" title="Tem observação"></span>' : '') + '</td>' + celulas(c.m) + '</tr>';
   });
-  if (grupos.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '</tr>';
+  if (lista.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '</tr>';
   $('#tree').innerHTML = h + '</tbody></table>';
+  renderCurvas();
+}
+
+/** Três linhas no tempo: Orçado (vencimento), Projetado (data programada) e Realizado (pagamento). */
+function renderCurvas() {
+  const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
+  const o = {}, p = {}, r = {}, ms = new Set();
+  const add = (obj, d, v) => { if (!d) return; const m = d.slice(0, 7); obj[m] = (obj[m] || 0) + (v || 0); ms.add(m); };
+  S.F.orc.forEach((x) => add(o, x._d, x.valor));
+  S.F.fl.forEach((x) => { if (!soAb || !x._pago) add(p, x._d, x.valor); });
+  S.F.real.forEach((x) => { if (x._t === 'S' && !cfg.REALIZADO_SOMA_SEMANA) return; add(r, x._d, x.valor); });
+  const meses = Array.from(ms).sort();
+  const lastReal = Object.keys(r).sort().pop() || '';
+  const firstProj = Object.keys(p).sort()[0] || '9999';
+  const mo = Object.keys(o).sort(), firstOrc = mo[0] || '9999', lastOrc = mo[mo.length - 1] || '';
+  const acum = S.modo === 'acum';
+  let co = 0, cr = 0, cp = 0;
+  const sO = [], sR = [], sP = [];
+  meses.forEach((m) => {
+    co += o[m] || 0;
+    if (m <= lastReal) cr += r[m] || 0;
+    if (m >= firstProj) cp += p[m] || 0;
+    sO.push(m < firstOrc || (m > lastOrc && !acum) ? null : acum ? co : (o[m] || 0));
+    sR.push(m <= lastReal ? (acum ? cr : (r[m] || 0)) : null);
+    // No acumulado, a linha tracejada parte do último Realizado
+    sP.push(m >= firstProj ? (acum ? cr + cp : (p[m] || 0)) : (acum && m === lastReal ? cr : null));
+  });
+  if (S.chartC) S.chartC.destroy();
+  if (!window.Chart) return;
+  const linha = (label, data, cor, extra) => Object.assign({ label, data, borderColor: cor, backgroundColor: cor, borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 1.5, tension: 0.25, spanGaps: false }, extra || {});
+  S.chartC = new Chart($('#chCurvas'), {
+    type: 'line',
+    data: {
+      labels: meses.map(mes),
+      datasets: [
+        linha('Orçado', sO, COR.cosmos),
+        linha(acum ? 'Realizado + Projetado' : 'Projetado', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2 }),
+        linha('Realizado', sR, COR.aurora)
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 22, boxHeight: 2, color: '#4B5259' } },
+        tooltip: { backgroundColor: '#0A0F14', padding: 10, filter: (c) => c.raw !== null, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
+        y: { beginAtZero: true, border: { display: false }, grid: { color: COR.grid }, ticks: { color: COR.ink3, callback: (v) => compact(v) } }
+      }
+    }
+  });
 }
 
 /* ---------------- Linha do tempo ---------------- */
@@ -647,8 +802,8 @@ function renderLanc() {
 /* =================================================================== */
 /* Detalhe do centro de custo                                           */
 /* =================================================================== */
-function abrirCC(uk, ck) {
-  S.drawer = { uk, ck };
+function abrirCC(ck) {
+  S.drawer = { uk: selKey(), ck };
   $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
   renderDrawer(true);
 }
@@ -658,7 +813,7 @@ function fecharDrawer() {
 }
 function renderDrawer(novo) {
   const { uk, ck } = S.drawer;
-  const sel = (r) => r._u === uk && r._ck === ck && noPeriodo(r._d);
+  const sel = (r) => r._ck === ck && passa(r);
   const Fx = {
     orc: S.rows.orc.filter(sel), real: S.rows.real.filter(sel),
     fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && sel(r))
@@ -666,7 +821,7 @@ function renderDrawer(novo) {
   const A = agregar(Fx);
   const m = A.tot;
   $('#dwT').textContent = S.ccNome[ck] || '';
-  $('#dwS').textContent = (S.uNome[uk] || '') + ' · fluxo de ' + (S.f.snap ? dt(S.f.snap) : '—');
+  $('#dwS').textContent = selNome() + ' · fluxo de ' + (S.f.snap ? dt(S.f.snap) : '—');
   const j = S.d.just[justKey(uk, ck)] || {};
   const guard = !novo && document.getElementById('jCom') ? { s: $('#jStatus').value, r: $('#jResp').value, c: $('#jCom').value } : null;
 
@@ -690,7 +845,7 @@ function renderDrawer(novo) {
 }
 function salvarJust() {
   const { uk, ck } = S.drawer;
-  const p = { chave: justKey(uk, ck), usina: S.uNome[uk], cc: S.ccNome[ck], status: $('#jStatus').value,
+  const p = { chave: justKey(uk, ck), usina: selNome(), cc: S.ccNome[ck], status: $('#jStatus').value,
     responsavel: $('#jResp').value.trim(), comentario: $('#jCom').value.trim(), acao: (S.d.just[justKey(uk, ck)] || {}).acao || '' };
   const b = $('#jSalvar'); b.disabled = true; b.textContent = 'Salvando…';
   run('salvarJustificativa', p).then((r) => {
@@ -792,8 +947,8 @@ function marcarPago(row) {
 }
 function novoPreset(aba, ctx) {
   const p = {};
-  const uk = ctx ? ctx.uk : S.f.u, ck = ctx ? ctx.ck : '';
-  if (uk && S.uNome[uk]) p.projeto = S.uNome[uk];
+  const ck = ctx ? ctx.ck : '';
+  if (S.f.us.size === 1) p.projeto = S.uNome[Array.from(S.f.us)[0]];
   if (ck && S.ccNome[ck] && S.ccNome[ck][0] !== '(') p.cc = S.ccNome[ck];
   if (aba === 'fluxo') { p.situacao = 'Em Aberto'; p.dataFluxo = S.f.snap || ''; }
   return p;
@@ -808,7 +963,22 @@ $('#tabs').addEventListener('click', (e) => {
   document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b));
   render();
 });
-$('#fU').addEventListener('change', (e) => { S.f.u = e.target.value; render(); });
+$('#usinas').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-uk]'); if (!b) return;
+  const k = b.dataset.uk;
+  if (S.f.us.has(k)) S.f.us.delete(k); else S.f.us.add(k);
+  b.classList.toggle('on', S.f.us.has(k));
+  if (S.drawer) fecharDrawer();
+  render();
+});
+$('#uLimpar').addEventListener('click', () => { S.f.us.clear(); montarFiltros(); render(); });
+$('#uTodas').addEventListener('click', () => { Object.keys(S.uNome).forEach((k) => { if (k !== '~') S.f.us.add(k); }); montarFiltros(); render(); });
+$('#segModo').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-modo]'); if (!b) return;
+  S.modo = b.dataset.modo;
+  document.querySelectorAll('#segModo button').forEach((x) => x.classList.toggle('on', x === b));
+  renderCurvas();
+});
 $('#fSnap').addEventListener('change', (e) => { S.f.snap = e.target.value; render(); });
 $('#segPer').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-per]'); if (!b) return;
@@ -836,7 +1006,7 @@ document.addEventListener('click', (e) => {
   const u = t.closest('tr.u');
   if (u) { const k = u.dataset.u; if (S.fechadas.has(k)) S.fechadas.delete(k); else S.fechadas.add(k); renderResumo(); return; }
   const cc = t.closest('tr.c[data-cc]');
-  if (cc) { const i = cc.dataset.cc.indexOf('|'); abrirCC(cc.dataset.cc.slice(0, i), cc.dataset.cc.slice(i + 1)); }
+  if (cc) abrirCC(cc.dataset.cc);
 });
 $('#scrim').addEventListener('click', fecharDrawer);
 $('#dwX').addEventListener('click', fecharDrawer);

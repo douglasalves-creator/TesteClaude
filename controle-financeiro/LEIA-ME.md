@@ -27,9 +27,11 @@
 
 | Tela | Para quê |
 |---|---|
-| **Resumo** | Tabela igual à da planilha: Centro de custo, Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**, agrupada por usina. Clique num centro de custo para ver os lançamentos e escrever uma observação. |
-| **Linha do tempo** | Como a previsão mudou a cada envio semanal do Fluxo de Caixa, mês a mês. |
+| **Resumo** | Clique nos botões com o nome das usinas (dá para marcar mais de uma). Aparece a tabela por centro de custo: Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**. Embaixo fica o gráfico com as três linhas no tempo, "Mês a mês" ou "Acumulado". Clique num centro de custo para ver os lançamentos e escrever uma observação. |
+| **Envios do fluxo** | Como a previsão mudou a cada envio semanal do Fluxo de Caixa, mês a mês. |
 | **Lançamentos** | As três abas linha a linha, com opção de editar, incluir, excluir ou marcar como pago. |
+
+**Testar sem instalar:** abra o arquivo `Painel.html` direto, fora da planilha. Ele entra em **Modo demonstração**, com dados fictícios, e dá para clicar em tudo. Nada é gravado.
 
 **Regras usadas:**
 - **Projetado** = itens **Em Aberto** do fluxo escolhido (padrão: o mais recente). O que já foi pago está no Realizado.
