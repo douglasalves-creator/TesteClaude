@@ -25,11 +25,13 @@
 
 ## 4. O que o painel faz
 
-| Tela | Para quê |
-|---|---|
-| **Resumo** | Clique nos botões com o nome das usinas (dá para marcar mais de uma). Aparece a tabela por centro de custo: Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**. Embaixo fica o gráfico com as três linhas no tempo, "Mês a mês" ou "Acumulado". Clique num centro de custo para ver os lançamentos e escrever uma observação. |
-| **Envios do fluxo** | Como a previsão mudou a cada envio semanal do Fluxo de Caixa, mês a mês. |
-| **Lançamentos** | As três abas linha a linha, com opção de editar, incluir, excluir ou marcar como pago. |
+1. **Escolha as usinas** na lista suspensa do topo. Dá para digitar o nome para procurar e marcar várias.
+   Sem nenhuma usina marcada, o painel pede para selecionar uma.
+2. **Escolha o fluxo** em "Fluxo de". Ele já vem com o envio mais recente.
+3. A **tabela** mostra todos os centros de custo: Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**.
+   Com várias usinas marcadas, os valores são somados.
+4. Clique num **centro de custo** para ver os lançamentos, editar e escrever uma observação.
+5. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
 
 **Testar sem instalar:** abra o arquivo `Painel.html` direto, fora da planilha. Ele entra em **Modo demonstração**, com dados fictícios, e dá para clicar em tudo. Nada é gravado.
 

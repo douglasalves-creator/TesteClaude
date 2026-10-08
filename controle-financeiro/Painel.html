@@ -12,7 +12,7 @@
 <style>
   /* Identidade visual SolarGrid */
   :root{
-    --aurora:#EC6E2D; --eclipse:#0A0F14; --cosmos:#0D3459; --sirius:#F3F3F3; --nevoa:#D8D8D8; --amarelo:#EAFF67; --branco:#FFFFFF;
+    --aurora:#EC6E2D; --aurora-soft:#FDEBDF; --eclipse:#0A0F14; --cosmos:#0D3459; --sirius:#F3F3F3; --nevoa:#D8D8D8; --amarelo:#EAFF67; --branco:#FFFFFF;
     --ink:#0A0F14; --ink-2:#4B5259; --ink-3:#80868C; --line:#E6E6E6;
     --neg:#C0392B;
     --font:'Montserrat',system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -29,7 +29,7 @@
 
   /* Topo */
   header.top{background:var(--eclipse); color:var(--branco)}
-  .top-in{display:flex; align-items:center; gap:16px; padding:20px 0 0; flex-wrap:wrap}
+  .top-in{display:flex; align-items:center; gap:16px; padding:20px 28px; flex-wrap:wrap}
   .top h1{margin:0; font-size:19px; font-weight:700; letter-spacing:-.01em}
   .top h1 span{color:var(--aurora)}
   .top-r{margin-left:auto; display:flex; align-items:center; gap:14px; font-size:12px; color:#9aa1a8}
@@ -38,24 +38,40 @@
   .ico{width:14px; height:14px}
   .spin{animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  nav.tabs{display:flex; gap:26px; margin-top:16px}
-  nav.tabs button{background:transparent; border:0; color:#9aa1a8; padding:10px 0 13px; font-weight:600; border-bottom:2px solid transparent}
-  nav.tabs button:hover{color:var(--branco)}
-  nav.tabs button.on{color:var(--branco); border-bottom-color:var(--aurora)}
 
   /* Filtros */
-  .filters{display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:20px 0 4px}
-  .filters select{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:7px 32px 7px 14px; height:36px; font-weight:500; appearance:none;
+  .filters{display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:20px 0 0}
+  .filters .sp{flex:1}
+  .lbl{font-size:12px; color:var(--ink-3)}
+  .sel{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:7px 34px 7px 14px; height:38px; font-weight:500; appearance:none; text-align:left;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2380868C' stroke-width='1.5'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 13px center; max-width:280px}
-  .filters .lbl{font-size:12px; color:var(--ink-3); margin-left:6px}
-  .seg{display:inline-flex; background:var(--branco); border:1px solid var(--nevoa); border-radius:999px; padding:3px}
-  .seg button{border:0; background:transparent; padding:5px 13px; border-radius:999px; font-size:12.5px; font-weight:500; color:var(--ink-2)}
-  .seg button.on{background:var(--eclipse); color:var(--branco)}
+    background-repeat:no-repeat; background-position:right 14px center}
 
-  main{padding:20px 0 70px}
-  .sec{display:none}
-  .sec.on{display:block}
+  /* Lista suspensa de usinas */
+  .ms{position:relative}
+  .ms-btn{min-width:300px; max-width:420px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ms.on .ms-btn{border-color:var(--aurora)}
+  .ms-pop{position:absolute; top:calc(100% + 6px); left:0; width:360px; max-width:calc(100vw - 32px); background:var(--branco); border:1px solid var(--nevoa); border-radius:14px; box-shadow:0 18px 40px -12px rgba(10,15,20,.25); z-index:30; display:none; overflow:hidden}
+  .ms.on .ms-pop{display:block}
+  .ms-q{padding:12px 12px 8px}
+  .ms-q input{width:100%; border:1px solid var(--nevoa); border-radius:10px; padding:9px 12px}
+  .ms-acts{display:flex; gap:14px; padding:0 14px 8px; font-size:12px}
+  .ms-acts button{background:none; border:0; padding:0; color:var(--aurora); font-weight:600}
+  .ms-acts span{margin-left:auto; color:var(--ink-3)}
+  .ms-list{max-height:320px; overflow-y:auto; border-top:1px solid var(--line); padding:6px 0}
+  .ms-list label{display:flex; align-items:center; gap:10px; padding:8px 14px; cursor:pointer; font-weight:500}
+  .ms-list label:hover{background:var(--sirius)}
+  .ms-list input{accent-color:var(--aurora); width:16px; height:16px; margin:0}
+  .ms-vazio{padding:16px; color:var(--ink-3); text-align:center}
+  .tags{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+  .tag{display:inline-flex; align-items:center; gap:4px; background:var(--aurora-soft); color:#A9461A; border-radius:999px; padding:4px 4px 4px 12px; font-weight:600; font-size:12px}
+  .tag button{border:0; background:transparent; color:inherit; width:20px; height:20px; border-radius:50%; line-height:1; font-size:14px}
+  .tag button:hover{background:rgba(236,110,45,.18)}
+  .tag.mais{padding-right:12px; background:var(--branco); color:var(--ink-2); border:1px solid var(--nevoa)}
+
+  main.wrap{padding-top:20px; padding-bottom:70px}
+  body{overflow-x:hidden}
+  @media (max-width:900px){ #tree, #tabMeses, .drawer .card{overflow-x:auto} }
 
   /* Números do topo */
   .kpis{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin-bottom:18px}
@@ -73,44 +89,35 @@
   .card{background:var(--branco); border-radius:var(--radius)}
   .card-h{display:flex; align-items:center; gap:12px; padding:16px 20px; flex-wrap:wrap}
   .card-h h2{margin:0; font-size:15px; font-weight:600}
-  .card-h .hint{font-size:12px; color:var(--ink-3)}
   .card-h .r{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   .search{border:1px solid var(--nevoa); border-radius:999px; padding:7px 14px; height:34px; width:250px; max-width:100%; background:var(--branco)}
-  .scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
   table{width:100%; border-collapse:collapse}
-  th{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); font-weight:600; text-align:left; padding:10px 16px; border-bottom:1px solid var(--line); white-space:nowrap; background:var(--branco)}
+  th{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600; text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); background:var(--branco)}
   th.sort{cursor:pointer; user-select:none}
   th.sort:hover{color:var(--ink)}
-  td{padding:11px 16px; border-bottom:1px solid var(--line); vertical-align:middle}
+  td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:middle}
   td.n,th.n{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
   th.dl,td.dl{background:#FAFAFA}
   th.dl.first,td.dl.first{border-left:1px solid var(--line)}
   .neg{color:var(--neg)}
   tbody tr.c{cursor:pointer}
   tbody tr.c:hover td{background:#FFF6F1}
-  tr.u td{font-weight:700; background:var(--sirius); cursor:pointer; border-bottom:1px solid var(--nevoa)}
-  tr.u td.dl{background:#ECECEC}
-  tr.c td:first-child{padding-left:36px}
+  tr.c.zero td{color:var(--ink-3)}
   tr.tot td{font-weight:700; border-top:2px solid var(--eclipse); border-bottom:0}
-  .chev{display:inline-block; width:14px; color:var(--aurora); transition:transform .15s}
-  .chev.open{transform:rotate(90deg)}
-  .nm{max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle}
   .dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--aurora); margin-left:6px; vertical-align:middle}
   .note{font-size:12px; color:var(--ink-3); margin:12px 4px 0}
   .empty{padding:40px 20px; text-align:center; color:var(--ink-3)}
-
-  /* Linha do tempo */
   .mt{margin-top:16px}
-  .chart-box{position:relative; height:280px; padding:0 20px 18px}
-  .mx td.n{font-size:12.5px}
-  .mx tr.last td{font-weight:700}
-  .tag{display:inline-block; font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:999px; background:var(--aurora); color:var(--branco); margin-left:6px; vertical-align:middle}
+  .chart-box{position:relative; height:340px; padding:0 20px 8px}
+  .meses td,.meses th{padding:8px 8px; font-size:12px}
+  .meses th:first-child,.meses td:first-child{padding-left:20px}
+  .meses th:last-child,.meses td:last-child{padding-right:20px}
+  .meses td:first-child{white-space:nowrap; font-weight:600}
+  .meses tr:last-child td{border-bottom:0}
+  .sw{display:inline-block; width:14px; height:3px; border-radius:2px; vertical-align:middle; margin-right:8px}
+  .sw.tr{background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)}
 
-  /* Lançamentos */
-  .pills{display:flex; gap:6px; flex-wrap:wrap}
-  .pills button{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:6px 14px; font-weight:500; color:var(--ink-2)}
-  .pills button.on{background:var(--eclipse); border-color:var(--eclipse); color:var(--branco)}
-  .pills .c{opacity:.6; margin-left:6px; font-size:12px}
+  /* Botões e lançamentos */
   .btn{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:7px 16px; font-weight:600; font-size:12.5px; display:inline-flex; align-items:center; gap:6px}
   .btn:hover{border-color:var(--ink-3)}
   .btn:disabled{opacity:.55; cursor:not-allowed}
@@ -118,13 +125,12 @@
   .btn-pri:hover{background:#d95f22; border-color:#d95f22}
   .btn-danger{background:var(--neg); border-color:var(--neg); color:var(--branco)}
   .sit{font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap}
-  .sit.ab{background:#FDEBDF; color:#A9461A}
+  .sit.ab{background:var(--aurora-soft); color:#A9461A}
   .sit.pg{background:var(--sirius); color:var(--ink-2)}
   .acts{white-space:nowrap; text-align:right}
   .ib{border:0; background:transparent; border-radius:6px; padding:4px 5px; color:var(--ink-3)}
   .ib:hover{background:var(--sirius); color:var(--aurora)}
   .ib svg{width:15px; height:15px; display:block}
-  .more{padding:14px; text-align:center}
 
   /* Detalhe (gaveta) */
   .scrim{position:fixed; inset:0; background:rgba(10,15,20,.4); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s}
@@ -137,11 +143,12 @@
   .x{margin-left:auto; background:transparent; border:0; color:inherit; font-size:22px; line-height:1; padding:2px 8px; border-radius:6px}
   .x:hover{color:var(--aurora)}
   .drawer .body{padding:20px 24px 40px; overflow-y:auto; flex:1}
-  .drawer .kpis{grid-template-columns:repeat(5,minmax(0,1fr)); margin-bottom:0}
+  .drawer .kpis{margin-bottom:0}
   .drawer .kpi{padding:12px 14px}
   .drawer .kpi .v{font-size:16px}
   .drawer .kpi .l{font-size:10px; letter-spacing:.05em}
   @media (max-width:700px){ .drawer .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  .drawer td{font-size:12.5px}
   .h3{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--ink-3); margin:24px 0 10px; display:flex; align-items:center; gap:8px}
   .h3 .r{margin-left:auto}
   .fld{display:flex; flex-direction:column; gap:4px}
@@ -168,65 +175,46 @@
   .state{text-align:center; padding:100px 20px; color:var(--ink-2)}
   .state h3{margin:0 0 8px; font-size:17px; color:var(--ink)}
   .loader{width:32px; height:32px; border:3px solid var(--nevoa); border-top-color:var(--aurora); border-radius:50%; margin:0 auto 16px; animation:spin .8s linear infinite}
+  .pick{background:var(--branco); border-radius:var(--radius); padding:70px 20px; text-align:center; color:var(--ink-2)}
+  .pick .ic{width:46px; height:46px; border-radius:50%; background:var(--aurora-soft); color:var(--aurora); display:grid; place-items:center; margin:0 auto 14px; font-size:22px; font-weight:700}
+  .pick h3{margin:0 0 6px; font-size:17px; color:var(--ink)}
+  .pick p{margin:0}
   .warnbox{background:var(--branco); border-left:3px solid var(--aurora); border-radius:8px; padding:10px 14px; font-size:12.5px; margin:16px 0 0; color:var(--ink-2)}
+  .demo{background:var(--eclipse); color:var(--branco); border-radius:10px; padding:10px 16px; font-size:12.5px; margin-top:16px; display:flex; gap:10px; align-items:center}
+  .demo b{color:var(--amarelo)}
   .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--eclipse); color:var(--branco); padding:11px 18px; border-radius:999px; font-size:13px; z-index:80; opacity:0; transition:all .2s; pointer-events:none; max-width:90vw}
   .toast.on{opacity:1; transform:translateX(-50%)}
   .toast.err{background:var(--neg)}
-  /* Botões de usina */
-  .usel{padding:22px 0 0}
-  .usel-h{display:flex; align-items:center; gap:10px; margin-bottom:10px}
-  .usel-h b{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3)}
-  .usel-h button{background:none; border:0; padding:0; font-size:12px; font-weight:600; color:var(--aurora)}
-  .usinas{display:flex; flex-wrap:wrap; gap:8px}
-  .uchip{border:1.5px solid var(--nevoa); background:var(--branco); border-radius:12px; padding:10px 16px; font-weight:600; font-size:13px; color:var(--ink-2); display:inline-flex; align-items:center; gap:10px; transition:all .15s}
-  .uchip:hover{border-color:var(--aurora); color:var(--ink)}
-  .uchip .bx{width:16px; height:16px; border-radius:5px; border:1.5px solid var(--nevoa); display:grid; place-items:center; flex:0 0 auto}
-  .uchip.on{background:var(--aurora); border-color:var(--aurora); color:var(--branco)}
-  .uchip.on .bx{border-color:var(--branco); background:var(--branco)}
-  .uchip.on .bx::after{content:''; width:8px; height:4px; border-left:2px solid var(--aurora); border-bottom:2px solid var(--aurora); transform:rotate(-45deg) translate(1px,-1px)}
-  .pick{background:var(--branco); border-radius:var(--radius); padding:70px 20px; text-align:center; color:var(--ink-2)}
-  .pick .ic{width:46px; height:46px; border-radius:50%; background:#FDEBDF; color:var(--aurora); display:grid; place-items:center; margin:0 auto 14px; font-size:22px; font-weight:700}
-  .pick h3{margin:0 0 6px; font-size:17px; color:var(--ink)}
-  .pick p{margin:0}
-  .card-h .seg button{padding:4px 12px}
-  .demo{background:var(--eclipse); color:var(--branco); border-radius:10px; padding:10px 16px; font-size:12.5px; margin-top:16px; display:flex; gap:10px; align-items:center}
-  .demo b{color:var(--amarelo)}
-  @media (max-width:640px){ .wrap{padding:0 16px} .top-r .stamp{display:none} .kpi .v{font-size:19px} }
+  @media (max-width:640px){ .wrap{padding:0 16px} .top-in{padding:16px} .top-r .stamp{display:none} .kpi .v{font-size:19px} .ms-btn{min-width:0; width:100%} .ms{width:100%} td,th{padding-left:8px; padding-right:8px} }
 </style>
 </head>
 <body>
 
 <header class="top">
-  <div class="wrap">
-    <div class="top-in">
-      <h1>Painel Financeiro <span>·</span> Usinas</h1>
-      <div class="top-r">
-        <span class="stamp" id="stamp"></span>
-        <a id="lnkPlan" href="#" target="_blank" rel="noopener">Planilha</a>
-        <button id="btnAtualizar" type="button"><svg class="ico" id="icoAtualizar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Atualizar</button>
-      </div>
+  <div class="top-in" style="max-width:1280px; margin:0 auto">
+    <h1>Painel Financeiro <span>·</span> Usinas</h1>
+    <div class="top-r">
+      <span class="stamp" id="stamp"></span>
+      <a id="lnkPlan" href="#" target="_blank" rel="noopener">Planilha</a>
+      <button id="btnAtualizar" type="button"><svg class="ico" id="icoAtualizar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Atualizar</button>
     </div>
-    <nav class="tabs" id="tabs">
-      <button type="button" data-tab="resumo" class="on">Resumo</button>
-      <button type="button" data-tab="tempo">Envios do fluxo</button>
-      <button type="button" data-tab="lanc">Lançamentos</button>
-    </nav>
   </div>
 </header>
 
 <div class="wrap">
-  <div id="filtros" hidden>
-  <div class="usel">
-    <div class="usel-h"><b>Usinas</b><button type="button" id="uTodas">Selecionar todas</button><button type="button" id="uLimpar">Limpar</button></div>
-    <div class="usinas" id="usinas"></div>
-  </div>
-  <div class="filters">
-    <div class="seg" id="segPer" aria-label="Período">
-      <button type="button" data-per="">Tudo</button><button type="button" data-per="mes">Mês atual</button><button type="button" data-per="tri">Próx. 3 meses</button><button type="button" data-per="ano">Ano atual</button>
+  <div class="filters" id="filtros" hidden>
+    <div class="ms" id="ms">
+      <button type="button" class="sel ms-btn" id="msBtn" aria-haspopup="listbox">Selecione as usinas</button>
+      <div class="ms-pop" id="msPop">
+        <div class="ms-q"><input type="search" id="msQ" placeholder="Digite o nome da usina" autocomplete="off"></div>
+        <div class="ms-acts"><button type="button" id="msTodas">Marcar as da lista</button><button type="button" id="msLimpar">Limpar</button><span id="msCont"></span></div>
+        <div class="ms-list" id="msList"></div>
+      </div>
     </div>
+    <div class="tags" id="tags"></div>
+    <div class="sp"></div>
     <span class="lbl">Fluxo de</span>
-    <select id="fSnap" aria-label="Fluxo de caixa usado no Projetado"></select>
-  </div>
+    <select class="sel" id="fSnap" aria-label="Fluxo de caixa usado no Projetado"></select>
   </div>
   <div id="avisos"></div>
 </div>
@@ -234,51 +222,24 @@
 <main class="wrap" id="main">
   <div class="state" id="loading"><div class="loader"></div><h3>Lendo a planilha…</h3></div>
 
-  <section class="sec" id="sec-resumo">
-    <div class="pick" id="pick"><div class="ic">↑</div><h3>Selecione uma usina</h3><p>Clique no nome de uma ou mais usinas acima para ver os centros de custo.</p></div>
-    <div id="resumoBody" hidden>
-      <div class="kpis" id="kpis"></div>
-      <div class="card">
-        <div class="card-h">
-          <h2 id="ttlCC">Centros de custo</h2>
-          <div class="r"><input class="search" id="qTree" type="search" placeholder="Buscar centro de custo"></div>
-        </div>
-        <div class="scroll" id="tree"></div>
-      </div>
-      <p class="note">Clique num centro de custo para ver os lançamentos e registrar observações. Valores em R$.</p>
-      <div class="card mt">
-        <div class="card-h">
-          <h2>Orçado × Projetado × Realizado no tempo</h2>
-          <div class="r"><div class="seg" id="segModo"><button type="button" data-modo="mes" class="on">Mês a mês</button><button type="button" data-modo="acum">Acumulado</button></div></div>
-        </div>
-        <div class="chart-box" style="height:320px"><canvas id="chCurvas" role="img" aria-label="Orçado, projetado e realizado por mês"></canvas></div>
-      </div>
-    </div>
-  </section>
+  <div class="pick" id="pick" hidden><div class="ic">↑</div><h3>Selecione uma usina</h3><p>Escolha uma ou mais usinas na lista acima para ver os centros de custo.</p></div>
 
-  <section class="sec" id="sec-tempo">
-    <div class="card">
-      <div class="card-h"><h2>Projetado a cada envio do fluxo</h2><span class="hint">comparado ao que falta pagar do orçado (Orçado − Realizado)</span></div>
-      <div class="chart-box"><canvas id="chTempo" role="img" aria-label="Projetado por envio do fluxo"></canvas></div>
-    </div>
-    <div class="card mt">
-      <div class="card-h"><h2>Previsão por mês de pagamento</h2><span class="hint">cada linha é um envio do fluxo</span></div>
-      <div class="scroll" id="matriz"></div>
-    </div>
-  </section>
-
-  <section class="sec" id="sec-lanc">
+  <div id="resumoBody" hidden>
+    <div class="kpis" id="kpis"></div>
     <div class="card">
       <div class="card-h">
-        <div class="pills" id="subLanc"></div>
-        <div class="r">
-          <input class="search" id="qLanc" type="search" placeholder="Buscar">
-          <button class="btn btn-pri" id="btnNovo" type="button">+ Novo</button>
-        </div>
+        <h2 id="ttlCC">Centros de custo</h2>
+        <div class="r"><input class="search" id="qTree" type="search" placeholder="Buscar centro de custo"></div>
       </div>
-      <div class="scroll" id="lanc"></div>
+      <div id="tree"></div>
     </div>
-  </section>
+    <p class="note">Clique num centro de custo para ver os lançamentos e registrar observações. Valores em R$.</p>
+    <div class="card mt">
+      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2></div>
+      <div class="chart-box"><canvas id="chCurvas" role="img" aria-label="Orçado, projetado e realizado por mês"></canvas></div>
+      <div id="tabMeses"></div>
+    </div>
+  </div>
 </main>
 
 <div class="scrim" id="scrim"></div>
@@ -303,9 +264,8 @@
 /* =================================================================== */
 const S = {
   d: null, rows: { orc: [], fluxo: [], real: [] },
-  f: { us: new Set(), de: '', ate: '', snap: '' }, modo: 'mes', chartC: null,
-  tab: 'resumo', sort: { k: 'nome', dir: 1 }, fechadas: new Set(),
-  qTree: '', lancAba: 'fluxo', qLanc: '', lancLim: 300, chart: null, drawer: null
+  f: { us: new Set(), snap: '' },
+  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const NOME_ABA = { orc: 'Orçamento', fluxo: 'Fluxo de Caixa', real: 'Realizado' };
@@ -327,7 +287,6 @@ function compact(v) {
   return s + 'R$ ' + _int.format(Math.round(a));
 }
 function dt(iso) { if (!iso) return ''; const p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
-function dtc(iso) { if (!iso) return '(sem data)'; const p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0].slice(2); }
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 function mes(ym) { const p = ym.split('-'); return MES[+p[1] - 1] + '/' + p[0].slice(2); }
 function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -347,9 +306,6 @@ const IC = {
 };
 
 /* =================================================================== */
-/* Comunicação com a planilha                                           */
-/* =================================================================== */
-/* =================================================================== */
 /* Modo demonstração: abre fora da planilha com dados fictícios          */
 /* =================================================================== */
 const DEMO = !(window.google && google.script && google.script.run);
@@ -358,10 +314,16 @@ const DEMO_API = DEMO ? (function () {
   const hoje = new Date(), Y = hoje.getFullYear(), M = hoje.getMonth() + 1;
   const pad = (n) => ('0' + n).slice(-2);
   const iso = (y, m, d) => { const x = new Date(y, m - 1, d); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
-  const usinas = ['UFV Agrestina I', 'UFV Agrestina II', 'UFV Bom Conselho', 'UFV Bonito I', 'UFV Carangola'];
-  const ccs = [['1.01.001', 'MATERIAIS ELÉTRICOS'], ['1.01.002', 'ESTRUTURAS METÁLICAS'], ['1.02.001', 'MÃO DE OBRA CIVIL'],
-    ['1.02.002', 'MONTAGEM ELETROMECÂNICA'], ['1.03.001', 'FRETES E LOGÍSTICA'], ['1.04.001', 'SUBESTAÇÃO']];
-  const forn = ['WEG S.A.', 'Gerdau', 'Transportes Rápido', 'Montadora Sol', 'Prysmian', 'Engecivil Ltda'];
+  const cidades = ['Agrestina I', 'Agrestina II', 'Bom Conselho', 'Bonito I', 'Bonito II', 'Carangola', 'Caruaru', 'Garanhuns', 'Arcoverde', 'Belo Jardim',
+    'Pesqueira', 'Gravatá', 'Surubim', 'Limoeiro', 'Petrolina', 'Salgueiro', 'Serra Talhada', 'Araripina', 'Ouricuri', 'Afogados', 'Sertânia', 'Custódia',
+    'Buíque', 'Águas Belas', 'Lajedo', 'Canhotinho', 'Palmares', 'Barreiros', 'Vitória', 'Goiana', 'Timbaúba', 'Nazaré', 'Muriaé', 'Manhuaçu', 'Viçosa',
+    'Ubá', 'Cataguases', 'Leopoldina', 'Juiz de Fora', 'Barbacena', 'Lavras', 'Varginha', 'Pouso Alegre', 'Itajubá', 'Poços de Caldas', 'Passos', 'Franca',
+    'Uberaba', 'Uberlândia', 'Patos de Minas', 'Paracatu', 'Unaí', 'Montes Claros', 'Janaúba', 'Pirapora', 'Curvelo', 'Sete Lagoas', 'Divinópolis', 'Formiga', 'Itaúna'];
+  const usinas = cidades.map((c) => 'UFV ' + c);
+  const ccs = [['1.01.001', 'MATERIAIS ELÉTRICOS'], ['1.01.002', 'ESTRUTURAS METÁLICAS'], ['1.01.003', 'MÓDULOS FOTOVOLTAICOS'], ['1.01.004', 'INVERSORES'],
+    ['1.02.001', 'MÃO DE OBRA CIVIL'], ['1.02.002', 'MONTAGEM ELETROMECÂNICA'], ['1.03.001', 'FRETES E LOGÍSTICA'], ['1.04.001', 'SUBESTAÇÃO'],
+    ['1.05.001', 'ENGENHARIA E PROJETOS'], ['1.06.001', 'SEGUROS E GARANTIAS']];
+  const forn = ['WEG S.A.', 'Gerdau', 'Transportes Rápido', 'Montadora Sol', 'Prysmian', 'Engecivil Ltda', 'Huawei', 'Trina Solar'];
   const C = {
     orc: [['setor', 'SETOR', 'texto'], ['venc', 'DATA DE VENCIMENTO', 'data'], ['valor', 'VALOR A PAGAR', 'valor'], ['projeto', 'PROJETO', 'texto'], ['cc', 'CENTRO DE CUSTO', 'texto']],
     real: [['favorecido', 'Favorecido', 'texto'], ['ccCod', 'C. Custo', 'texto'], ['ccDesc', 'Centro de Custo', 'texto'], ['projeto', 'Projeto', 'texto'], ['doc', 'Documento', 'texto'],
@@ -370,42 +332,44 @@ const DEMO_API = DEMO ? (function () {
       ['projeto', 'Projeto', 'texto'], ['cc', 'Centro de Custo', 'texto'], ['situacao', 'Situação', 'texto'], ['dataFluxo', 'Data do Fluxo', 'data']]
   };
   const L = { orc: [], real: [], fluxo: [] }, just = {};
-  let n = 2;
-  usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
-    const base = 30000 + rnd() * 70000;
-    for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), Math.round(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
-    const fator = (ui === 4 && ci === 1) || (ui === 1 && ci === 3) ? 1.45 : 0.9;
-    for (let m = 1; m <= M; m++) {
-      const k = 1 + Math.floor(rnd() * 2);
-      for (let j = 0; j < k; j++) L.real.push([n++, forn[(ci + j) % 6], c[0], c[1], u, 'NF ' + (1000 + n), iso(Y, m, 4 + j * 9), 'Parcela ' + m, Math.round(base * fator / k * (0.75 + rnd() * 0.5)), m === M && j === 0 ? 'REAL S' : 'Real Acumulado', c[0] + ' - ' + c[1]]);
-    }
-  }));
   const seg = new Date(hoje); seg.setDate(seg.getDate() - ((seg.getDay() + 6) % 7));
   const snaps = [];
   for (let i = 6; i >= 0; i--) { const d = new Date(seg); d.setDate(d.getDate() - 7 * i); snaps.push(iso(d.getFullYear(), d.getMonth() + 1, d.getDate())); }
-  snaps.forEach((s, si) => usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
-    for (let m = M; m <= M + 3; m++) {
-      if (rnd() < 0.3) continue;
-      L.fluxo.push([n++, iso(Y, m, 15), forn[ci], Math.round((35000 + rnd() * 55000) * (1 + si * 0.03)), 'Parcela ' + (m > 12 ? m - 12 : m), u, c[1], m === M && si > 4 ? 'Pago' : 'Em Aberto', s]);
-    }
-  })));
+  let n = 2;
+  usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
+    if ((ui + ci) % 4 === 3) return; // nem toda usina tem todos os centros de custo
+    const base = 8000 + rnd() * 30000;
+    for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), Math.round(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
+    const fator = (ui + ci) % 7 === 0 ? 1.4 : 0.9;
+    for (let m = 1; m <= M; m++) L.real.push([n++, forn[ci % 8], c[0], c[1], u, 'NF ' + (1000 + n), iso(Y, m, 5), 'Parcela ' + m, Math.round(base * fator * (0.75 + rnd() * 0.5)), m === M ? 'REAL S' : 'Real Acumulado', c[0] + ' - ' + c[1]]);
+    snaps.forEach((s, si) => {
+      for (let m = M; m <= M + 3; m++) {
+        if (rnd() < 0.3) continue;
+        L.fluxo.push([n++, iso(Y, m, 15), forn[ci % 8], Math.round(base * (0.9 + rnd() * 0.5) * (1 + si * 0.02)), 'Parcela', u, c[1], m === M && si > 4 ? 'Pago' : 'Em Aberto', s]);
+      }
+    });
+  }));
   const aba = (id, nome, ed) => ({ id, aba: nome, editavel: ed, sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], linhaCab: 1, erro: '' });
   const idx = (id, linha) => L[id].findIndex((l) => l[0] === +linha);
   const obj = (id, l) => { const o = { _r: l[0] }; C[id].forEach((c, j) => { o[c[0]] = l[j + 1]; }); return o; };
+  const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
   return {
     carregarDados: () => ({
-      geradoEm: new Date().toLocaleString('pt-BR').slice(0, 17), usuario: '', planilha: 'Demonstração', urlPlanilha: '#',
-      cfg: { ATENCAO: 0.9, ESTOURO: 1, REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' },
+      geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#',
+      cfg: { REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' },
       abas: { orc: aba('orc', 'Orçamento', true), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
       just: just
     }),
     salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
     novaLinha: (p) => { const l = [n++].concat(C[p.aba].map((c) => p.valores[c[0]] === undefined ? '' : p.valores[c[0]])); L[p.aba].push(l); return obj(p.aba, l); },
     excluirLinha: (p) => { L[p.aba].splice(idx(p.aba, p.linha), 1); return true; },
-    salvarJustificativa: (p) => { just[p.chave] = Object.assign({}, p, { em: new Date().toLocaleString('pt-BR').slice(0, 17), por: 'demonstração' }); return just[p.chave]; }
+    salvarJustificativa: (p) => { just[p.chave] = Object.assign({}, p, { em: agora(), por: 'demonstração' }); return just[p.chave]; }
   };
 })() : null;
 
+/* =================================================================== */
+/* Comunicação com a planilha                                           */
+/* =================================================================== */
 function run(fn, arg) {
   if (DEMO) return new Promise((ok, err) => setTimeout(() => { try { ok(JSON.parse(JSON.stringify(DEMO_API[fn](arg)))); } catch (e) { err(e.message); } }, 200));
   return new Promise((ok, err) => {
@@ -486,46 +450,50 @@ function preparar() {
   orc.forEach((r) => { tag(r, r.projeto, canonCC(r.cc)); r._d = r.venc; });
   fluxo.forEach((r) => { tag(r, r.projeto, canonCC(r.cc)); r._d = r.dataProg; r._pago = nk(r.situacao).indexOf('pago') === 0; });
   real.forEach((r) => { tag(r, r.projeto, ccReal(r) || '(sem centro de custo)'); r._d = r.pagto; r._t = tipoReal(r.tipo); });
+  S.uLista = Object.keys(S.uNome).filter((k) => k !== '~').sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
   const snaps = {};
   fluxo.forEach((r) => { snaps[r.dataFluxo || ''] = true; });
   S.snaps = Object.keys(snaps).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a < b ? 1 : -1));
   if (!S.snaps.includes(S.f.snap)) S.f.snap = S.snaps[0] || '';
   S.f.us.forEach((k) => { if (!(k in S.uNome)) S.f.us.delete(k); });
-  montarFiltros();
-}
-
-function periodoRapido(tipo) {
-  const h = new Date(), y = h.getFullYear(), m = h.getMonth();
-  const ym = (yy, mm) => { const d = new Date(yy, mm, 1); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); };
-  if (tipo === 'mes') return [ym(y, m), ym(y, m)];
-  if (tipo === 'tri') return [ym(y, m), ym(y, m + 2)];
-  if (tipo === 'ano') return [y + '-01', y + '-12'];
-  return ['', ''];
-}
-function montarFiltros() {
-  const us = Object.keys(S.uNome).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR'));
-  $('#usinas').innerHTML = us.filter((k) => k !== '~').map((k) => '<button type="button" class="uchip' + (S.f.us.has(k) ? ' on' : '') + '" data-uk="' + esc(k) + '"><span class="bx"></span>' + esc(S.uNome[k]) + '</button>').join('');
   $('#fSnap').innerHTML = S.snaps.length
     ? S.snaps.map((s) => '<option value="' + esc(s) + '"' + (s === S.f.snap ? ' selected' : '') + '>' + (s ? dt(s) : '(sem data)') + '</option>').join('')
     : '<option value="">—</option>';
-  document.querySelectorAll('#segPer button').forEach((b) => {
-    const p = periodoRapido(b.dataset.per);
-    b.classList.toggle('on', p[0] === S.f.de && p[1] === S.f.ate);
-  });
+  renderUsel();
+}
+
+/* =================================================================== */
+/* Lista suspensa de usinas                                             */
+/* =================================================================== */
+function selKey() { return Array.from(S.f.us).sort().join('+'); }
+function selNome() { return Array.from(S.f.us).map((k) => S.uNome[k]).sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })).join(' + '); }
+function usVisiveis() { const q = nk(S.qUs); return S.uLista.filter((k) => !q || nk(S.uNome[k]).indexOf(q) !== -1); }
+function renderUList() {
+  const vis = usVisiveis();
+  $('#msList').innerHTML = vis.length
+    ? vis.map((k) => '<label><input type="checkbox" data-uk="' + esc(k) + '"' + (S.f.us.has(k) ? ' checked' : '') + '>' + esc(S.uNome[k]) + '</label>').join('')
+    : '<div class="ms-vazio">Nenhuma usina com esse nome.</div>';
+}
+function renderUsel() {
+  const n = S.f.us.size;
+  $('#msBtn').textContent = n === 0 ? 'Selecione as usinas' : n === 1 ? selNome() : n + ' usinas selecionadas';
+  $('#msCont').textContent = n + ' de ' + S.uLista.length;
+  const sel = Array.from(S.f.us).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
+  const MAX = 6;
+  $('#tags').innerHTML = n < 2 ? '' : sel.slice(0, MAX).map((k) => '<span class="tag">' + esc(S.uNome[k]) + '<button type="button" data-rm="' + esc(k) + '" aria-label="Remover">×</button></span>').join('') +
+    (n > MAX ? '<span class="tag mais">+' + (n - MAX) + '</span>' : '');
+  if ($('#ms').classList.contains('on')) renderUList();
+}
+function abrirUsel(abrir) {
+  if ($('#ms').classList.contains('on') === abrir) return;
+  $('#ms').classList.toggle('on', abrir);
+  if (abrir) { renderUList(); setTimeout(() => $('#msQ').focus(), 20); }
 }
 
 /* =================================================================== */
 /* Números                                                              */
 /* =================================================================== */
-function noPeriodo(d) {
-  if (!S.f.de && !S.f.ate) return true;
-  if (!d) return false;
-  const m = d.slice(0, 7);
-  return (!S.f.de || m >= S.f.de) && (!S.f.ate || m <= S.f.ate);
-}
-function passa(r) { return (!S.f.us.size || S.f.us.has(r._u)) && noPeriodo(r._d); }
-function selKey() { return Array.from(S.f.us).sort().join('+'); }
-function selNome() { return Array.from(S.f.us).map((k) => S.uNome[k]).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(' + '); }
+function passa(r) { return S.f.us.has(r._u); }
 function filtrar() {
   return {
     orc: S.rows.orc.filter(passa),
@@ -536,15 +504,13 @@ function filtrar() {
 function novoM() { return { orc: 0, proj: 0, projAb: 0, projPg: 0, real: 0, realSem: 0 }; }
 function somaM(a, b) { ['orc', 'proj', 'projAb', 'projPg', 'real', 'realSem'].forEach((k) => { a[k] += b[k]; }); return a; }
 function derivar(m) { m.d1 = m.orc - m.proj - m.real; m.d2 = m.orc - m.real; return m; }
+/** Soma por centro de custo (o mesmo centro de custo em usinas diferentes vira uma linha só). */
 function agregar(F) {
-  const cfg = S.d.cfg;
-  const soAberto = cfg.PROJETADO_SO_EM_ABERTO !== false;
-  const U = new Map();
+  const cfg = S.d.cfg, soAberto = cfg.PROJETADO_SO_EM_ABERTO !== false;
+  const M = new Map();
   const cc = (r) => {
-    let u = U.get(r._u);
-    if (!u) { u = { k: r._u, nome: S.uNome[r._u], ccs: new Map() }; U.set(r._u, u); }
-    let c = u.ccs.get(r._ck);
-    if (!c) { c = { k: r._ck, uk: r._u, nome: S.ccNome[r._ck], m: novoM() }; u.ccs.set(r._ck, c); }
+    let c = M.get(r._ck);
+    if (!c) { c = { k: r._ck, nome: S.ccNome[r._ck], m: novoM() }; M.set(r._ck, c); }
     return c.m;
   };
   F.orc.forEach((r) => { cc(r).orc += r.valor || 0; });
@@ -557,40 +523,14 @@ function agregar(F) {
     const m = cc(r), v = r.valor || 0;
     if (r._t === 'S') { m.realSem += v; if (cfg.REALIZADO_SOMA_SEMANA) m.real += v; } else m.real += v;
   });
-  const tot = novoM(), usinas = [];
-  U.forEach((u) => {
-    u.m = novoM(); u.lista = [];
-    u.ccs.forEach((c) => { derivar(c.m); somaM(u.m, c.m); u.lista.push(c); });
-    derivar(u.m); somaM(tot, u.m); usinas.push(u);
-  });
-  return { usinas, tot: derivar(tot) };
-}
-
-/** Junta os centros de custo das usinas selecionadas (mesmo CC em usinas diferentes vira uma linha só). */
-function porCC(A) {
-  const M = new Map();
-  A.usinas.forEach((u) => u.lista.forEach((c) => {
-    let x = M.get(c.k);
-    if (!x) { x = { k: c.k, nome: c.nome, m: novoM() }; M.set(c.k, x); }
-    somaM(x.m, c.m);
-  }));
-  return Array.from(M.values()).map((x) => { derivar(x.m); return x; });
+  const tot = novoM(), ccs = [];
+  M.forEach((c) => { derivar(c.m); somaM(tot, c.m); ccs.push(c); });
+  return { ccs, tot: derivar(tot) };
 }
 
 /* =================================================================== */
-/* Render                                                               */
+/* Tela                                                                 */
 /* =================================================================== */
-function render() {
-  if (!S.d) return;
-  S.F = filtrar();
-  S.A = agregar(S.F);
-  document.querySelectorAll('.sec').forEach((s) => s.classList.toggle('on', s.id === 'sec-' + S.tab));
-  if (S.tab === 'resumo') renderResumo();
-  if (S.tab === 'tempo') renderTempo();
-  if (S.tab === 'lanc') renderLanc();
-  if (S.drawer) renderDrawer();
-}
-
 function kpi(l, v, dark) {
   return '<div class="kpi' + (dark ? ' dark' : '') + '"><div class="l">' + l + '</div><div class="v tnum' + numCls(v) + '">' + compact(v) + '</div></div>';
 }
@@ -598,8 +538,6 @@ function kpisHtml(m) {
   return kpi('Orçado', m.orc) + kpi('Projetado', m.proj) + kpi('Realizado', m.real) +
     kpi('Orç − Proj − Real', m.d1, true) + kpi('Orç − Real', m.d2, true);
 }
-
-/* ---------------- Resumo: a tabela da planilha ---------------- */
 const COLS = [
   { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 }, { k: 'proj', t: 'Projetado', n: 1 },
   { k: 'real', t: 'Realizado', n: 1 }, { k: 'd1', t: 'Orç − Proj − Real', n: 1, dl: 'first' }, { k: 'd2', t: 'Orç − Real', n: 1, dl: 1 }
@@ -615,31 +553,46 @@ function celulas(m) {
 }
 function justKey(uk, ck) { return uk + '||' + ck; }
 
-function renderResumo() {
+function render() {
+  if (!S.d) return;
   const tem = S.f.us.size > 0;
   $('#pick').hidden = tem; $('#resumoBody').hidden = !tem;
-  if (!tem) { if (S.chartC) { S.chartC.destroy(); S.chartC = null; } return; }
+  if (!tem) { if (S.chart) { S.chart.destroy(); S.chart = null; } return; }
+  S.F = filtrar();
+  S.A = agregar(S.F);
   $('#kpis').innerHTML = kpisHtml(S.A.tot);
-  $('#ttlCC').textContent = 'Centros de custo · ' + selNome();
+  $('#ttlCC').textContent = 'Centros de custo · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
+  renderTabela();
+  renderCurvas();
+  if (S.drawer) renderDrawer();
+}
+
+/** Todos os centros de custo existentes aparecem, mesmo os sem valor para as usinas escolhidas. */
+function renderTabela() {
   const q = nk(S.qTree);
-  const lista = porCC(S.A).filter((c) => !q || nk(c.nome).indexOf(q) !== -1).sort(cmp);
-  let h = '<table style="min-width:900px"><thead><tr>' + COLS.map((c) =>
+  const por = new Map(S.A.ccs.map((c) => [c.k, c]));
+  Object.keys(S.ccNome).forEach((k) => {
+    if (k === '~' || por.has(k)) return;
+    por.set(k, { k, nome: S.ccNome[k], m: derivar(novoM()) });
+  });
+  const lista = Array.from(por.values()).filter((c) => !q || nk(c.nome).indexOf(q) !== -1).sort(cmp);
+  let h = '<table><thead><tr>' + COLS.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
     (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '</tr></thead><tbody>';
   if (!lista.length) h += '<tr><td colspan="6" class="empty">Nada encontrado.</td></tr>';
   const tot = novoM();
   lista.forEach((c) => {
     somaM(tot, c.m);
+    const zero = !c.m.orc && !c.m.proj && !c.m.real;
     const j = S.d.just[justKey(selKey(), c.k)];
-    h += '<tr class="c" data-cc="' + esc(c.k) + '"><td style="padding-left:16px"><span class="nm" title="' + esc(c.nome) + '">' + esc(c.nome) + '</span>' +
+    h += '<tr class="c' + (zero ? ' zero' : '') + '" data-cc="' + esc(c.k) + '"><td>' + esc(c.nome) +
       (j && (j.comentario || j.acao) ? '<span class="dot" title="Tem observação"></span>' : '') + '</td>' + celulas(c.m) + '</tr>';
   });
   if (lista.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '</tr>';
   $('#tree').innerHTML = h + '</tbody></table>';
-  renderCurvas();
 }
 
-/** Três linhas no tempo: Orçado (vencimento), Projetado (data programada) e Realizado (pagamento). */
+/** Orçado (vencimento), Projetado (data programada) e Realizado (pagamento) mês a mês. */
 function renderCurvas() {
   const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
   const o = {}, p = {}, r = {}, ms = new Set();
@@ -648,77 +601,30 @@ function renderCurvas() {
   S.F.fl.forEach((x) => { if (!soAb || !x._pago) add(p, x._d, x.valor); });
   S.F.real.forEach((x) => { if (x._t === 'S' && !cfg.REALIZADO_SOMA_SEMANA) return; add(r, x._d, x.valor); });
   const meses = Array.from(ms).sort();
-  const lastReal = Object.keys(r).sort().pop() || '';
-  const firstProj = Object.keys(p).sort()[0] || '9999';
-  const mo = Object.keys(o).sort(), firstOrc = mo[0] || '9999', lastOrc = mo[mo.length - 1] || '';
-  const acum = S.modo === 'acum';
-  let co = 0, cr = 0, cp = 0;
-  const sO = [], sR = [], sP = [];
-  meses.forEach((m) => {
-    co += o[m] || 0;
-    if (m <= lastReal) cr += r[m] || 0;
-    if (m >= firstProj) cp += p[m] || 0;
-    sO.push(m < firstOrc || (m > lastOrc && !acum) ? null : acum ? co : (o[m] || 0));
-    sR.push(m <= lastReal ? (acum ? cr : (r[m] || 0)) : null);
-    // No acumulado, a linha tracejada parte do último Realizado
-    sP.push(m >= firstProj ? (acum ? cr + cp : (p[m] || 0)) : (acum && m === lastReal ? cr : null));
-  });
-  if (S.chartC) S.chartC.destroy();
-  if (!window.Chart) return;
-  const linha = (label, data, cor, extra) => Object.assign({ label, data, borderColor: cor, backgroundColor: cor, borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 1.5, tension: 0.25, spanGaps: false }, extra || {});
-  S.chartC = new Chart($('#chCurvas'), {
-    type: 'line',
-    data: {
-      labels: meses.map(mes),
-      datasets: [
-        linha('Orçado', sO, COR.cosmos),
-        linha(acum ? 'Realizado + Projetado' : 'Projetado', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2 }),
-        linha('Realizado', sR, COR.aurora)
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { position: 'top', align: 'end', labels: { boxWidth: 22, boxHeight: 2, color: '#4B5259' } },
-        tooltip: { backgroundColor: '#0A0F14', padding: 10, filter: (c) => c.raw !== null, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
-        y: { beginAtZero: true, border: { display: false }, grid: { color: COR.grid }, ticks: { color: COR.ink3, callback: (v) => compact(v) } }
-      }
-    }
-  });
-}
+  const faixa = (obj) => { const k = Object.keys(obj).sort(); return [k[0] || '9999', k[k.length - 1] || '']; };
+  const [oIni, oFim] = faixa(o), [pIni, pFim] = faixa(p), [rIni, rFim] = faixa(r);
+  const serie = (obj, ini, fim) => meses.map((m) => (m < ini || m > fim ? null : obj[m] || 0));
+  const sO = serie(o, oIni, oFim), sP = serie(p, pIni, pFim), sR = serie(r, rIni, rFim);
 
-/* ---------------- Linha do tempo ---------------- */
-function renderTempo() {
-  // Gráfico
-  const por = {};
-  S.rows.fluxo.forEach((r) => {
-    if (!r.dataFluxo || !passa(r)) return;
-    if (S.d.cfg.PROJETADO_SO_EM_ABERTO !== false && r._pago) return;
-    por[r.dataFluxo] = (por[r.dataFluxo] || 0) + (r.valor || 0);
-  });
-  const ds = Object.keys(por).sort();
-  const ref = S.A.tot.d2;
   if (S.chart) S.chart.destroy();
   if (window.Chart) {
-    S.chart = new Chart($('#chTempo'), {
+    const linha = (label, data, cor, extra) => Object.assign({ label, data, borderColor: cor, backgroundColor: cor, borderWidth: 2.5, pointRadius: 3.5, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 1.5, tension: 0.25 }, extra || {});
+    S.chart = new Chart($('#chCurvas'), {
       type: 'line',
       data: {
-        labels: ds.map(dtc),
+        labels: meses.map(mes),
         datasets: [
-          { label: 'Projetado', data: ds.map((d) => por[d]), borderColor: COR.aurora, backgroundColor: COR.aurora, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 2, tension: 0.25 },
-          { label: 'Orçado − Realizado', data: ds.map(() => ref), borderColor: COR.cosmos, backgroundColor: COR.cosmos, borderWidth: 2, borderDash: [6, 5], pointRadius: 0, pointHoverRadius: 0 }
+          linha('Orçado', sO, COR.cosmos),
+          linha('Projetado', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2 }),
+          linha('Realizado', sR, COR.aurora)
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: { position: 'top', align: 'end', labels: { boxWidth: 18, boxHeight: 2, color: '#4B5259' } },
-          tooltip: { backgroundColor: '#0A0F14', padding: 10, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
+          legend: { position: 'top', align: 'end', labels: { boxWidth: 22, boxHeight: 2, color: '#4B5259' } },
+          tooltip: { backgroundColor: '#0A0F14', padding: 10, filter: (c) => c.raw !== null, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
@@ -727,45 +633,31 @@ function renderTempo() {
       }
     });
   }
-  // Matriz: envio × mês de pagamento
-  const snaps = S.snaps.filter(Boolean).slice(0, 12);
-  if (!snaps.length) { $('#matriz').innerHTML = '<div class="empty">Sem "Data do Fluxo" preenchida.</div>'; return; }
-  const mat = {}, meses = {};
-  snaps.forEach((s) => { mat[s] = {}; });
-  S.rows.fluxo.forEach((r) => {
-    if (!mat[r.dataFluxo] || !passa(r)) return;
-    if (S.d.cfg.PROJETADO_SO_EM_ABERTO !== false && r._pago) return;
-    const m = r.dataProg ? r.dataProg.slice(0, 7) : '';
-    meses[m] = true;
-    mat[r.dataFluxo][m] = (mat[r.dataFluxo][m] || 0) + (r.valor || 0);
-  });
-  const ms = Object.keys(meses).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a < b ? -1 : 1));
-  const tots = snaps.map((s) => ms.reduce((a, m) => a + (mat[s][m] || 0), 0));
-  let h = '<table class="mx" style="min-width:' + (300 + ms.length * 110) + 'px"><thead><tr><th>Envio do fluxo</th>' +
-    ms.map((m) => '<th class="n">' + (m ? mes(m) : 'sem data') + '</th>').join('') + '<th class="n dl first">Total</th><th class="n dl">Variação</th></tr></thead><tbody>';
-  snaps.forEach((s, i) => {
-    const ant = tots[i + 1];
-    h += '<tr' + (i === 0 ? ' class="last"' : '') + '><td style="white-space:nowrap">' + dt(s) + (i === 0 ? '<span class="tag">atual</span>' : '') + '</td>' +
-      ms.map((m) => '<td class="n">' + (mat[s][m] ? num(mat[s][m]) : '<span style="color:var(--nevoa)">—</span>') + '</td>').join('') +
-      '<td class="n dl first">' + num(tots[i]) + '</td><td class="n dl">' +
-      (ant === undefined ? '—' : (tots[i] - ant > 0 ? '+' : '') + num(tots[i] - ant)) + '</td></tr>';
-  });
-  $('#matriz').innerHTML = h + '</tbody></table>';
+  // Tabela com o valor de cada mês (R$ mil)
+  const mil = (v) => (v === null ? '<span style="color:var(--nevoa)">—</span>' : '<span class="' + numCls(v).trim() + '">' + num(v / 1000) + '</span>');
+  const soma = (arr) => arr.reduce((a, v) => a + (v || 0), 0);
+  const lin = (nome, sw, arr) => '<tr><td><span class="sw" style="' + sw + '"></span>' + nome + '</td>' + arr.map((v) => '<td class="n">' + mil(v) + '</td>').join('') + '<td class="n dl first"><b>' + num(soma(arr) / 1000) + '</b></td></tr>';
+  $('#tabMeses').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$ mil</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
+    lin('Orçado', 'background:var(--cosmos)', sO) +
+    lin('Projetado', 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)', sP) +
+    lin('Realizado', 'background:var(--aurora)', sR) + '</tbody></table>'
+    : '<div class="empty">Sem datas para montar o gráfico.</div>';
 }
 
-/* ---------------- Lançamentos ---------------- */
+/* =================================================================== */
+/* Detalhe do centro de custo                                           */
+/* =================================================================== */
 const COLS_LANC = {
-  orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['cc', 'Centro de custo'], ['setor', 'Setor'], ['valor', 'Valor', 'valor']],
-  fluxo: [['dataProg', 'Data prog.', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['cc', 'Centro de custo'], ['coment', 'Comentário'], ['situacao', 'Situação', 'sit'], ['valor', 'Valor', 'valor']],
-  real: [['pagto', 'Pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina'], ['_cc', 'Centro de custo'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['valor', 'Valor', 'valor']]
+  orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['setor', 'Setor'], ['valor', 'Valor', 'valor']],
+  fluxo: [['dataProg', 'Data prog.', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['coment', 'Comentário'], ['situacao', 'Situação', 'sit'], ['valor', 'Valor', 'valor']],
+  real: [['pagto', 'Pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['valor', 'Valor', 'valor']]
 };
 function celula(r, col) {
   const k = col[0], tp = col[2];
   if (tp === 'data') return '<td style="white-space:nowrap">' + (r[k] ? dt(r[k]) : '—') + '</td>';
   if (tp === 'valor') return '<td class="n">' + brl2(r[k]) + '</td>';
   if (tp === 'sit') return '<td><span class="sit ' + (r._pago ? 'pg' : 'ab') + '">' + esc(r[k] || 'Em Aberto') + '</span></td>';
-  const v = k === '_cc' ? ccReal(r) : r[k];
-  return '<td><span class="nm" style="max-width:230px" title="' + esc(v) + '">' + esc(v) + '</span></td>';
+  return '<td>' + esc(r[k]) + '</td>';
 }
 function acoes(aba, r) {
   if (!S.d.abas[aba].editavel) return '';
@@ -774,34 +666,17 @@ function acoes(aba, r) {
     '<button class="ib" data-ed="' + aba + '|' + r._r + '" title="Editar">' + IC.ed + '</button>' +
     '<button class="ib" data-del="' + aba + '|' + r._r + '" title="Excluir">' + IC.del + '</button></td>';
 }
-function tabelaLanc(aba, rows, lim, enxuta) {
-  const cols = COLS_LANC[aba].filter((c) => !enxuta || ['projeto', 'cc', '_cc'].indexOf(c[0]) === -1);
+function tabelaLanc(aba, rows) {
+  const cols = COLS_LANC[aba].filter((c) => c[0] !== 'projeto' || S.f.us.size > 1);
   const ed = S.d.abas[aba].editavel;
   const lista = rows.slice().sort((a, b) => (b[cols[0][0]] || '').localeCompare(a[cols[0][0]] || ''));
-  const vis = lim ? lista.slice(0, lim) : lista;
   const total = rows.reduce((s, r) => s + (r.valor || 0), 0);
-  let h = '<table style="min-width:' + (enxuta ? 600 : 1000) + 'px"><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
-  if (!vis.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
-  vis.forEach((r) => { h += '<tr>' + cols.map((c) => celula(r, c)).join('') + acoes(aba, r) + '</tr>'; });
-  if (vis.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</td><td class="n">' + brl2(total) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
-  h += '</tbody></table>';
-  if (lim && lista.length > lim) h += '<div class="more"><button class="btn" data-more="1">Mostrar mais</button></div>';
-  return h;
+  let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
+  if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
+  lista.forEach((r) => { h += '<tr>' + cols.map((c) => celula(r, c)).join('') + acoes(aba, r) + '</tr>'; });
+  if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</td><td class="n">' + brl2(total) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
+  return h + '</tbody></table>';
 }
-function renderLanc() {
-  const ns = { orc: S.F.orc.length, fluxo: S.F.fl.length, real: S.F.real.length };
-  $('#subLanc').innerHTML = ['fluxo', 'orc', 'real'].map((a) => '<button type="button" data-la="' + a + '" class="' + (S.lancAba === a ? 'on' : '') + '">' +
-    NOME_ABA[a] + '<span class="c">' + _int.format(ns[a]) + '</span></button>').join('');
-  $('#btnNovo').style.display = S.d.abas[S.lancAba].editavel ? '' : 'none';
-  const q = nk(S.qLanc);
-  let rows = S.lancAba === 'orc' ? S.F.orc : S.lancAba === 'fluxo' ? S.F.fl : S.F.real;
-  if (q) rows = rows.filter((r) => COLS_LANC[S.lancAba].some((c) => nk(c[0] === '_cc' ? ccReal(r) : (c[2] === 'data' ? dt(r[c[0]]) : r[c[0]])).indexOf(q) !== -1));
-  $('#lanc').innerHTML = tabelaLanc(S.lancAba, rows, S.lancLim);
-}
-
-/* =================================================================== */
-/* Detalhe do centro de custo                                           */
-/* =================================================================== */
 function abrirCC(ck) {
   S.drawer = { uk: selKey(), ck };
   $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
@@ -814,12 +689,8 @@ function fecharDrawer() {
 function renderDrawer(novo) {
   const { uk, ck } = S.drawer;
   const sel = (r) => r._ck === ck && passa(r);
-  const Fx = {
-    orc: S.rows.orc.filter(sel), real: S.rows.real.filter(sel),
-    fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && sel(r))
-  };
-  const A = agregar(Fx);
-  const m = A.tot;
+  const Fx = { orc: S.rows.orc.filter(sel), real: S.rows.real.filter(sel), fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && sel(r)) };
+  const m = agregar(Fx).tot;
   $('#dwT').textContent = S.ccNome[ck] || '';
   $('#dwS').textContent = selNome() + ' · fluxo de ' + (S.f.snap ? dt(S.f.snap) : '—');
   const j = S.d.just[justKey(uk, ck)] || {};
@@ -836,7 +707,7 @@ function renderDrawer(novo) {
   [['fluxo', Fx.fl, 'Fluxo de Caixa'], ['orc', Fx.orc, 'Orçamento'], ['real', Fx.real, 'Realizado']].forEach(([aba, rows, t]) => {
     const extra = aba === 'fluxo' && S.d.cfg.PROJETADO_SO_EM_ABERTO !== false ? ' · em aberto ' + brl2(m.projAb) : '';
     h += '<div class="h3">' + t + ' · ' + rows.length + extra + (S.d.abas[aba].editavel ? '<span class="r"><button class="btn" data-novo="' + aba + '" type="button">+ Novo</button></span>' : '') + '</div>' +
-      '<div class="card"><div class="scroll">' + tabelaLanc(aba, rows, 0, true) + '</div></div>';
+      '<div class="card">' + tabelaLanc(aba, rows) + '</div>';
   });
   const body = $('#dwB'), sc = body.scrollTop;
   body.innerHTML = h;
@@ -849,7 +720,7 @@ function salvarJust() {
     responsavel: $('#jResp').value.trim(), comentario: $('#jCom').value.trim(), acao: (S.d.just[justKey(uk, ck)] || {}).acao || '' };
   const b = $('#jSalvar'); b.disabled = true; b.textContent = 'Salvando…';
   run('salvarJustificativa', p).then((r) => {
-    S.d.just[p.chave] = r; toast('Observação salva.'); renderDrawer(true); if (S.tab === 'resumo') renderResumo();
+    S.d.just[p.chave] = r; toast('Observação salva.'); renderDrawer(true); renderTabela();
   }).catch((e) => { toast(e, true); b.disabled = false; b.textContent = 'Salvar'; });
 }
 
@@ -860,7 +731,7 @@ function acharLinha(aba, linha) { return S.rows[aba].find((r) => r._r === +linha
 function sugestoes(aba, k) {
   const set = new Set();
   S.rows[aba].forEach((r) => { if (r[k]) set.add(String(r[k])); });
-  if (k === 'projeto') Object.values(S.uNome).forEach((n) => { if (n[0] !== '(') set.add(n); });
+  if (k === 'projeto') S.uLista.forEach((u) => set.add(S.uNome[u]));
   if (k === 'cc') Object.values(S.ccNome).forEach((n) => { if (n && n[0] !== '(') set.add(String(n)); });
   return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR')).slice(0, 800);
 }
@@ -932,7 +803,7 @@ function excluir(aba, row) {
   const def = S.d.abas[aba];
   const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
   const resumo = COLS_LANC[aba].map((c) => {
-    const v = c[0] === '_cc' ? ccReal(row) : row[c[0]];
+    const v = row[c[0]];
     return v === '' || v === null || v === undefined ? '' : '<div><span style="color:var(--ink-3)">' + c[1] + ':</span> ' + esc(c[2] === 'data' ? dt(v) : c[2] === 'valor' ? brl2(v) : v) + '</div>';
   }).join('');
   abrirModal('Excluir lançamento', '<p style="margin-top:0">A linha ' + row._r + ' será apagada da aba ' + esc(def.aba) + '.</p><div class="card" style="background:var(--sirius);padding:12px 14px">' + resumo + '</div>',
@@ -947,9 +818,8 @@ function marcarPago(row) {
 }
 function novoPreset(aba, ctx) {
   const p = {};
-  const ck = ctx ? ctx.ck : '';
   if (S.f.us.size === 1) p.projeto = S.uNome[Array.from(S.f.us)[0]];
-  if (ck && S.ccNome[ck] && S.ccNome[ck][0] !== '(') p.cc = S.ccNome[ck];
+  if (ctx && S.ccNome[ctx.ck] && S.ccNome[ctx.ck][0] !== '(') p.cc = S.ccNome[ctx.ck];
   if (aba === 'fluxo') { p.situacao = 'Em Aberto'; p.dataFluxo = S.f.snap || ''; }
   return p;
 }
@@ -957,42 +827,25 @@ function novoPreset(aba, ctx) {
 /* =================================================================== */
 /* Eventos                                                              */
 /* =================================================================== */
-$('#tabs').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-tab]'); if (!b) return;
-  S.tab = b.dataset.tab;
-  document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b));
-  render();
+function mudouUsinas() { if (S.drawer) fecharDrawer(); renderUsel(); render(); }
+$('#msBtn').addEventListener('click', () => abrirUsel(!$('#ms').classList.contains('on')));
+$('#msQ').addEventListener('input', (e) => { S.qUs = e.target.value; renderUList(); });
+$('#msList').addEventListener('change', (e) => {
+  const k = e.target.dataset.uk; if (!k) return;
+  if (e.target.checked) S.f.us.add(k); else S.f.us.delete(k);
+  mudouUsinas();
 });
-$('#usinas').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-uk]'); if (!b) return;
-  const k = b.dataset.uk;
-  if (S.f.us.has(k)) S.f.us.delete(k); else S.f.us.add(k);
-  b.classList.toggle('on', S.f.us.has(k));
-  if (S.drawer) fecharDrawer();
-  render();
-});
-$('#uLimpar').addEventListener('click', () => { S.f.us.clear(); montarFiltros(); render(); });
-$('#uTodas').addEventListener('click', () => { Object.keys(S.uNome).forEach((k) => { if (k !== '~') S.f.us.add(k); }); montarFiltros(); render(); });
-$('#segModo').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-modo]'); if (!b) return;
-  S.modo = b.dataset.modo;
-  document.querySelectorAll('#segModo button').forEach((x) => x.classList.toggle('on', x === b));
-  renderCurvas();
-});
+$('#msTodas').addEventListener('click', () => { usVisiveis().forEach((k) => S.f.us.add(k)); mudouUsinas(); });
+$('#msLimpar').addEventListener('click', () => { S.f.us.clear(); mudouUsinas(); });
+$('#tags').addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; S.f.us.delete(b.dataset.rm); mudouUsinas(); });
 $('#fSnap').addEventListener('change', (e) => { S.f.snap = e.target.value; render(); });
-$('#segPer').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-per]'); if (!b) return;
-  [S.f.de, S.f.ate] = periodoRapido(b.dataset.per); montarFiltros(); render();
-});
 $('#btnAtualizar').addEventListener('click', () => atualizar());
-$('#qTree').addEventListener('input', (e) => { S.qTree = e.target.value; renderResumo(); });
-$('#qLanc').addEventListener('input', (e) => { S.qLanc = e.target.value; S.lancLim = 300; renderLanc(); });
-$('#subLanc').addEventListener('click', (e) => { const b = e.target.closest('button[data-la]'); if (!b) return; S.lancAba = b.dataset.la; S.lancLim = 300; renderLanc(); });
-$('#btnNovo').addEventListener('click', () => abrirEditor(S.lancAba, null, novoPreset(S.lancAba)));
+$('#qTree').addEventListener('input', (e) => { S.qTree = e.target.value; renderTabela(); });
 document.addEventListener('click', (e) => {
   const t = e.target;
+  if (!e.composedPath().includes($('#ms'))) abrirUsel(false);
   const th = t.closest('#tree th[data-sort]');
-  if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderResumo(); return; }
+  if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTabela(); return; }
   const ed = t.closest('[data-ed]');
   if (ed) { const [aba, l] = ed.dataset.ed.split('|'); const r = acharLinha(aba, l); if (r) abrirEditor(aba, r); return; }
   const del = t.closest('[data-del]');
@@ -1001,11 +854,8 @@ document.addEventListener('click', (e) => {
   if (pg) { const r = acharLinha('fluxo', pg.dataset.pago); if (r) marcarPago(r); return; }
   const nv = t.closest('[data-novo]');
   if (nv) { abrirEditor(nv.dataset.novo, null, novoPreset(nv.dataset.novo, S.drawer)); return; }
-  if (t.closest('[data-more]')) { S.lancLim += 500; renderLanc(); return; }
   if (t.closest('#jSalvar')) { salvarJust(); return; }
-  const u = t.closest('tr.u');
-  if (u) { const k = u.dataset.u; if (S.fechadas.has(k)) S.fechadas.delete(k); else S.fechadas.add(k); renderResumo(); return; }
-  const cc = t.closest('tr.c[data-cc]');
+  const cc = t.closest('#tree tr.c[data-cc]');
   if (cc) abrirCC(cc.dataset.cc);
 });
 $('#scrim').addEventListener('click', fecharDrawer);
@@ -1024,7 +874,9 @@ $('#mdOk').addEventListener('click', () => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if ($('#modal').classList.contains('on')) fecharModal(); else if (S.drawer) fecharDrawer();
+  if ($('#modal').classList.contains('on')) fecharModal();
+  else if ($('#ms').classList.contains('on')) abrirUsel(false);
+  else if (S.drawer) fecharDrawer();
 });
 if (window.Chart) { Chart.defaults.font.family = 'Montserrat, system-ui, sans-serif'; Chart.defaults.color = '#4B5259'; }
 atualizar(true);
