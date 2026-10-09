@@ -277,6 +277,31 @@ function mapear_(sheet, def) {
   };
 }
 
+const BLOCOS_ = {};
+/**
+ * Lê de uma vez todas as colunas usadas da aba (uma chamada à planilha por aba, que é o que
+ * mais pesa no tempo). O resultado fica guardado durante a execução para ser reaproveitado.
+ */
+function bloco_(sheet, def) {
+  const chave = sheet.getName();
+  if (BLOCOS_[chave]) return BLOCOS_[chave];
+  const mapa = mapear_(sheet, def);
+  const n = mapa.linhaCab ? sheet.getLastRow() - mapa.linhaCab : 0;
+  const cols = def.campos.map(function (c) { return mapa.col[c.k]; }).filter(Boolean);
+  let vals = [], c0 = 1;
+  if (n > 0 && cols.length) {
+    c0 = Math.min.apply(null, cols);
+    vals = sheet.getRange(mapa.linhaCab + 1, c0, n, Math.max.apply(null, cols) - c0 + 1).getValues();
+  }
+  const coluna = function (k) {
+    if (!mapa.col[k]) return null;
+    const j = mapa.col[k] - c0;
+    return vals.map(function (l) { return [l[j]]; });
+  };
+  BLOCOS_[chave] = { mapa: mapa, n: n, coluna: coluna };
+  return BLOCOS_[chave];
+}
+
 function lerAba_(ss, id, tz, filtro) {
   const def = ABAS[id];
   const sheet = getAba_(ss, def.nome, false);
@@ -288,22 +313,19 @@ function lerAba_(ss, id, tz, filtro) {
   if (!sheet) { base.erro = 'Aba "' + def.nome + '" não encontrada.'; return base; }
 
   const t0 = Date.now();
-  const mapa = mapear_(sheet, def);
-  const tMapa = Date.now();
+  const bl = bloco_(sheet, def);
+  const mapa = bl.mapa;
+  const tMapa = t0;
   base.linhaCab = mapa.linhaCab;
   base.faltando = mapa.faltando;
   base.aba = sheet.getName();
   if (!mapa.linhaCab) { base.erro = 'Cabeçalho não encontrado na aba "' + def.nome + '".'; return base; }
 
   const ini = mapa.linhaCab + 1;
-  const n = sheet.getLastRow() - mapa.linhaCab;
+  const n = bl.n;
   if (n <= 0) return base;
 
-  // Lê só as colunas usadas (a aba pode ter dezenas de colunas).
-  const colunas = def.campos.map(function (c) {
-    if (!mapa.col[c.k]) return null;
-    return sheet.getRange(ini, mapa.col[c.k], n, 1).getValues();
-  });
+  const colunas = def.campos.map(function (c) { return bl.coluna(c.k); });
   const tLeitura = Date.now();
 
   // Sinal: se a maioria dos valores for negativa, inverte.
@@ -363,11 +385,10 @@ function indiceCC_(ss) {
   const def = ABAS.real;
   const sheet = getAba_(ss, def.nome, false);
   if (!sheet) return idx;
-  const mapa = mapear_(sheet, def);
-  const n = sheet.getLastRow() - mapa.linhaCab;
-  if (!mapa.linhaCab || n <= 0) return idx;
-  const ler = function (k) { return mapa.col[k] ? sheet.getRange(mapa.linhaCab + 1, mapa.col[k], n, 1).getDisplayValues() : null; };
-  const cod = ler('ccCod'), desc = ler('ccDesc'), full = ler('ccFull');
+  const bl = bloco_(sheet, def);
+  const n = bl.n;
+  if (!bl.mapa.linhaCab || n <= 0) return idx;
+  const cod = bl.coluna('ccCod'), desc = bl.coluna('ccDesc'), full = bl.coluna('ccFull');
   for (let r = 0; r < n; r++) {
     const c = cod ? String(cod[r][0]).trim() : '', d = desc ? String(desc[r][0]).trim() : '';
     const f = (full ? String(full[r][0]).trim() : '') || [c, d].filter(String).join(' - ');
@@ -614,7 +635,7 @@ function diagnosticar() {
     const a = d.abas[id];
     Logger.log('— Aba "' + a.aba + '": ' + (a.erro || ('cabeçalho na linha ' + a.linhaCab + ', ' +
       a.linhas.length + ' linhas com dados' + (a.sinal === -1 ? ', valores negativos (sinal invertido no painel)' : ''))));
-    if (a.tempo) Logger.log('   Tempo: cabeçalho ' + (a.tempo.cabecalho / 1000).toFixed(1) + ' s · leitura ' + (a.tempo.leitura / 1000).toFixed(1) +
+    if (a.tempo) Logger.log('   Tempo: leitura ' + (a.tempo.leitura / 1000).toFixed(1) +
       ' s · processamento ' + (a.tempo.processamento / 1000).toFixed(1) + ' s (' + a.tempo.linhas + ' linhas × ' + a.tempo.colunas + ' colunas na aba)');
     if (a.faltando.length) Logger.log('   Colunas NÃO encontradas: ' + a.faltando.join(' | '));
   });
