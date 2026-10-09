@@ -86,7 +86,7 @@ const ABAS = {
       { k: 'pagto', nome: 'Pagto.', tipo: 'data', alias: ['Pagto', 'Data Pagto', 'Data de Pagamento'] },
       { k: 'obs', nome: 'Consolidado', tipo: 'texto' },
       { k: 'valor', nome: 'Pagamentos', tipo: 'valor' },
-      { k: 'tipo', nome: 'Real / Acumulado', tipo: 'texto', dic: true, alias: ['Real/Acumulado'] },
+      { k: 'tipo', nome: 'Real S / Acumulado', tipo: 'texto', dic: true, alias: ['Real / Acumulado', 'Real/Acumulado'] },
       { k: 'ccFull', nome: 'Código + Centro de Custo', tipo: 'texto', dic: true, alias: ['Codigo + Centro de Custo'] }
     ]
   },

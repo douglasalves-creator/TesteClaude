@@ -8,7 +8,7 @@ O painel é só de consulta: ele **não altera nada** na planilha. Pode instalar
   - Orçamento: SETOR, DATA DE VENCIMENTO, VALOR A PAGAR, PROJETO, CENTRO DE CUSTO
   - Fluxo de Caixa: Data programada de pgto, Fornecedor, Valor, Comentário, Projeto, Centro de Custo, Situação, Data do Fluxo
   - Realizado Controladoria: Favorecido, C. Custo, Centro de Custo, Projeto, Documento, Pagto., Consolidado, Pagamentos,
-    Real / Acumulado, Código + Centro de Custo
+    Real S / Acumulado, Código + Centro de Custo
 - O nome da usina (Projeto) está escrito igual nas três abas.
 
 ## 1. Colar os arquivos
