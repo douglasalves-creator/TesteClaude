@@ -191,11 +191,18 @@ function parseValor_(v) {
   return neg ? -n : n;
 }
 
+/* Converter data é lento no Apps Script; as mesmas datas se repetem muito, então guardamos o resultado. */
+const CACHE_DATAS_ = {};
+
 /** Devolve a data como 'aaaa-mm-dd' (ou '' se não for data). */
 function parseData_(v, tz) {
   if (v === null || v === undefined || v === '') return '';
   if (Object.prototype.toString.call(v) === '[object Date]') {
-    return isNaN(v.getTime()) ? '' : Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+    const t = v.getTime();
+    if (isNaN(t)) return '';
+    const k = tz + t;
+    if (!(k in CACHE_DATAS_)) CACHE_DATAS_[k] = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+    return CACHE_DATAS_[k];
   }
   const s = String(v).trim();
   let m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
