@@ -386,7 +386,8 @@ function toast(msg, erro) {
 }
 function atualizar(silencioso) {
   $('#icoAtualizar').classList.add('spin'); $('#btnAtualizar').disabled = true;
-  return run('carregarDados').then((d) => { receber(d); if (!silencioso) toast('Dados atualizados.'); })
+  // No "Atualizar" busca direto na planilha; ao abrir, aceita os dados guardados há poucos minutos.
+  return run('carregarDados', !silencioso).then((d) => { receber(d); if (!silencioso) toast('Dados atualizados.'); })
     .catch((e) => { if (!S.d) $('#loading').innerHTML = '<h3>Não consegui ler a planilha</h3><p>' + esc(e) + '</p>'; else toast(e, true); })
     .finally(() => { $('#icoAtualizar').classList.remove('spin'); $('#btnAtualizar').disabled = false; });
 }

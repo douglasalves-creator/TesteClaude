@@ -58,6 +58,10 @@ const CONFIG = {
   ABA_SETORES: 'Setores',
   SETOR_TOTAL: 'TODOS',
 
+  // Por quantos minutos os dados lidos ficam guardados (o painel abre bem mais rápido).
+  // O botão "Atualizar" do painel sempre busca os dados novos. Use 0 para desligar.
+  CACHE_MINUTOS: 10,
+
   LINHAS_PROCURA_CABECALHO: 15
 };
 
@@ -423,7 +427,7 @@ function lerTabela_(ss, nome) {
  * O que o e-mail de quem abriu pode ver.
  * { restrito:false } quando não há aba "Acessos" ou a pessoa tem o setor TODOS.
  */
-function permissao_(ss, email) {
+function permissao_(ss, email, abas) {
   const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
   if (acessos === null) return { restrito: false };
   const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
@@ -431,7 +435,7 @@ function permissao_(ss, email) {
   if (eu && eu === dono) return { restrito: false, setores: [CONFIG.SETOR_TOTAL] };
   const setores = acessos.filter(function (l) { return l[0].toLowerCase() === eu; }).map(function (l) { return l[1]; });
   if (setores.some(function (st) { return nk_(st) === nk_(CONFIG.SETOR_TOTAL); })) return { restrito: false, setores: [CONFIG.SETOR_TOTAL] };
-  const idx = indiceCC_(ss);
+  const idx = indiceDosDados_(abas.real);
   const quer = {};
   setores.forEach(function (st) { quer[nk_(st)] = true; });
   const ccs = {};
@@ -462,20 +466,35 @@ function prepararAcessos() {
 }
 
 /** Chamado pelo painel ao abrir e no botão "Atualizar". */
-function carregarDados() {
+function carregarDados(forcar) {
   const ss = getSS_();
   const tz = ss.getSpreadsheetTimeZone();
   const email = Session.getActiveUser().getEmail() || '';
-  const geradoEm = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm');
-  const ac = permissao_(ss, email);
-  if (ac.restrito && ac.semAcesso) return { semAcesso: true, usuario: email, geradoEm: geradoEm };
-  const filtro = ac.restrito ? {
-    orc: function (v) { return ac.ccs[chaveCC_(v.cc, ac.idx)]; },
-    fluxo: function (v) { return ac.ccs[chaveCC_(v.cc, ac.idx)]; },
-    real: function (v) { return ac.ccs[chaveCC_(v.ccFull || [v.ccCod, v.ccDesc].filter(String).join(' - '), ac.idx)]; }
-  } : {};
+
+  // Dados completos: do que está guardado ou, se não houver (ou "Atualizar"), lidos da planilha.
+  let base = forcar ? null : cacheLer_();
+  if (!base) {
+    base = {
+      geradoEm: Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'),
+      abas: { orc: lerAba_(ss, 'orc', tz), real: lerAba_(ss, 'real', tz), fluxo: lerAba_(ss, 'fluxo', tz) }
+    };
+    cacheGravar_(base);
+  }
+
+  // Cada pessoa recebe só o que pode ver.
+  const ac = permissao_(ss, email, base.abas);
+  if (ac.restrito && ac.semAcesso) return { semAcesso: true, usuario: email, geradoEm: base.geradoEm };
+  let abas = base.abas;
+  if (ac.restrito) {
+    const ok = function (txt) { return ac.ccs[chaveCC_(txt, ac.idx)]; };
+    abas = {
+      orc: refazAba_(base.abas.orc, function (v) { return ok(v.cc); }),
+      fluxo: refazAba_(base.abas.fluxo, function (v) { return ok(v.cc); }),
+      real: refazAba_(base.abas.real, function (v) { return ok(v.ccFull || [v.ccCod, v.ccDesc].filter(String).join(' - ')); })
+    };
+  }
   return {
-    geradoEm: geradoEm,
+    geradoEm: base.geradoEm,
     usuario: email,
     acesso: { restrito: ac.restrito, setores: ac.setores || [] },
     planilha: ss.getName(),
@@ -485,8 +504,95 @@ function carregarDados() {
       REALIZADO_SOMA_SEMANA: CONFIG.REALIZADO_SOMA_SEMANA, EMPRESA: CONFIG.EMPRESA,
       PROJETADO_SO_EM_ABERTO: CONFIG.PROJETADO_SO_EM_ABERTO
     },
-    abas: { orc: lerAba_(ss, 'orc', tz, filtro.orc), real: lerAba_(ss, 'real', tz, filtro.real), fluxo: lerAba_(ss, 'fluxo', tz, filtro.fluxo) }
+    abas: abas
   };
+}
+
+/** Lê uma linha já compactada de volta para { campo: valor }. */
+function abrirLinha_(aba, def, l) {
+  const v = {};
+  def.campos.forEach(function (c, j) { let x = l[j + 1]; if (aba.dic[c.k]) x = aba.dic[c.k][x]; v[c.k] = x; });
+  return v;
+}
+
+/** Mantém só as linhas que a pessoa pode ver e refaz a compactação (nada de outro setor fica no resultado). */
+function refazAba_(aba, pode) {
+  const def = ABAS[aba.id];
+  const dics = {}, dicIdx = {};
+  def.campos.forEach(function (c) { if (c.dic) { dics[c.k] = []; dicIdx[c.k] = {}; } });
+  const linhas = [];
+  aba.linhas.forEach(function (l) {
+    const v = abrirLinha_(aba, def, l);
+    if (!pode(v)) return;
+    const nova = [l[0]];
+    def.campos.forEach(function (c) {
+      let x = v[c.k];
+      if (c.dic) {
+        const s = x === null ? '' : String(x);
+        if (!(s in dicIdx[c.k])) { dicIdx[c.k][s] = dics[c.k].length; dics[c.k].push(s); }
+        x = dicIdx[c.k][s];
+      }
+      nova.push(x);
+    });
+    linhas.push(nova);
+  });
+  const out = {};
+  Object.keys(aba).forEach(function (k) { out[k] = aba[k]; });
+  out.linhas = linhas; out.dic = dics; delete out.tempo;
+  return out;
+}
+
+/** Mesmo índice de centros de custo do indiceCC_, montado a partir dos dados do Realizado já lidos. */
+function indiceDosDados_(real) {
+  const idx = {};
+  if (!real || !real.linhas) return idx;
+  real.linhas.forEach(function (l) {
+    const v = abrirLinha_(real, ABAS.real, l);
+    const c = String(v.ccCod || '').trim(), d = String(v.ccDesc || '').trim();
+    const f = String(v.ccFull || '').trim() || [c, d].filter(String).join(' - ');
+    if (!f) return;
+    const alvo = nk_(f);
+    [f, c, d].forEach(function (x) { const k = nk_(x); if (k && !(k in idx)) idx[k] = alvo; });
+  });
+  return idx;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dados guardados por alguns minutos (CacheService)                   */
+/* ------------------------------------------------------------------ */
+
+const CACHE_TAM_ = 90000;
+
+function cacheLer_() {
+  if (!CONFIG.CACHE_MINUTOS) return null;
+  try {
+    const c = CacheService.getScriptCache();
+    const meta = c.get('painel_meta');
+    if (!meta) return null;
+    const partes = JSON.parse(meta).partes, chaves = [];
+    for (let i = 0; i < partes; i++) chaves.push('painel_' + i);
+    const got = c.getAll(chaves);
+    if (chaves.some(function (k) { return !got[k]; })) return null;
+    const bytes = Utilities.base64Decode(chaves.map(function (k) { return got[k]; }).join(''));
+    return JSON.parse(Utilities.ungzip(Utilities.newBlob(bytes, 'application/x-gzip')).getDataAsString('UTF-8'));
+  } catch (e) {
+    return null;
+  }
+}
+
+function cacheGravar_(dados) {
+  if (!CONFIG.CACHE_MINUTOS) return;
+  try {
+    const gz = Utilities.gzip(Utilities.newBlob(JSON.stringify(dados), 'application/json'));
+    const b64 = Utilities.base64Encode(gz.getBytes());
+    const mapa = {};
+    const partes = Math.ceil(b64.length / CACHE_TAM_);
+    for (let i = 0; i < partes; i++) mapa['painel_' + i] = b64.substr(i * CACHE_TAM_, CACHE_TAM_);
+    mapa.painel_meta = JSON.stringify({ partes: partes });
+    CacheService.getScriptCache().putAll(mapa, Math.min(21600, CONFIG.CACHE_MINUTOS * 60));
+  } catch (e) {
+    // Dados grandes demais para guardar: o painel segue funcionando, só sem a aceleração.
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -627,7 +733,7 @@ function excluirLinha(p) {
 
 function diagnosticar() {
   const t0 = Date.now();
-  const d = carregarDados();
+  const d = carregarDados(true);
   Logger.log('Tempo total para carregar o painel: ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
   if (d.semAcesso) { Logger.log('O e-mail ' + d.usuario + ' não tem nenhum centro de custo liberado na aba "' + CONFIG.ABA_ACESSOS + '".'); return; }
   Logger.log('Planilha: ' + d.planilha);

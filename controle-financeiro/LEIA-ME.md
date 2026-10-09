@@ -82,3 +82,5 @@ Todos ficam no topo do `Codigo.gs`, em `CONFIG`:
 
 - `PROJETADO_SO_EM_ABERTO`: troque para `false` se o Projetado tiver que somar também o que já está "Pago" no fluxo.
 - `REALIZADO_SOMA_SEMANA`: troque para `false` se o "Real Acumulado" já incluir a última semana.
+- `CACHE_MINUTOS`: por quantos minutos os dados lidos ficam guardados para o painel abrir rápido (padrão 10).
+  O botão **Atualizar** do painel sempre busca os dados novos na hora.
