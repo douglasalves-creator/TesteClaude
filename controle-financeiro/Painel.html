@@ -24,7 +24,7 @@
   button,input,select,textarea{font-family:inherit; font-size:inherit; color:inherit}
   button{cursor:pointer}
   :focus-visible{outline:2px solid var(--aurora); outline-offset:2px}
-  .wrap{max-width:1280px; margin:0 auto; padding:0 28px}
+  .wrap{max-width:1640px; margin:0 auto; padding:0 32px}
   .tnum{font-variant-numeric:tabular-nums}
 
   /* Topo */
@@ -79,7 +79,7 @@
   @media (max-width:640px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .kpi{background:var(--branco); border-radius:var(--radius); padding:16px 18px}
   .kpi .l{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3)}
-  .kpi .v{font-size:24px; font-weight:600; margin-top:6px; letter-spacing:-.02em; white-space:nowrap}
+  .kpi .v{font-size:21px; font-weight:600; margin-top:6px; letter-spacing:-.02em; white-space:nowrap}
   .kpi.dark{background:var(--eclipse); color:var(--branco)}
   .kpi.dark .l{color:#9aa1a8}
   .kpi .v.neg{color:var(--neg)}
@@ -103,6 +103,17 @@
   tbody tr.c{cursor:pointer}
   tbody tr.c:hover td{background:#FFF6F1}
   tr.c.zero td{color:var(--ink-3)}
+  tr.c.sel td{background:#FFF1E8}
+  tr.c.sel td:first-child{box-shadow:inset 3px 0 0 var(--aurora)}
+  .ck{display:inline-grid; place-items:center; width:16px; height:16px; border-radius:5px; border:1.5px solid var(--nevoa); margin-right:10px; vertical-align:-3px; background:var(--branco)}
+  tr.c.sel .ck{background:var(--aurora); border-color:var(--aurora)}
+  tr.c.sel .ck::after{content:''; width:8px; height:4px; border-left:2px solid var(--branco); border-bottom:2px solid var(--branco); transform:rotate(-45deg) translate(1px,-1px)}
+  .det{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:4px 12px; font-size:12px; font-weight:600; color:var(--ink-2); white-space:nowrap}
+  .det:hover{border-color:var(--aurora); color:var(--aurora)}
+  .chsel{font-size:12.5px; color:var(--ink-2); display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .chsel b{color:var(--aurora); font-weight:600}
+  .chsel button{background:none; border:0; padding:0; color:var(--aurora); font-weight:600; font-size:12px}
+  .h3 .tt{margin-left:auto; text-transform:none; letter-spacing:0; font-size:13px; color:var(--ink)}
   tr.tot td{font-weight:700; border-top:2px solid var(--eclipse); border-bottom:0}
   .dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--aurora); margin-left:6px; vertical-align:middle}
   .note{font-size:12px; color:var(--ink-3); margin:12px 4px 0}
@@ -117,25 +128,12 @@
   .sw{display:inline-block; width:14px; height:3px; border-radius:2px; vertical-align:middle; margin-right:8px}
   .sw.tr{background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)}
 
-  /* Botões e lançamentos */
-  .btn{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:7px 16px; font-weight:600; font-size:12.5px; display:inline-flex; align-items:center; gap:6px}
-  .btn:hover{border-color:var(--ink-3)}
-  .btn:disabled{opacity:.55; cursor:not-allowed}
-  .btn-pri{background:var(--aurora); border-color:var(--aurora); color:var(--branco)}
-  .btn-pri:hover{background:#d95f22; border-color:#d95f22}
-  .btn-danger{background:var(--neg); border-color:var(--neg); color:var(--branco)}
-  .sit{font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap}
-  .sit.ab{background:var(--aurora-soft); color:#A9461A}
-  .sit.pg{background:var(--sirius); color:var(--ink-2)}
   .acts{white-space:nowrap; text-align:right}
-  .ib{border:0; background:transparent; border-radius:6px; padding:4px 5px; color:var(--ink-3)}
-  .ib:hover{background:var(--sirius); color:var(--aurora)}
-  .ib svg{width:15px; height:15px; display:block}
 
   /* Detalhe (gaveta) */
   .scrim{position:fixed; inset:0; background:rgba(10,15,20,.4); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s}
   .scrim.on{opacity:1; pointer-events:auto}
-  .drawer{position:fixed; top:0; right:0; bottom:0; width:min(860px,100%); background:var(--sirius); z-index:41; transform:translateX(100%); transition:transform .25s ease; display:flex; flex-direction:column}
+  .drawer{position:fixed; top:0; right:0; bottom:0; width:min(1080px,100%); background:var(--sirius); z-index:41; transform:translateX(100%); transition:transform .25s ease; display:flex; flex-direction:column}
   .drawer.on{transform:none}
   .drawer > header{background:var(--eclipse); color:var(--branco); padding:18px 24px; display:flex; align-items:flex-start; gap:14px}
   .drawer h2{margin:0; font-size:16px; font-weight:600}
@@ -145,31 +143,12 @@
   .drawer .body{padding:20px 24px 40px; overflow-y:auto; flex:1}
   .drawer .kpis{margin-bottom:0}
   .drawer .kpi{padding:12px 14px}
-  .drawer .kpi .v{font-size:16px}
+  .drawer .kpi .v{font-size:15px}
   .drawer .kpi .l{font-size:10px; letter-spacing:.05em}
   @media (max-width:700px){ .drawer .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .drawer td{font-size:12.5px}
   .h3{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--ink-3); margin:24px 0 10px; display:flex; align-items:center; gap:8px}
   .h3 .r{margin-left:auto}
-  .fld{display:flex; flex-direction:column; gap:4px}
-  .fld label{font-size:11px; font-weight:600; color:var(--ink-3); text-transform:uppercase; letter-spacing:.06em}
-  .fld input,.fld select,.fld textarea{border:1px solid var(--nevoa); border-radius:10px; padding:8px 11px; background:var(--branco); width:100%}
-  .fld textarea{min-height:70px; resize:vertical}
-  .form{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 14px}
-  .form .full{grid-column:1/-1}
-  @media (max-width:640px){ .form{grid-template-columns:minmax(0,1fr)} }
-  .form-f{display:flex; align-items:center; gap:8px; margin-top:12px}
-  .form-f .meta{margin-right:auto; font-size:12px; color:var(--ink-3)}
-
-  /* Janela de edição */
-  .modal-w{position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(10,15,20,.5)}
-  .modal-w.on{display:flex}
-  .modal{background:var(--branco); border-radius:16px; width:min(620px,100%); max-height:calc(100vh - 40px); display:flex; flex-direction:column}
-  .modal > header{padding:18px 22px 6px; display:flex; align-items:center}
-  .modal > header h2{margin:0; font-size:16px; font-weight:600}
-  .modal .mb{padding:10px 22px; overflow-y:auto}
-  .modal .mf{padding:14px 22px 18px; display:flex; gap:8px; justify-content:flex-end}
-  .modal .msg{font-size:12.5px; color:var(--neg); margin-right:auto; align-self:center}
 
   /* Estados */
   .state{text-align:center; padding:100px 20px; color:var(--ink-2)}
@@ -191,7 +170,7 @@
 <body>
 
 <header class="top">
-  <div class="top-in" style="max-width:1280px; margin:0 auto">
+  <div class="top-in" style="max-width:1640px; margin:0 auto; padding-inline:32px">
     <h1>Painel Financeiro <span>·</span> Usinas</h1>
     <div class="top-r">
       <span class="stamp" id="stamp"></span>
@@ -233,9 +212,9 @@
       </div>
       <div id="tree"></div>
     </div>
-    <p class="note">Clique num centro de custo para ver os lançamentos e registrar observações. Valores em R$.</p>
+    <p class="note">Clique nos centros de custo para ver só eles no gráfico abaixo. Use <b>Detalhar</b> para ver todos os lançamentos de um centro de custo. Valores em R$.</p>
     <div class="card mt">
-      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2></div>
+      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2><span class="chsel" id="chSel"></span></div>
       <div class="chart-box"><canvas id="chCurvas" role="img" aria-label="Orçado, projetado e realizado por mês"></canvas></div>
       <div id="tabMeses"></div>
     </div>
@@ -248,14 +227,6 @@
   <div class="body" id="dwB"></div>
 </aside>
 
-<div class="modal-w" id="modal" role="dialog" aria-modal="true">
-  <div class="modal">
-    <header><h2 id="mdT"></h2><button class="x" id="mdX" type="button" aria-label="Fechar">×</button></header>
-    <div class="mb" id="mdB"></div>
-    <div class="mf"><span class="msg" id="mdMsg"></span><button class="btn" id="mdCancel" type="button">Cancelar</button><button class="btn btn-pri" id="mdOk" type="button">Salvar</button></div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -265,10 +236,9 @@
 const S = {
   d: null, rows: { orc: [], fluxo: [], real: [] },
   f: { us: new Set(), snap: '' },
-  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null
+  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, ccSel: new Set()
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
-const NOME_ABA = { orc: 'Orçamento', fluxo: 'Fluxo de Caixa', real: 'Realizado' };
 const $ = (s) => document.querySelector(s);
 
 /* =================================================================== */
@@ -277,8 +247,8 @@ const $ = (s) => document.querySelector(s);
 const _int = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const _n1 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const _n2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-function num(v) { const r = Math.round(v || 0); return r < 0 ? '−' + _int.format(-r) : _int.format(r); }
-function numCls(v) { return Math.round(v || 0) < 0 ? ' neg' : ''; }
+function num(v) { const r = Math.round((v || 0) * 100) / 100; return (r < 0 ? '−' : '') + _n2.format(Math.abs(r)); }
+function numCls(v) { return Math.round((v || 0) * 100) < 0 ? ' neg' : ''; }
 function brl2(v) { if (v === null || v === undefined || v === '') return '—'; return (v < 0 ? '−R$ ' : 'R$ ') + _n2.format(Math.abs(v)); }
 function compact(v) {
   const a = Math.abs(v || 0), s = v < 0 ? '−' : '';
@@ -291,19 +261,6 @@ const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out
 function mes(ym) { const p = ym.split('-'); return MES[+p[1] - 1] + '/' + p[0].slice(2); }
 function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function nk(s) { return String(s === null || s === undefined ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
-function parseBR(s) {
-  if (typeof s === 'number') return s;
-  let t = String(s || '').trim().replace(/[R$\s]/g, '');
-  if (!t) return null;
-  if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
-  const n = parseFloat(t);
-  return isFinite(n) ? n : null;
-}
-const IC = {
-  ed: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5l2.5 2.5L5.5 13H3v-2.5z"/></svg>',
-  del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.7 9h6.6l.7-9"/></svg>',
-  pago: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>'
-};
 
 /* =================================================================== */
 /* Modo demonstração: abre fora da planilha com dados fictícios          */
@@ -313,6 +270,7 @@ const DEMO_API = DEMO ? (function () {
   let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   const hoje = new Date(), Y = hoje.getFullYear(), M = hoje.getMonth() + 1;
   const pad = (n) => ('0' + n).slice(-2);
+  const cent = (v) => Math.round(v * 100) / 100;
   const iso = (y, m, d) => { const x = new Date(y, m - 1, d); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
   const cidades = ['Agrestina I', 'Agrestina II', 'Bom Conselho', 'Bonito I', 'Bonito II', 'Carangola', 'Caruaru', 'Garanhuns', 'Arcoverde', 'Belo Jardim',
     'Pesqueira', 'Gravatá', 'Surubim', 'Limoeiro', 'Petrolina', 'Salgueiro', 'Serra Talhada', 'Araripina', 'Ouricuri', 'Afogados', 'Sertânia', 'Custódia',
@@ -339,19 +297,17 @@ const DEMO_API = DEMO ? (function () {
   usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
     if ((ui + ci) % 4 === 3) return; // nem toda usina tem todos os centros de custo
     const base = 8000 + rnd() * 30000;
-    for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), Math.round(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
+    for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), cent(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
     const fator = (ui + ci) % 7 === 0 ? 1.4 : 0.9;
-    for (let m = 1; m <= M; m++) L.real.push([n++, forn[ci % 8], c[0], c[1], u, 'NF ' + (1000 + n), iso(Y, m, 5), 'Parcela ' + m, Math.round(base * fator * (0.75 + rnd() * 0.5)), m === M ? 'REAL S' : 'Real Acumulado', c[0] + ' - ' + c[1]]);
+    for (let m = 1; m <= M; m++) L.real.push([n++, forn[ci % 8], c[0], c[1], u, 'NF ' + (1000 + n), iso(Y, m, 5), 'Parcela ' + m, cent(base * fator * (0.75 + rnd() * 0.5)), m === M ? 'REAL S' : 'Real Acumulado', c[0] + ' - ' + c[1]]);
     snaps.forEach((s, si) => {
       for (let m = M; m <= M + 3; m++) {
         if (rnd() < 0.3) continue;
-        L.fluxo.push([n++, iso(Y, m, 15), forn[ci % 8], Math.round(base * (0.9 + rnd() * 0.5) * (1 + si * 0.02)), 'Parcela', u, c[1], m === M && si > 4 ? 'Pago' : 'Em Aberto', s]);
+        L.fluxo.push([n++, iso(Y, m, 15), forn[ci % 8], cent(base * (0.9 + rnd() * 0.5) * (1 + si * 0.02)), 'Parcela', u, c[1], m === M && si > 4 ? 'Pago' : 'Em Aberto', s]);
       }
     });
   }));
   const aba = (id, nome, ed) => ({ id, aba: nome, editavel: ed, sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], linhaCab: 1, erro: '' });
-  const idx = (id, linha) => L[id].findIndex((l) => l[0] === +linha);
-  const obj = (id, l) => { const o = { _r: l[0] }; C[id].forEach((c, j) => { o[c[0]] = l[j + 1]; }); return o; };
   const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
   return {
     carregarDados: () => ({
@@ -359,11 +315,7 @@ const DEMO_API = DEMO ? (function () {
       cfg: { REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' },
       abas: { orc: aba('orc', 'Orçamento', true), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
       just: just
-    }),
-    salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
-    novaLinha: (p) => { const l = [n++].concat(C[p.aba].map((c) => p.valores[c[0]] === undefined ? '' : p.valores[c[0]])); L[p.aba].push(l); return obj(p.aba, l); },
-    excluirLinha: (p) => { L[p.aba].splice(idx(p.aba, p.linha), 1); return true; },
-    salvarJustificativa: (p) => { just[p.chave] = Object.assign({}, p, { em: agora(), por: 'demonstração' }); return just[p.chave]; }
+    })
   };
 })() : null;
 
@@ -407,7 +359,7 @@ function receber(d) {
     if (a.erro) msgs.push('<b>' + esc(a.aba) + ':</b> ' + esc(a.erro));
     else if (a.faltando.length) msgs.push('<b>' + esc(a.aba) + ':</b> colunas não encontradas — ' + a.faltando.map(esc).join(', '));
   });
-  $('#avisos').innerHTML = (DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel usa os dados reais e grava nas abas.</div>' : '') +
+  $('#avisos').innerHTML = (DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '') +
     (msgs.length ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '');
   preparar();
   render();
@@ -532,7 +484,7 @@ function agregar(F) {
 /* Tela                                                                 */
 /* =================================================================== */
 function kpi(l, v, dark) {
-  return '<div class="kpi' + (dark ? ' dark' : '') + '"><div class="l">' + l + '</div><div class="v tnum' + numCls(v) + '">' + compact(v) + '</div></div>';
+  return '<div class="kpi' + (dark ? ' dark' : '') + '"><div class="l">' + l + '</div><div class="v tnum' + numCls(v) + '">' + brl2(v) + '</div></div>';
 }
 function kpisHtml(m) {
   return kpi('Orçado', m.orc) + kpi('Projetado', m.proj) + kpi('Realizado', m.real) +
@@ -578,17 +530,16 @@ function renderTabela() {
   const lista = Array.from(por.values()).filter((c) => !q || nk(c.nome).indexOf(q) !== -1).sort(cmp);
   let h = '<table><thead><tr>' + COLS.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
-    (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '</tr></thead><tbody>';
-  if (!lista.length) h += '<tr><td colspan="6" class="empty">Nada encontrado.</td></tr>';
+    (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '<th></th></tr></thead><tbody>';
+  if (!lista.length) h += '<tr><td colspan="7" class="empty">Nada encontrado.</td></tr>';
   const tot = novoM();
   lista.forEach((c) => {
     somaM(tot, c.m);
-    const zero = !c.m.orc && !c.m.proj && !c.m.real;
-    const j = S.d.just[justKey(selKey(), c.k)];
-    h += '<tr class="c' + (zero ? ' zero' : '') + '" data-cc="' + esc(c.k) + '"><td>' + esc(c.nome) +
-      (j && (j.comentario || j.acao) ? '<span class="dot" title="Tem observação"></span>' : '') + '</td>' + celulas(c.m) + '</tr>';
+    const zero = Math.abs(c.m.orc) < 0.005 && Math.abs(c.m.proj) < 0.005 && Math.abs(c.m.real) < 0.005;
+    h += '<tr class="c' + (zero ? ' zero' : '') + (S.ccSel.has(c.k) ? ' sel' : '') + '" data-cc="' + esc(c.k) + '"><td><span class="ck"></span>' + esc(c.nome) + '</td>' +
+      celulas(c.m) + '<td class="acts"><button type="button" class="det" data-det="' + esc(c.k) + '">Detalhar</button></td></tr>';
   });
-  if (lista.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '</tr>';
+  if (lista.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '<td></td></tr>';
   $('#tree').innerHTML = h + '</tbody></table>';
 }
 
@@ -597,9 +548,13 @@ function renderCurvas() {
   const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
   const o = {}, p = {}, r = {}, ms = new Set();
   const add = (obj, d, v) => { if (!d) return; const m = d.slice(0, 7); obj[m] = (obj[m] || 0) + (v || 0); ms.add(m); };
-  S.F.orc.forEach((x) => add(o, x._d, x.valor));
-  S.F.fl.forEach((x) => { if (!soAb || !x._pago) add(p, x._d, x.valor); });
-  S.F.real.forEach((x) => { if (x._t === 'S' && !cfg.REALIZADO_SOMA_SEMANA) return; add(r, x._d, x.valor); });
+  const usa = (x) => !S.ccSel.size || S.ccSel.has(x._ck);
+  S.F.orc.forEach((x) => { if (usa(x)) add(o, x._d, x.valor); });
+  S.F.fl.forEach((x) => { if (usa(x) && (!soAb || !x._pago)) add(p, x._d, x.valor); });
+  S.F.real.forEach((x) => { if (!usa(x) || (x._t === 'S' && !cfg.REALIZADO_SOMA_SEMANA)) return; add(r, x._d, x.valor); });
+  const n = S.ccSel.size;
+  $('#chSel').innerHTML = n === 0 ? 'Todos os centros de custo'
+    : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSel)[0]]) : n + ' centros de custo selecionados') + '</b><button type="button" id="ccLimpar">Mostrar todos</button>';
   const meses = Array.from(ms).sort();
   const faixa = (obj) => { const k = Object.keys(obj).sort(); return [k[0] || '9999', k[k.length - 1] || '']; };
   const [oIni, oFim] = faixa(o), [pIni, pFim] = faixa(p), [rIni, rFim] = faixa(r);
@@ -633,11 +588,11 @@ function renderCurvas() {
       }
     });
   }
-  // Tabela com o valor de cada mês (R$ mil)
-  const mil = (v) => (v === null ? '<span style="color:var(--nevoa)">—</span>' : '<span class="' + numCls(v).trim() + '">' + num(v / 1000) + '</span>');
+  // Tabela com o valor de cada mês
+  const mil = (v) => (v === null ? '<span style="color:var(--nevoa)">—</span>' : '<span class="' + numCls(v).trim() + '">' + num(v) + '</span>');
   const soma = (arr) => arr.reduce((a, v) => a + (v || 0), 0);
-  const lin = (nome, sw, arr) => '<tr><td><span class="sw" style="' + sw + '"></span>' + nome + '</td>' + arr.map((v) => '<td class="n">' + mil(v) + '</td>').join('') + '<td class="n dl first"><b>' + num(soma(arr) / 1000) + '</b></td></tr>';
-  $('#tabMeses').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$ mil</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
+  const lin = (nome, sw, arr) => '<tr><td><span class="sw" style="' + sw + '"></span>' + nome + '</td>' + arr.map((v) => '<td class="n">' + mil(v) + '</td>').join('') + '<td class="n dl first"><b>' + num(soma(arr)) + '</b></td></tr>';
+  $('#tabMeses').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
     lin('Orçado', 'background:var(--cosmos)', sO) +
     lin('Projetado', 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)', sP) +
     lin('Realizado', 'background:var(--aurora)', sR) + '</tbody></table>'
@@ -645,40 +600,30 @@ function renderCurvas() {
 }
 
 /* =================================================================== */
-/* Detalhe do centro de custo                                           */
+/* Detalhar: todos os lançamentos de um centro de custo (só leitura)     */
 /* =================================================================== */
 const COLS_LANC = {
   orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['setor', 'Setor'], ['valor', 'Valor', 'valor']],
-  fluxo: [['dataProg', 'Data prog.', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['coment', 'Comentário'], ['situacao', 'Situação', 'sit'], ['valor', 'Valor', 'valor']],
+  fluxo: [['dataProg', 'Data programada', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['coment', 'Comentário'], ['situacao', 'Situação'], ['valor', 'Valor', 'valor']],
   real: [['pagto', 'Pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['valor', 'Valor', 'valor']]
 };
 function celula(r, col) {
   const k = col[0], tp = col[2];
   if (tp === 'data') return '<td style="white-space:nowrap">' + (r[k] ? dt(r[k]) : '—') + '</td>';
   if (tp === 'valor') return '<td class="n">' + brl2(r[k]) + '</td>';
-  if (tp === 'sit') return '<td><span class="sit ' + (r._pago ? 'pg' : 'ab') + '">' + esc(r[k] || 'Em Aberto') + '</span></td>';
   return '<td>' + esc(r[k]) + '</td>';
-}
-function acoes(aba, r) {
-  if (!S.d.abas[aba].editavel) return '';
-  return '<td class="acts">' +
-    (aba === 'fluxo' && !r._pago ? '<button class="ib" data-pago="' + r._r + '" title="Marcar como pago">' + IC.pago + '</button>' : '') +
-    '<button class="ib" data-ed="' + aba + '|' + r._r + '" title="Editar">' + IC.ed + '</button>' +
-    '<button class="ib" data-del="' + aba + '|' + r._r + '" title="Excluir">' + IC.del + '</button></td>';
 }
 function tabelaLanc(aba, rows) {
   const cols = COLS_LANC[aba].filter((c) => c[0] !== 'projeto' || S.f.us.size > 1);
-  const ed = S.d.abas[aba].editavel;
-  const lista = rows.slice().sort((a, b) => (b[cols[0][0]] || '').localeCompare(a[cols[0][0]] || ''));
-  const total = rows.reduce((s, r) => s + (r.valor || 0), 0);
-  let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
-  if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
-  lista.forEach((r) => { h += '<tr>' + cols.map((c) => celula(r, c)).join('') + acoes(aba, r) + '</tr>'; });
-  if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</td><td class="n">' + brl2(total) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
+  const lista = rows.slice().sort((a, b) => (a[cols[0][0]] || '').localeCompare(b[cols[0][0]] || ''));
+  let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + '</tr></thead><tbody>';
+  if (!lista.length) h += '<tr><td colspan="' + cols.length + '" class="empty">Nenhum lançamento.</td></tr>';
+  lista.forEach((r) => { h += '<tr>' + cols.map((c) => celula(r, c)).join('') + '</tr>'; });
+  if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">Total</td><td class="n">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</td></tr>';
   return h + '</tbody></table>';
 }
 function abrirCC(ck) {
-  S.drawer = { uk: selKey(), ck };
+  S.drawer = { ck };
   $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
   renderDrawer(true);
 }
@@ -687,141 +632,23 @@ function fecharDrawer() {
   $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); $('#drawer').setAttribute('aria-hidden', 'true');
 }
 function renderDrawer(novo) {
-  const { uk, ck } = S.drawer;
+  const { ck } = S.drawer;
+  const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
   const sel = (r) => r._ck === ck && passa(r);
   const Fx = { orc: S.rows.orc.filter(sel), real: S.rows.real.filter(sel), fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && sel(r)) };
   const m = agregar(Fx).tot;
+  const proj = Fx.fl.filter((r) => !soAb || !r._pago);
+  const real = Fx.real.filter((r) => r._t !== 'S' || cfg.REALIZADO_SOMA_SEMANA);
   $('#dwT').textContent = S.ccNome[ck] || '';
   $('#dwS').textContent = selNome() + ' · fluxo de ' + (S.f.snap ? dt(S.f.snap) : '—');
-  const j = S.d.just[justKey(uk, ck)] || {};
-  const guard = !novo && document.getElementById('jCom') ? { s: $('#jStatus').value, r: $('#jResp').value, c: $('#jCom').value } : null;
-
   let h = '<div class="kpis">' + kpisHtml(m) + '</div>';
-  h += '<div class="h3">Observação</div><div class="card" style="padding:16px"><div class="form">' +
-    '<div class="fld"><label for="jStatus">Situação</label><select id="jStatus">' +
-      ['', 'Pendente', 'Em análise', 'Ajustar orçamento', 'Ajustar fluxo', 'Resolvido'].map((s) => '<option' + (s === j.status ? ' selected' : '') + '>' + s + '</option>').join('') + '</select></div>' +
-    '<div class="fld"><label for="jResp">Responsável</label><input id="jResp" value="' + esc(j.responsavel || '') + '"></div>' +
-    '<div class="fld full"><label for="jCom">Comentário / ajuste</label><textarea id="jCom">' + esc(j.comentario || '') + '</textarea></div>' +
-    '</div><div class="form-f"><span class="meta">' + (j.em ? 'Atualizado em ' + esc(j.em) + (j.por ? ' · ' + esc(j.por) : '') : '') + '</span>' +
-    '<button class="btn btn-pri" id="jSalvar" type="button">Salvar</button></div></div>';
-  [['fluxo', Fx.fl, 'Fluxo de Caixa'], ['orc', Fx.orc, 'Orçamento'], ['real', Fx.real, 'Realizado']].forEach(([aba, rows, t]) => {
-    const extra = aba === 'fluxo' && S.d.cfg.PROJETADO_SO_EM_ABERTO !== false ? ' · em aberto ' + brl2(m.projAb) : '';
-    h += '<div class="h3">' + t + ' · ' + rows.length + extra + (S.d.abas[aba].editavel ? '<span class="r"><button class="btn" data-novo="' + aba + '" type="button">+ Novo</button></span>' : '') + '</div>' +
+  [['orc', Fx.orc, 'Orçado'], ['fluxo', proj, 'Projetado' + (soAb ? ' (em aberto no fluxo)' : '')], ['real', real, 'Realizado']].forEach(([aba, rows, t]) => {
+    h += '<div class="h3">' + t + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '<span class="tt">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</span></div>' +
       '<div class="card">' + tabelaLanc(aba, rows) + '</div>';
   });
   const body = $('#dwB'), sc = body.scrollTop;
   body.innerHTML = h;
-  if (guard) { $('#jStatus').value = guard.s; $('#jResp').value = guard.r; $('#jCom').value = guard.c; }
   body.scrollTop = novo ? 0 : sc;
-}
-function salvarJust() {
-  const { uk, ck } = S.drawer;
-  const p = { chave: justKey(uk, ck), usina: selNome(), cc: S.ccNome[ck], status: $('#jStatus').value,
-    responsavel: $('#jResp').value.trim(), comentario: $('#jCom').value.trim(), acao: (S.d.just[justKey(uk, ck)] || {}).acao || '' };
-  const b = $('#jSalvar'); b.disabled = true; b.textContent = 'Salvando…';
-  run('salvarJustificativa', p).then((r) => {
-    S.d.just[p.chave] = r; toast('Observação salva.'); renderDrawer(true); renderTabela();
-  }).catch((e) => { toast(e, true); b.disabled = false; b.textContent = 'Salvar'; });
-}
-
-/* =================================================================== */
-/* Edição de linhas                                                     */
-/* =================================================================== */
-function acharLinha(aba, linha) { return S.rows[aba].find((r) => r._r === +linha); }
-function sugestoes(aba, k) {
-  const set = new Set();
-  S.rows[aba].forEach((r) => { if (r[k]) set.add(String(r[k])); });
-  if (k === 'projeto') S.uLista.forEach((u) => set.add(S.uNome[u]));
-  if (k === 'cc') Object.values(S.ccNome).forEach((n) => { if (n && n[0] !== '(') set.add(String(n)); });
-  return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR')).slice(0, 800);
-}
-const ROTULO = { setor: 'Setor', venc: 'Data de vencimento', valor: 'Valor', projeto: 'Usina', cc: 'Centro de custo',
-  dataProg: 'Data programada', fornecedor: 'Fornecedor', coment: 'Comentário', situacao: 'Situação', dataFluxo: 'Data do fluxo' };
-
-let MD = null;
-function abrirModal(titulo, corpo, okTxt, onOk, perigo) {
-  MD = onOk;
-  $('#mdT').textContent = titulo; $('#mdB').innerHTML = corpo; $('#mdMsg').textContent = '';
-  const ok = $('#mdOk'); ok.textContent = okTxt; ok.disabled = false; ok.className = 'btn ' + (perigo ? 'btn-danger' : 'btn-pri');
-  $('#modal').classList.add('on');
-  const f = $('#mdB').querySelector('input,select,textarea'); if (f) setTimeout(() => f.focus(), 30);
-}
-function fecharModal() { $('#modal').classList.remove('on'); MD = null; }
-
-function abrirEditor(aba, row, preset) {
-  const def = S.d.abas[aba];
-  const faltam = new Set(def.faltando);
-  const campos = def.campos.filter((c) => !faltam.has(c.nome));
-  const val = row || Object.assign({}, preset || {});
-  let h = '<div class="form">';
-  campos.forEach((c) => {
-    const v = val[c.k];
-    h += '<div class="fld' + (c.k === 'coment' ? ' full' : '') + '"><label for="e_' + c.k + '">' + (ROTULO[c.k] || c.nome) + '</label>';
-    if (c.tipo === 'data') h += '<input type="date" id="e_' + c.k + '" value="' + esc(v || '') + '">';
-    else if (c.tipo === 'valor') h += '<input id="e_' + c.k + '" inputmode="decimal" placeholder="0,00" value="' + (v === null || v === undefined || v === '' ? '' : _n2.format(v)) + '">';
-    else if (c.k === 'situacao') {
-      const ops = ['Em Aberto', 'Pago']; if (v && !ops.includes(v)) ops.push(v);
-      h += '<select id="e_' + c.k + '">' + ops.map((o) => '<option' + (o === (v || 'Em Aberto') ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
-    } else if (c.k === 'coment') h += '<textarea id="e_' + c.k + '">' + esc(v || '') + '</textarea>';
-    else h += '<input id="e_' + c.k + '" list="dl_' + c.k + '" value="' + esc(v || '') + '" autocomplete="off"><datalist id="dl_' + c.k + '">' +
-      sugestoes(aba, c.k).map((s) => '<option value="' + esc(s) + '">').join('') + '</datalist>';
-    h += '</div>';
-  });
-  h += '</div><p style="font-size:12px;color:var(--ink-3);margin:12px 0 0">Grava na aba ' + esc(def.aba) + (row ? ', linha ' + row._r : '') + '.</p>';
-
-  abrirModal((row ? 'Editar' : 'Novo') + ' · ' + NOME_ABA[aba], h, row ? 'Salvar' : 'Incluir', () => {
-    const novo = {};
-    for (const c of campos) {
-      let v = document.getElementById('e_' + c.k).value.trim();
-      if (c.tipo === 'valor') {
-        if (v === '') v = null;
-        else { v = parseBR(v); if (v === null) return 'Valor inválido.'; v = Math.round(v * 100) / 100; }
-      }
-      novo[c.k] = v;
-    }
-    if (novo.valor === null || novo.valor === undefined) return 'Informe o valor.';
-    if (!novo.projeto) return 'Informe a usina.';
-    if (row) {
-      const depois = {}, antes = {};
-      campos.forEach((c) => {
-        antes[c.k] = row[c.k];
-        const a = row[c.k], b = novo[c.k];
-        const igual = c.tipo === 'valor' ? (a === null || a === undefined ? b === null : b !== null && Math.abs(a - b) < 0.005) : String(a || '') === String(b || '');
-        if (!igual) depois[c.k] = b;
-      });
-      if (!Object.keys(depois).length) { fecharModal(); return; }
-      return run('salvarLinha', { aba, linha: row._r, sinal: def.sinal, antes, depois }).then((r) => {
-        Object.assign(row, r); preparar(); render(); fecharModal(); toast('Salvo na planilha (linha ' + row._r + ').');
-      });
-    }
-    return run('novaLinha', { aba, sinal: def.sinal, valores: novo }).then((r) => {
-      S.rows[aba].push(r); preparar(); render(); fecharModal(); toast('Incluído na linha ' + r._r + '.');
-    });
-  });
-}
-function excluir(aba, row) {
-  const def = S.d.abas[aba];
-  const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
-  const resumo = COLS_LANC[aba].map((c) => {
-    const v = row[c[0]];
-    return v === '' || v === null || v === undefined ? '' : '<div><span style="color:var(--ink-3)">' + c[1] + ':</span> ' + esc(c[2] === 'data' ? dt(v) : c[2] === 'valor' ? brl2(v) : v) + '</div>';
-  }).join('');
-  abrirModal('Excluir lançamento', '<p style="margin-top:0">A linha ' + row._r + ' será apagada da aba ' + esc(def.aba) + '.</p><div class="card" style="background:var(--sirius);padding:12px 14px">' + resumo + '</div>',
-    'Excluir', () => run('excluirLinha', { aba, linha: row._r, sinal: def.sinal, antes }).then(() => { fecharModal(); toast('Excluído.'); return atualizar(true); }), true);
-}
-function marcarPago(row) {
-  const def = S.d.abas.fluxo;
-  const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
-  run('salvarLinha', { aba: 'fluxo', linha: row._r, sinal: def.sinal, antes, depois: { situacao: 'Pago' } })
-    .then((r) => { Object.assign(row, r); preparar(); render(); toast('Marcado como pago.'); })
-    .catch((e) => toast(e, true));
-}
-function novoPreset(aba, ctx) {
-  const p = {};
-  if (S.f.us.size === 1) p.projeto = S.uNome[Array.from(S.f.us)[0]];
-  if (ctx && S.ccNome[ctx.ck] && S.ccNome[ctx.ck][0] !== '(') p.cc = S.ccNome[ctx.ck];
-  if (aba === 'fluxo') { p.situacao = 'Em Aberto'; p.dataFluxo = S.f.snap || ''; }
-  return p;
 }
 
 /* =================================================================== */
@@ -846,36 +673,21 @@ document.addEventListener('click', (e) => {
   if (!e.composedPath().includes($('#ms'))) abrirUsel(false);
   const th = t.closest('#tree th[data-sort]');
   if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTabela(); return; }
-  const ed = t.closest('[data-ed]');
-  if (ed) { const [aba, l] = ed.dataset.ed.split('|'); const r = acharLinha(aba, l); if (r) abrirEditor(aba, r); return; }
-  const del = t.closest('[data-del]');
-  if (del) { const [aba, l] = del.dataset.del.split('|'); const r = acharLinha(aba, l); if (r) excluir(aba, r); return; }
-  const pg = t.closest('[data-pago]');
-  if (pg) { const r = acharLinha('fluxo', pg.dataset.pago); if (r) marcarPago(r); return; }
-  const nv = t.closest('[data-novo]');
-  if (nv) { abrirEditor(nv.dataset.novo, null, novoPreset(nv.dataset.novo, S.drawer)); return; }
-  if (t.closest('#jSalvar')) { salvarJust(); return; }
+  const det = t.closest('[data-det]');
+  if (det) { abrirCC(det.dataset.det); return; }
+  if (t.closest('#ccLimpar')) { S.ccSel.clear(); renderTabela(); renderCurvas(); return; }
   const cc = t.closest('#tree tr.c[data-cc]');
-  if (cc) abrirCC(cc.dataset.cc);
+  if (cc) {
+    const k = cc.dataset.cc;
+    if (S.ccSel.has(k)) S.ccSel.delete(k); else S.ccSel.add(k);
+    renderTabela(); renderCurvas();
+  }
 });
 $('#scrim').addEventListener('click', fecharDrawer);
 $('#dwX').addEventListener('click', fecharDrawer);
-$('#mdX').addEventListener('click', fecharModal);
-$('#mdCancel').addEventListener('click', fecharModal);
-$('#mdOk').addEventListener('click', () => {
-  if (!MD) return;
-  const ok = $('#mdOk'), txt = ok.textContent;
-  const r = MD();
-  if (typeof r === 'string') { $('#mdMsg').textContent = r; return; }
-  if (r && r.then) {
-    ok.disabled = true; ok.textContent = 'Gravando…'; $('#mdMsg').textContent = '';
-    r.catch((e) => { $('#mdMsg').textContent = e; ok.disabled = false; ok.textContent = txt; });
-  }
-});
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if ($('#modal').classList.contains('on')) fecharModal();
-  else if ($('#ms').classList.contains('on')) abrirUsel(false);
+  if ($('#ms').classList.contains('on')) abrirUsel(false);
   else if (S.drawer) fecharDrawer();
 });
 if (window.Chart) { Chart.defaults.font.family = 'Montserrat, system-ui, sans-serif'; Chart.defaults.color = '#4B5259'; }

@@ -29,9 +29,9 @@ const CONFIG = {
   ATENCAO: 0.90,
   ESTOURO: 1.00,
 
-  // Quais abas o painel pode alterar. O Realizado vem da Controladoria, então
-  // começa travado. Troque para true se quiser liberar.
-  EDITAVEL: { orc: true, fluxo: true, real: false },
+  // Quais abas o painel pode alterar. Por enquanto o painel é só de consulta:
+  // tudo travado. Troque para true quando quiser liberar a edição.
+  EDITAVEL: { orc: false, fluxo: false, real: false },
 
   // Na coluna "Real / Acumulado": true = "REAL S" (última semana) é SOMADO ao
   // "Real Acumulado". Use false se o "Real Acumulado" já incluir a última semana.

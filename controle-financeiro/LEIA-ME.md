@@ -25,27 +25,25 @@
 
 ## 4. O que o painel faz
 
+O painel é só de consulta: ele não altera nada na planilha.
+
 1. **Escolha as usinas** na lista suspensa do topo. Dá para digitar o nome para procurar e marcar várias.
    Sem nenhuma usina marcada, o painel pede para selecionar uma.
 2. **Escolha o fluxo** em "Fluxo de". Ele já vem com o envio mais recente.
-3. A **tabela** mostra todos os centros de custo: Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**.
+3. A **tabela** mostra todos os centros de custo, com centavos: Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**.
    Com várias usinas marcadas, os valores são somados.
-4. Clique num **centro de custo** para ver os lançamentos, editar e escrever uma observação.
-5. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
-
-**Testar sem instalar:** abra o arquivo `Painel.html` direto, fora da planilha. Ele entra em **Modo demonstração**, com dados fictícios, e dá para clicar em tudo. Nada é gravado.
+4. **Clique nos centros de custo** para marcar quais aparecem no gráfico. Sem nenhum marcado, o gráfico mostra todos.
+5. O botão **Detalhar** abre ao lado todos os lançamentos daquele centro de custo, separados em Orçado, Projetado e Realizado.
+6. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
 
 **Regras usadas:**
-- **Projetado** = itens **Em Aberto** do fluxo escolhido (padrão: o mais recente). O que já foi pago está no Realizado.
+- **Projetado** = itens **Em Aberto** do fluxo escolhido. O que já foi pago está no Realizado.
 - **Realizado** = "Real Acumulado" + "REAL S" (última semana).
-- Valores negativos nos deltas aparecem em vermelho.
-- As observações ficam numa aba nova, **"Painel - Justificativas"**, que é criada sozinha.
-- A aba **Realizado Controladoria** fica só para leitura. As abas **Orçamento** e **Fluxo de Caixa** podem ser editadas pelo painel.
+- Valores negativos aparecem em vermelho.
 
 ## 5. Ajustes sem programar
 
 Todos ficam no topo do `Codigo.gs`, em `CONFIG`:
 
 - `PROJETADO_SO_EM_ABERTO`: troque para `false` se o Projetado tiver que somar também o que já está "Pago" no fluxo.
-- `EDITAVEL`: quais abas podem ser alteradas pelo painel.
 - `REALIZADO_SOMA_SEMANA`: troque para `false` se o "Real Acumulado" já incluir a última semana.
