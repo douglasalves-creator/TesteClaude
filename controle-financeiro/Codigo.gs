@@ -287,7 +287,9 @@ function lerAba_(ss, id, tz, filtro) {
   };
   if (!sheet) { base.erro = 'Aba "' + def.nome + '" não encontrada.'; return base; }
 
+  const t0 = Date.now();
   const mapa = mapear_(sheet, def);
+  const tMapa = Date.now();
   base.linhaCab = mapa.linhaCab;
   base.faltando = mapa.faltando;
   base.aba = sheet.getName();
@@ -302,6 +304,7 @@ function lerAba_(ss, id, tz, filtro) {
     if (!mapa.col[c.k]) return null;
     return sheet.getRange(ini, mapa.col[c.k], n, 1).getValues();
   });
+  const tLeitura = Date.now();
 
   // Sinal: se a maioria dos valores for negativa, inverte.
   const iValor = def.campos.map(function (c) { return c.tipo; }).indexOf('valor');
@@ -338,6 +341,8 @@ function lerAba_(ss, id, tz, filtro) {
     base.linhas.push(linha);
   }
   base.dic = dics;
+  base.tempo = { cabecalho: tMapa - t0, leitura: tLeitura - tMapa, processamento: Date.now() - tLeitura,
+    colunas: sheet.getLastColumn(), linhas: n };
   return base;
 }
 
@@ -600,13 +605,17 @@ function excluirLinha(p) {
 /* ------------------------------------------------------------------ */
 
 function diagnosticar() {
+  const t0 = Date.now();
   const d = carregarDados();
+  Logger.log('Tempo total para carregar o painel: ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
   if (d.semAcesso) { Logger.log('O e-mail ' + d.usuario + ' não tem nenhum centro de custo liberado na aba "' + CONFIG.ABA_ACESSOS + '".'); return; }
   Logger.log('Planilha: ' + d.planilha);
   Object.keys(d.abas).forEach(function (id) {
     const a = d.abas[id];
     Logger.log('— Aba "' + a.aba + '": ' + (a.erro || ('cabeçalho na linha ' + a.linhaCab + ', ' +
       a.linhas.length + ' linhas com dados' + (a.sinal === -1 ? ', valores negativos (sinal invertido no painel)' : ''))));
+    if (a.tempo) Logger.log('   Tempo: cabeçalho ' + (a.tempo.cabecalho / 1000).toFixed(1) + ' s · leitura ' + (a.tempo.leitura / 1000).toFixed(1) +
+      ' s · processamento ' + (a.tempo.processamento / 1000).toFixed(1) + ' s (' + a.tempo.linhas + ' linhas × ' + a.tempo.colunas + ' colunas na aba)');
     if (a.faltando.length) Logger.log('   Colunas NÃO encontradas: ' + a.faltando.join(' | '));
   });
   verificarSetores_(getSS_());
