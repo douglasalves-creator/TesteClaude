@@ -104,7 +104,7 @@ const CAB_JUST = ['Chave', 'Usina', 'Centro de Custo', 'Status', 'Comentário', 
 
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('Painel Financeiro')
+    .createMenu('Controle Financeiro')
     .addItem('Abrir painel', 'abrirPainel')
     .addItem('Link para a Diretoria (tela cheia)', 'mostrarLink')
     .addToUi();
@@ -112,7 +112,7 @@ function onOpen() {
 
 function abrirPainel() {
   const html = paginaHtml_().setWidth(1500).setHeight(900);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Painel Financeiro');
+  SpreadsheetApp.getUi().showModalDialog(html, 'Controle Financeiro');
 }
 
 function mostrarLink() {
@@ -129,7 +129,7 @@ function mostrarLink() {
 
 function doGet() {
   return paginaHtml_()
-    .setTitle('Painel Financeiro — ' + CONFIG.EMPRESA)
+    .setTitle('Controle Financeiro — ' + CONFIG.EMPRESA)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }

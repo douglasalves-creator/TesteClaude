@@ -18,23 +18,30 @@
 
 ## 3. Abrir o painel
 
-- **Dentro da planilha:** recarregue a página. Vai aparecer o menu **Painel Financeiro → Abrir painel**.
+- **Dentro da planilha:** recarregue a página. Vai aparecer o menu **Controle Financeiro → Abrir painel**.
 - **Em tela cheia (para a Diretoria):** no editor, clique em **Implantar → Nova implantação → tipo "App da Web"**.
   Em "Executar como", escolha **Eu**. Em "Quem pode acessar", escolha **Qualquer pessoa da SolarGrid**. Depois clique em **Implantar** e copie o link.
   Depois de qualquer alteração no código: **Implantar → Gerenciar implantações → editar (lápis) → Nova versão**.
 
 ## 4. O que o painel faz
 
-O painel é só de consulta: ele não altera nada na planilha.
+O painel é só de consulta: ele não altera nada na planilha. No topo há dois módulos.
 
-1. **Escolha as usinas** na lista suspensa do topo. Dá para digitar o nome para procurar e marcar várias.
+**Visão Geral**
+1. **Escolha as usinas** na lista suspensa. Dá para digitar o nome para procurar e marcar várias.
    Sem nenhuma usina marcada, o painel pede para selecionar uma.
 2. **Escolha o fluxo** em "Fluxo de". Ele já vem com o envio mais recente.
-3. A **tabela** mostra todos os centros de custo, com centavos: Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**.
-   Com várias usinas marcadas, os valores são somados.
+3. A **tabela** mostra todos os centros de custo, com centavos: Orçado, Projetado, Realizado,
+   **Δ (Orçado − Projetado − Realizado)** e **Δ (Orçado − Realizado)**. Com várias usinas marcadas, os valores são somados.
 4. **Clique nos centros de custo** para marcar quais aparecem no gráfico. Sem nenhum marcado, o gráfico mostra todos.
 5. O botão **Detalhar** abre ao lado todos os lançamentos daquele centro de custo, separados em Orçado, Projetado e Realizado.
 6. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
+
+**Análise Semanal**
+1. Escolha a **Semana anterior** e a **Semana atual** (datas de envio do Fluxo de Caixa).
+2. A tabela mostra o Projetado de cada centro de custo nas duas semanas e o **Δ (Semana atual − Semana anterior)**.
+   ▲ quer dizer que o Projetado subiu; ▼ quer dizer que caiu.
+3. O gráfico compara as duas semanas mês a mês. **Detalhar** mostra os lançamentos das duas semanas.
 
 **Regras usadas:**
 - **Projetado** = itens **Em Aberto** do fluxo escolhido. O que já foi pago está no Realizado.

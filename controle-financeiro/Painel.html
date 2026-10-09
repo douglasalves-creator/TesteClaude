@@ -4,7 +4,7 @@
 <base target="_top">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel Financeiro</title>
+<title>Controle Financeiro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
     --radius:12px;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   html,body{margin:0}
   body{background:var(--sirius); color:var(--ink); font-family:var(--font); font-size:13.5px; line-height:1.45; -webkit-font-smoothing:antialiased}
   button,input,select,textarea{font-family:inherit; font-size:inherit; color:inherit}
@@ -29,9 +30,24 @@
 
   /* Topo */
   header.top{background:var(--eclipse); color:var(--branco)}
-  .top-in{display:flex; align-items:center; gap:16px; padding:20px 28px; flex-wrap:wrap}
+  .top-in{display:flex; align-items:center; gap:16px; padding:20px 28px 14px; flex-wrap:wrap}
   .top h1{margin:0; font-size:19px; font-weight:700; letter-spacing:-.01em}
   .top h1 span{color:var(--aurora)}
+  .mods{display:flex; gap:28px; max-width:1640px; margin:0 auto; padding-inline:32px}
+  .mods button{background:transparent; border:0; color:#9aa1a8; padding:4px 0 13px; font-weight:600; border-bottom:2px solid transparent}
+  .mods button:hover{color:var(--branco)}
+  .mods button.on{color:var(--branco); border-bottom-color:var(--aurora)}
+  .fg{display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap}
+  /* Colunas de valores centralizadas e rótulo do Δ em duas linhas */
+  .tb-c td.n,.tb-c th.n{text-align:center}
+  .dh{display:inline-flex; flex-direction:column; align-items:center; line-height:1.1; vertical-align:middle; font-size:15px; font-weight:700}
+  .dh small{font-size:9.5px; font-weight:600; text-transform:none; letter-spacing:0; white-space:nowrap; margin-top:2px}
+  .kpi .l .dh{align-items:flex-start; font-size:14px}
+  .kpis.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media (max-width:640px){ .kpis.k3{grid-template-columns:minmax(0,1fr)} }
+  .up{color:#A9461A}
+  .down{color:var(--cosmos)}
+  tr.mut td{color:var(--ink-3); font-weight:500}
   .top-r{margin-left:auto; display:flex; align-items:center; gap:14px; font-size:12px; color:#9aa1a8}
   .top-r a,.top-r button{background:transparent; border:1px solid #2a3138; color:var(--branco); border-radius:999px; padding:6px 14px; font-weight:500; font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:6px}
   .top-r a:hover,.top-r button:hover{border-color:var(--aurora)}
@@ -171,13 +187,14 @@
 
 <header class="top">
   <div class="top-in" style="max-width:1640px; margin:0 auto; padding-inline:32px">
-    <h1>Painel Financeiro <span>·</span> Usinas</h1>
+    <h1>Controle Financeiro</h1>
     <div class="top-r">
       <span class="stamp" id="stamp"></span>
       <a id="lnkPlan" href="#" target="_blank" rel="noopener">Planilha</a>
       <button id="btnAtualizar" type="button"><svg class="ico" id="icoAtualizar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Atualizar</button>
     </div>
   </div>
+  <nav class="mods" id="mods"><button type="button" data-mod="geral" class="on">Visão Geral</button><button type="button" data-mod="semanal">Análise Semanal</button></nav>
 </header>
 
 <div class="wrap">
@@ -192,8 +209,12 @@
     </div>
     <div class="tags" id="tags"></div>
     <div class="sp"></div>
-    <span class="lbl">Fluxo de</span>
-    <select class="sel" id="fSnap" aria-label="Fluxo de caixa usado no Projetado"></select>
+    <span class="fg" id="fGeral"><span class="lbl">Fluxo de</span>
+      <select class="sel" id="fSnap" aria-label="Fluxo de caixa usado no Projetado"></select></span>
+    <span class="fg" id="fSem" hidden><span class="lbl">Semana anterior</span>
+      <select class="sel" id="fSemA" aria-label="Fluxo da semana anterior"></select>
+      <span class="lbl">Semana atual</span>
+      <select class="sel" id="fSemB" aria-label="Fluxo da semana atual"></select></span>
   </div>
   <div id="avisos"></div>
 </div>
@@ -219,6 +240,23 @@
       <div id="tabMeses"></div>
     </div>
   </div>
+
+  <div id="semBody" hidden>
+    <div class="kpis k3" id="kpisSem"></div>
+    <div class="card">
+      <div class="card-h">
+        <h2 id="ttlSem">Projetado por centro de custo</h2>
+        <div class="r"><input class="search" id="qSem" type="search" placeholder="Buscar centro de custo"></div>
+      </div>
+      <div id="treeSem"></div>
+    </div>
+    <p class="note">Compara o Projetado (itens em aberto) de dois envios do Fluxo de Caixa. ▲ o Projetado subiu da semana anterior para a atual; ▼ caiu. Clique nos centros de custo para ver só eles no gráfico. Valores em R$.</p>
+    <div class="card mt">
+      <div class="card-h"><h2>Projetado por mês de pagamento</h2><span class="chsel" id="chSelSem"></span></div>
+      <div class="chart-box"><canvas id="chSem" role="img" aria-label="Projetado por mês nas duas semanas"></canvas></div>
+      <div id="tabSem"></div>
+    </div>
+  </div>
 </main>
 
 <div class="scrim" id="scrim"></div>
@@ -235,8 +273,9 @@
 /* =================================================================== */
 const S = {
   d: null, rows: { orc: [], fluxo: [], real: [] },
-  f: { us: new Set(), snap: '' },
-  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, ccSel: new Set()
+  f: { us: new Set(), snap: '', semA: '', semB: '' }, mod: 'geral',
+  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, ccSel: new Set(),
+  ccSelSem: new Set(), qSem: '', sortSem: { k: 'nome', dir: 1 }, chartSem: null
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const $ = (s) => document.querySelector(s);
@@ -408,6 +447,11 @@ function preparar() {
   S.snaps = Object.keys(snaps).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a < b ? 1 : -1));
   if (!S.snaps.includes(S.f.snap)) S.f.snap = S.snaps[0] || '';
   S.f.us.forEach((k) => { if (!(k in S.uNome)) S.f.us.delete(k); });
+  const ds = S.snaps.filter(Boolean);
+  if (!ds.includes(S.f.semB)) S.f.semB = ds[0] || '';
+  if (!ds.includes(S.f.semA)) S.f.semA = ds.find((d) => d < S.f.semB) || '';
+  const opts = (atual) => ds.length ? ds.map((d) => '<option value="' + esc(d) + '"' + (d === atual ? ' selected' : '') + '>' + dt(d) + '</option>').join('') : '<option value="">—</option>';
+  $('#fSemA').innerHTML = opts(S.f.semA); $('#fSemB').innerHTML = opts(S.f.semB);
   $('#fSnap').innerHTML = S.snaps.length
     ? S.snaps.map((s) => '<option value="' + esc(s) + '"' + (s === S.f.snap ? ' selected' : '') + '>' + (s ? dt(s) : '(sem data)') + '</option>').join('')
     : '<option value="">—</option>';
@@ -486,13 +530,14 @@ function agregar(F) {
 function kpi(l, v, dark) {
   return '<div class="kpi' + (dark ? ' dark' : '') + '"><div class="l">' + l + '</div><div class="v tnum' + numCls(v) + '">' + brl2(v) + '</div></div>';
 }
+function dh(sub) { return '<span class="dh">Δ<small>' + sub + '</small></span>'; }
 function kpisHtml(m) {
   return kpi('Orçado', m.orc) + kpi('Projetado', m.proj) + kpi('Realizado', m.real) +
-    kpi('Orç − Proj − Real', m.d1, true) + kpi('Orç − Real', m.d2, true);
+    kpi(dh('(Orçado − Projetado − Realizado)'), m.d1, true) + kpi(dh('(Orçado − Realizado)'), m.d2, true);
 }
 const COLS = [
   { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 }, { k: 'proj', t: 'Projetado', n: 1 },
-  { k: 'real', t: 'Realizado', n: 1 }, { k: 'd1', t: 'Orç − Proj − Real', n: 1, dl: 'first' }, { k: 'd2', t: 'Orç − Real', n: 1, dl: 1 }
+  { k: 'real', t: 'Realizado', n: 1 }, { k: 'd1', t: dh('(Orçado − Projetado − Realizado)'), n: 1, dl: 'first' }, { k: 'd2', t: dh('(Orçado − Realizado)'), n: 1, dl: 1 }
 ];
 function cmp(a, b) {
   const k = S.sort.k;
@@ -507,9 +552,15 @@ function justKey(uk, ck) { return uk + '||' + ck; }
 
 function render() {
   if (!S.d) return;
-  const tem = S.f.us.size > 0;
-  $('#pick').hidden = tem; $('#resumoBody').hidden = !tem;
-  if (!tem) { if (S.chart) { S.chart.destroy(); S.chart = null; } return; }
+  const tem = S.f.us.size > 0, sem = S.mod === 'semanal';
+  $('#fGeral').hidden = sem; $('#fSem').hidden = !sem;
+  $('#pick').hidden = tem; $('#resumoBody').hidden = !tem || sem; $('#semBody').hidden = !tem || !sem;
+  if (!tem) {
+    if (S.chart) { S.chart.destroy(); S.chart = null; }
+    if (S.chartSem) { S.chartSem.destroy(); S.chartSem = null; }
+    return;
+  }
+  if (sem) { renderSemanal(); if (S.drawer) renderDrawer(); return; }
   S.F = filtrar();
   S.A = agregar(S.F);
   $('#kpis').innerHTML = kpisHtml(S.A.tot);
@@ -528,7 +579,7 @@ function renderTabela() {
     por.set(k, { k, nome: S.ccNome[k], m: derivar(novoM()) });
   });
   const lista = Array.from(por.values()).filter((c) => !q || nk(c.nome).indexOf(q) !== -1).sort(cmp);
-  let h = '<table><thead><tr>' + COLS.map((c) =>
+  let h = '<table class="tb-c"><thead><tr>' + COLS.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
     (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '<th></th></tr></thead><tbody>';
   if (!lista.length) h += '<tr><td colspan="7" class="empty">Nada encontrado.</td></tr>';
@@ -600,6 +651,97 @@ function renderCurvas() {
 }
 
 /* =================================================================== */
+/* Análise Semanal: Projetado de dois envios do fluxo                    */
+/* =================================================================== */
+/** Linhas do fluxo daquele envio que contam como Projetado. */
+function projSem(data, ck) {
+  const soAb = S.d.cfg.PROJETADO_SO_EM_ABERTO !== false;
+  if (!data) return [];
+  return S.rows.fluxo.filter((r) => r.dataFluxo === data && passa(r) && (!soAb || !r._pago) && (!ck || r._ck === ck));
+}
+function delta(v) {
+  const d = Math.round((v || 0) * 100) / 100;
+  if (Math.abs(d) < 0.005) return '<span class="muted">0,00</span>';
+  return '<span class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '▲ ' : '▼ ') + _n2.format(Math.abs(d)) + '</span>';
+}
+function renderSemanal() {
+  const A = projSem(S.f.semA), B = projSem(S.f.semB);
+  const nA = S.f.semA ? dt(S.f.semA) : '—', nB = S.f.semB ? dt(S.f.semB) : '—';
+  const M = new Map();
+  Object.keys(S.ccNome).forEach((k) => { if (k !== '~') M.set(k, { k, nome: S.ccNome[k], m: { a: 0, b: 0, d: 0 } }); });
+  const add = (r, campo) => { let c = M.get(r._ck); if (!c) { c = { k: r._ck, nome: S.ccNome[r._ck], m: { a: 0, b: 0, d: 0 } }; M.set(r._ck, c); } c.m[campo] += r.valor || 0; };
+  A.forEach((r) => add(r, 'a')); B.forEach((r) => add(r, 'b'));
+  const lista0 = Array.from(M.values()); lista0.forEach((c) => { c.m.d = c.m.b - c.m.a; });
+  const tA = lista0.reduce((s, c) => s + c.m.a, 0), tB = lista0.reduce((s, c) => s + c.m.b, 0);
+
+  $('#kpisSem').innerHTML = kpi('Projetado em ' + nA, tA) + kpi('Projetado em ' + nB, tB) +
+    '<div class="kpi dark"><div class="l">' + dh('(Semana atual − Semana anterior)') + '</div><div class="v tnum">' + delta(tB - tA).replace('class="up"', 'style="color:#ffb08a"').replace('class="down"', 'style="color:#9cc3ff"') + '</div></div>';
+  $('#ttlSem').textContent = 'Projetado por centro de custo · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
+
+  const q = nk(S.qSem), k = S.sortSem.k, dir = S.sortSem.dir;
+  const lista = lista0.filter((c) => !q || nk(c.nome).indexOf(q) !== -1)
+    .sort((x, y) => k === 'nome' ? String(x.nome).localeCompare(String(y.nome), 'pt-BR', { numeric: true }) * dir : (x.m[k] - y.m[k]) * dir);
+  const cols = [{ k: 'nome', t: 'Centro de custo' }, { k: 'a', t: 'Projetado em ' + nA, n: 1 }, { k: 'b', t: 'Projetado em ' + nB, n: 1 }, { k: 'd', t: dh('(Semana atual − Semana anterior)'), n: 1, dl: 1 }];
+  let h = '<table class="tb-c"><thead><tr>' + cols.map((c) => '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl first' : '') + '" data-ssort="' + c.k + '">' + c.t +
+    (k === c.k ? (dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '<th></th></tr></thead><tbody>';
+  lista.forEach((c) => {
+    const zero = Math.abs(c.m.a) < 0.005 && Math.abs(c.m.b) < 0.005;
+    h += '<tr class="c' + (zero ? ' zero' : '') + (S.ccSelSem.has(c.k) ? ' sel' : '') + '" data-cs="' + esc(c.k) + '"><td><span class="ck"></span>' + esc(c.nome) + '</td>' +
+      '<td class="n">' + num(c.m.a) + '</td><td class="n">' + num(c.m.b) + '</td><td class="n dl first">' + delta(c.m.d) + '</td>' +
+      '<td class="acts"><button type="button" class="det" data-dets="' + esc(c.k) + '">Detalhar</button></td></tr>';
+  });
+  if (!lista.length) h += '<tr><td colspan="5" class="empty">Nada encontrado.</td></tr>';
+  else {
+    const sa = lista.reduce((s, c) => s + c.m.a, 0), sb = lista.reduce((s, c) => s + c.m.b, 0);
+    h += '<tr class="tot"><td>Total</td><td class="n">' + num(sa) + '</td><td class="n">' + num(sb) + '</td><td class="n dl first">' + delta(sb - sa) + '</td><td></td></tr>';
+  }
+  $('#treeSem').innerHTML = h + '</tbody></table>';
+  renderCurvasSem(A, B, nA, nB);
+}
+function renderCurvasSem(A, B, nA, nB) {
+  const usa = (x) => !S.ccSelSem.size || S.ccSelSem.has(x._ck);
+  const a = {}, b = {}, ms = new Set();
+  const add = (obj, x) => { if (!x._d || !usa(x)) return; const m = x._d.slice(0, 7); obj[m] = (obj[m] || 0) + (x.valor || 0); ms.add(m); };
+  A.forEach((x) => add(a, x)); B.forEach((x) => add(b, x));
+  const n = S.ccSelSem.size;
+  $('#chSelSem').innerHTML = n === 0 ? 'Todos os centros de custo'
+    : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSelSem)[0]]) : n + ' centros de custo selecionados') + '</b><button type="button" id="ccLimparSem">Mostrar todos</button>';
+  const meses = Array.from(ms).sort();
+  const sA = meses.map((m) => a[m] || 0), sB = meses.map((m) => b[m] || 0);
+  if (S.chartSem) S.chartSem.destroy();
+  if (window.Chart) {
+    const linha = (label, data, cor, extra) => Object.assign({ label, data, borderColor: cor, backgroundColor: cor, borderWidth: 2.5, pointRadius: 3.5, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 1.5, tension: 0.25 }, extra || {});
+    S.chartSem = new Chart($('#chSem'), {
+      type: 'line',
+      data: { labels: meses.map(mes), datasets: [
+        linha('Semana anterior · ' + nA, sA, '#9AA0A6', { borderDash: [6, 4] }),
+        linha('Semana atual · ' + nB, sB, COR.aurora)
+      ] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { boxWidth: 22, boxHeight: 2, color: '#4B5259' } },
+          tooltip: { backgroundColor: '#0A0F14', padding: 10, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
+          y: { beginAtZero: true, border: { display: false }, grid: { color: COR.grid }, ticks: { color: COR.ink3, callback: (v) => compact(v) } }
+        }
+      }
+    });
+  }
+  const soma = (arr) => arr.reduce((s, v) => s + v, 0);
+  const lin = (nome, sw, arr, fmt, cls) => '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + (sw ? '<span class="sw" style="' + sw + '"></span>' : '') + nome + '</td>' +
+    arr.map((v) => '<td class="n">' + fmt(v) + '</td>').join('') + '<td class="n dl first"><b>' + fmt(soma(arr)) + '</b></td></tr>';
+  $('#tabSem').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
+    lin('Semana anterior · ' + nA, 'background:repeating-linear-gradient(90deg,#9AA0A6 0 5px,transparent 5px 8px)', sA, num, 'mut') +
+    lin('Semana atual · ' + nB, 'background:var(--aurora)', sB, num) +
+    lin('Δ (atual − anterior)', '', meses.map((m, i) => sB[i] - sA[i]), delta) + '</tbody></table>'
+    : '<div class="empty">Sem itens em aberto nessas semanas.</div>';
+}
+
+/* =================================================================== */
 /* Detalhar: todos os lançamentos de um centro de custo (só leitura)     */
 /* =================================================================== */
 const COLS_LANC = {
@@ -622,8 +764,8 @@ function tabelaLanc(aba, rows) {
   if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">Total</td><td class="n">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</td></tr>';
   return h + '</tbody></table>';
 }
-function abrirCC(ck) {
-  S.drawer = { ck };
+function abrirCC(ck, semanal) {
+  S.drawer = { ck, semanal: !!semanal };
   $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
   renderDrawer(true);
 }
@@ -633,6 +775,20 @@ function fecharDrawer() {
 }
 function renderDrawer(novo) {
   const { ck } = S.drawer;
+  if (S.drawer.semanal) {
+    const A = projSem(S.f.semA, ck), B = projSem(S.f.semB, ck);
+    const tA = A.reduce((s, r) => s + (r.valor || 0), 0), tB = B.reduce((s, r) => s + (r.valor || 0), 0);
+    $('#dwT').textContent = S.ccNome[ck] || '';
+    $('#dwS').textContent = selNome() + ' · Análise Semanal';
+    let hs = '<div class="kpis k3">' + kpi('Projetado em ' + dt(S.f.semA), tA) + kpi('Projetado em ' + dt(S.f.semB), tB) +
+      '<div class="kpi dark"><div class="l">' + dh('(Semana atual − Semana anterior)') + '</div><div class="v tnum">' + delta(tB - tA).replace('class="up"', 'style="color:#ffb08a"').replace('class="down"', 'style="color:#9cc3ff"') + '</div></div></div>';
+    [[A, 'Semana anterior · fluxo de ' + dt(S.f.semA), tA], [B, 'Semana atual · fluxo de ' + dt(S.f.semB), tB]].forEach(([rows, t, tot]) => {
+      hs += '<div class="h3">' + t + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '<span class="tt">' + brl2(tot) + '</span></div><div class="card">' + tabelaLanc('fluxo', rows) + '</div>';
+    });
+    $('#dwB').innerHTML = hs;
+    if (novo) $('#dwB').scrollTop = 0;
+    return;
+  }
   const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
   const sel = (r) => r._ck === ck && passa(r);
   const Fx = { orc: S.rows.orc.filter(sel), real: S.rows.real.filter(sel), fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && sel(r)) };
@@ -667,14 +823,31 @@ $('#msLimpar').addEventListener('click', () => { S.f.us.clear(); mudouUsinas(); 
 $('#tags').addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; S.f.us.delete(b.dataset.rm); mudouUsinas(); });
 $('#fSnap').addEventListener('change', (e) => { S.f.snap = e.target.value; render(); });
 $('#btnAtualizar').addEventListener('click', () => atualizar());
+$('#mods').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-mod]'); if (!b) return;
+  S.mod = b.dataset.mod;
+  document.querySelectorAll('#mods button').forEach((x) => x.classList.toggle('on', x === b));
+  if (S.drawer) fecharDrawer();
+  render();
+});
+$('#fSemA').addEventListener('change', (e) => { S.f.semA = e.target.value; render(); });
+$('#fSemB').addEventListener('change', (e) => { S.f.semB = e.target.value; render(); });
+$('#qSem').addEventListener('input', (e) => { S.qSem = e.target.value; renderSemanal(); });
 $('#qTree').addEventListener('input', (e) => { S.qTree = e.target.value; renderTabela(); });
 document.addEventListener('click', (e) => {
   const t = e.target;
   if (!e.composedPath().includes($('#ms'))) abrirUsel(false);
   const th = t.closest('#tree th[data-sort]');
   if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTabela(); return; }
+  const ths = t.closest('#treeSem th[data-ssort]');
+  if (ths) { const k = ths.dataset.ssort; S.sortSem = { k, dir: S.sortSem.k === k ? -S.sortSem.dir : (k === 'nome' ? 1 : -1) }; renderSemanal(); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
+  const dets = t.closest('[data-dets]');
+  if (dets) { abrirCC(dets.dataset.dets, true); return; }
+  if (t.closest('#ccLimparSem')) { S.ccSelSem.clear(); renderSemanal(); return; }
+  const cs = t.closest('#treeSem tr.c[data-cs]');
+  if (cs) { const k = cs.dataset.cs; if (S.ccSelSem.has(k)) S.ccSelSem.delete(k); else S.ccSelSem.add(k); renderSemanal(); return; }
   if (t.closest('#ccLimpar')) { S.ccSel.clear(); renderTabela(); renderCurvas(); return; }
   const cc = t.closest('#tree tr.c[data-cc]');
   if (cc) {
