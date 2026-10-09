@@ -532,7 +532,13 @@ function montarSetores() {
 }
 function aplicarSetor() {
   const st = S.d.setores || {};
-  if (!S.f.setor) { S.ccSetor = null; return; }
+  if (!S.f.setor) {
+    // "Todos os setores" = os centros de custo que estão em algum setor da aba Setores.
+    // Os que foram retirados de lá (desativados) não aparecem; ficam só em "Sem setor".
+    const todos = new Set(); Object.values(st).forEach((ks) => ks.forEach((k) => todos.add(k)));
+    S.ccSetor = todos.size ? todos : null;
+    return;
+  }
   if (S.f.setor === '~sem') {
     const com = new Set(); Object.values(st).forEach((ks) => ks.forEach((k) => com.add(k)));
     S.ccSetor = new Set(Object.keys(S.ccNome).filter((k) => !com.has(k)));
