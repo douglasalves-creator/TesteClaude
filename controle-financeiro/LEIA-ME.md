@@ -34,6 +34,21 @@ O painel é só de consulta: ele **não altera nada** na planilha. Pode instalar
   Em "Executar como", escolha **Eu**. Em "Quem pode acessar", escolha **Qualquer pessoa da SolarGrid**. Depois clique em **Implantar** e copie o link.
   Depois de qualquer alteração no código: **Implantar → Gerenciar implantações → editar (lápis) → Nova versão**.
 
+## Controle de acesso por setor (opcional)
+
+Cada pessoa vê só os centros de custo do setor dela.
+
+1. No menu **Controle Financeiro → Criar abas de acesso**. Vão aparecer duas abas:
+   - **Setores**: uma linha por centro de custo → `Setor | Centro de Custo` (pode usar o código ou o nome).
+   - **Acessos**: uma linha por pessoa e setor → `E-mail | Setor`. O setor **TODOS** libera tudo (Diretoria).
+     Seu e-mail já entra com TODOS.
+2. Rode **`diagnosticar`**: ele avisa se algum centro de custo da aba Setores não foi encontrado nos dados (grafia diferente).
+3. Publique como **App da Web** com **"Executar como: Eu"** e mande o link para as pessoas.
+4. **Importante:** quem só pode ver o próprio setor **não pode ter acesso à planilha**. A pessoa usa só o link do painel.
+   Quem tem a planilha compartilhada vê tudo direto nela.
+
+Enquanto a aba **Acessos** não existir, o painel mostra tudo para todos.
+
 ## 4. O que o painel faz
 
 O painel é só de consulta: ele não altera nada na planilha. No topo há dois módulos.

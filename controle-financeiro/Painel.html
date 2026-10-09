@@ -398,12 +398,20 @@ function decodificar(aba) {
   });
 }
 function receber(d) {
+  if (d.semAcesso) {
+    $('#loading').style.display = '';
+    $('#loading').innerHTML = '<h3>Acesso não liberado</h3><p>O e-mail <b>' + esc(d.usuario || '(não identificado)') +
+      '</b> não tem nenhum centro de custo liberado neste painel. Peça a liberação ao responsável pelo Controle Financeiro.</p>';
+    return;
+  }
   S.d = d;
   S.rows = { orc: decodificar(d.abas.orc), fluxo: decodificar(d.abas.fluxo), real: decodificar(d.abas.real) };
   $('#loading').style.display = 'none';
   $('#filtros').hidden = false;
-  $('#stamp').textContent = 'Atualizado em ' + d.geradoEm;
-  $('#lnkPlan').href = d.urlPlanilha;
+  const ac = d.acesso && d.acesso.restrito ? 'Setor: ' + d.acesso.setores.join(', ') + ' · ' : '';
+  $('#stamp').textContent = ac + 'Atualizado em ' + d.geradoEm;
+  $('#lnkPlan').hidden = !d.urlPlanilha;
+  $('#lnkPlan').href = d.urlPlanilha || '#';
   const msgs = [];
   Object.values(d.abas).forEach((a) => {
     if (a.erro) msgs.push('<b>' + esc(a.aba) + ':</b> ' + esc(a.erro));

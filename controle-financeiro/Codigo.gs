@@ -11,8 +11,14 @@
  * editáveis em CONFIG.EDITAVEL. Antes de gravar, ele confere se a linha não foi
  * alterada por outra pessoa desde que o painel foi aberto.
  *
- * As justificativas de divergência ficam numa aba própria (criada na primeira
- * vez que alguém salvar uma): CONFIG.ABA_JUSTIFICATIVAS.
+ * Controle de acesso por setor (opcional): quando a aba "Acessos" existir, cada
+ * pessoa só recebe os centros de custo dos setores liberados para o e-mail dela.
+ *   - Aba "Setores":  Setor | Centro de Custo   (um centro de custo por linha)
+ *   - Aba "Acessos":  E-mail | Setor            (uma pessoa pode ter várias linhas)
+ *   - Setor "TODOS" libera tudo. O dono do script sempre vê tudo.
+ * O filtro é feito aqui no servidor: o que a pessoa não pode ver nem chega ao navegador.
+ * Para funcionar, publique como App da Web com "Executar como: Eu" e NÃO compartilhe
+ * a planilha com quem só pode ver o próprio setor.
  */
 
 const CONFIG = {
@@ -47,7 +53,10 @@ const CONFIG = {
   // (e desinverte ao gravar).
   AJUSTAR_SINAL: true,
 
-  ABA_JUSTIFICATIVAS: 'Painel - Justificativas',
+  // Controle de acesso por setor (ver explicação no topo do arquivo).
+  ABA_ACESSOS: 'Acessos',
+  ABA_SETORES: 'Setores',
+  SETOR_TOTAL: 'TODOS',
 
   LINHAS_PROCURA_CABECALHO: 15
 };
@@ -96,8 +105,6 @@ const ABAS = {
   }
 };
 
-const CAB_JUST = ['Chave', 'Usina', 'Centro de Custo', 'Status', 'Comentário', 'Ação / Ajuste',
-  'Responsável', 'Atualizado em', 'Atualizado por'];
 
 /* ------------------------------------------------------------------ */
 /* Entrada                                                             */
@@ -108,6 +115,8 @@ function onOpen() {
     .createMenu('Controle Financeiro')
     .addItem('Abrir painel', 'abrirPainel')
     .addItem('Link para a Diretoria (tela cheia)', 'mostrarLink')
+    .addSeparator()
+    .addItem('Criar abas de acesso (Setores e Acessos)', 'prepararAcessos')
     .addToUi();
 }
 
@@ -261,7 +270,7 @@ function mapear_(sheet, def) {
   };
 }
 
-function lerAba_(ss, id, tz) {
+function lerAba_(ss, id, tz, filtro) {
   const def = ABAS[id];
   const sheet = getAba_(ss, def.nome, false);
   const base = {
@@ -302,10 +311,16 @@ function lerAba_(ss, id, tz) {
 
   for (let r = 0; r < n; r++) {
     let vazia = true;
-    const linha = [ini + r];
+    const vals = {};
     def.campos.forEach(function (c, j) {
-      let v = colunas[j] ? normalizar_(colunas[j][r][0], c.tipo, tz, sinal) : (c.tipo === 'valor' ? null : '');
+      const v = colunas[j] ? normalizar_(colunas[j][r][0], c.tipo, tz, sinal) : (c.tipo === 'valor' ? null : '');
       if (v !== null && v !== '') vazia = false;
+      vals[c.k] = v;
+    });
+    if (vazia || (filtro && !filtro(vals))) continue;
+    const linha = [ini + r];
+    def.campos.forEach(function (c) {
+      let v = vals[c.k];
       if (c.dic) {
         const s = v === null ? '' : String(v);
         if (!(s in dicIdx[c.k])) { dicIdx[c.k][s] = dics[c.k].length; dics[c.k].push(s); }
@@ -313,45 +328,131 @@ function lerAba_(ss, id, tz) {
       }
       linha.push(v);
     });
-    if (!vazia) base.linhas.push(linha);
+    base.linhas.push(linha);
   }
   base.dic = dics;
   return base;
 }
 
-function lerJustificativas_(ss, tz) {
-  const sheet = getAba_(ss, CONFIG.ABA_JUSTIFICATIVAS, false);
-  const out = {};
-  if (!sheet || sheet.getLastRow() < 2) return out;
-  const dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, CAB_JUST.length).getValues();
-  dados.forEach(function (l) {
-    if (!l[0]) return;
-    out[l[0]] = {
-      usina: String(l[1]), cc: String(l[2]), status: String(l[3]), comentario: String(l[4]),
-      acao: String(l[5]), responsavel: String(l[6]),
-      em: l[7] instanceof Date ? Utilities.formatDate(l[7], tz, 'dd/MM/yyyy HH:mm') : String(l[7]),
-      por: String(l[8])
-    };
+/* ------------------------------------------------------------------ */
+/* Controle de acesso por setor                                         */
+/* ------------------------------------------------------------------ */
+
+/** Mesma normalização do painel: minúsculas, sem acento, só letras/números separados por espaço. */
+function nk_(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/** Índice código/descrição/nome completo → centro de custo, a partir do Realizado (igual ao painel). */
+function indiceCC_(ss) {
+  const idx = {};
+  const def = ABAS.real;
+  const sheet = getAba_(ss, def.nome, false);
+  if (!sheet) return idx;
+  const mapa = mapear_(sheet, def);
+  const n = sheet.getLastRow() - mapa.linhaCab;
+  if (!mapa.linhaCab || n <= 0) return idx;
+  const ler = function (k) { return mapa.col[k] ? sheet.getRange(mapa.linhaCab + 1, mapa.col[k], n, 1).getDisplayValues() : null; };
+  const cod = ler('ccCod'), desc = ler('ccDesc'), full = ler('ccFull');
+  for (let r = 0; r < n; r++) {
+    const c = cod ? String(cod[r][0]).trim() : '', d = desc ? String(desc[r][0]).trim() : '';
+    const f = (full ? String(full[r][0]).trim() : '') || [c, d].filter(String).join(' - ');
+    if (!f) continue;
+    const alvo = nk_(f);
+    [f, c, d].forEach(function (x) { const k = nk_(x); if (k && !(k in idx)) idx[k] = alvo; });
+  }
+  return idx;
+}
+
+/** Chave do centro de custo de um texto qualquer (código, nome ou "código - nome"). */
+function chaveCC_(texto, idx) {
+  const t = String(texto || '').trim();
+  if (!t) return '';
+  if (idx[nk_(t)]) return idx[nk_(t)];
+  const m = t.match(/^([0-9][0-9.\-\/]*)/);
+  if (m && idx[nk_(m[1])]) return idx[nk_(m[1])];
+  const desc = t.replace(/^[0-9][0-9.\-\/]*\s*[-–—:|]?\s*/, '');
+  if (desc && idx[nk_(desc)]) return idx[nk_(desc)];
+  return nk_(t);
+}
+
+function lerTabela_(ss, nome) {
+  const sh = getAba_(ss, nome, false);
+  if (!sh || sh.getLastRow() < 2) return sh ? [] : null;
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 2).getDisplayValues()
+    .map(function (l) { return [String(l[0]).trim(), String(l[1]).trim()]; })
+    .filter(function (l) { return l[0] && l[1]; });
+}
+
+/**
+ * O que o e-mail de quem abriu pode ver.
+ * { restrito:false } quando não há aba "Acessos" ou a pessoa tem o setor TODOS.
+ */
+function permissao_(ss, email) {
+  const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
+  if (acessos === null) return { restrito: false };
+  const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
+  const eu = String(email || '').toLowerCase();
+  if (eu && eu === dono) return { restrito: false, setores: [CONFIG.SETOR_TOTAL] };
+  const setores = acessos.filter(function (l) { return l[0].toLowerCase() === eu; }).map(function (l) { return l[1]; });
+  if (setores.some(function (st) { return nk_(st) === nk_(CONFIG.SETOR_TOTAL); })) return { restrito: false, setores: [CONFIG.SETOR_TOTAL] };
+  const idx = indiceCC_(ss);
+  const quer = {};
+  setores.forEach(function (st) { quer[nk_(st)] = true; });
+  const ccs = {};
+  (lerTabela_(ss, CONFIG.ABA_SETORES) || []).forEach(function (l) {
+    if (quer[nk_(l[0])]) { const k = chaveCC_(l[1], idx); if (k) ccs[k] = true; }
   });
-  return out;
+  return { restrito: true, setores: setores, ccs: ccs, idx: idx, semAcesso: !Object.keys(ccs).length };
+}
+
+/** Cria as abas "Setores" e "Acessos" (se ainda não existirem). O dono entra com acesso TODOS. */
+function prepararAcessos() {
+  const ss = getSS_();
+  const cria = function (nome, cab, linhas) {
+    if (getAba_(ss, nome, false)) return false;
+    const sh = ss.insertSheet(nome);
+    sh.getRange(1, 1, 1, 2).setValues([cab]).setFontWeight('bold').setBackground('#0A0F14').setFontColor('#ffffff');
+    if (linhas.length) sh.getRange(2, 1, linhas.length, 2).setValues(linhas);
+    sh.setFrozenRows(1);
+    sh.setColumnWidths(1, 2, 320);
+    return true;
+  };
+  const dono = Session.getEffectiveUser().getEmail() || '';
+  const a = cria(CONFIG.ABA_SETORES, ['Setor', 'Centro de Custo'], []);
+  const b = cria(CONFIG.ABA_ACESSOS, ['E-mail', 'Setor'], dono ? [[dono, CONFIG.SETOR_TOTAL]] : []);
+  const msg = (a || b) ? 'Abas criadas. Preencha "' + CONFIG.ABA_SETORES + '" (Setor | Centro de Custo) e "' +
+    CONFIG.ABA_ACESSOS + '" (E-mail | Setor). Use o setor TODOS para quem pode ver tudo.' : 'As abas já existiam.';
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
 
 /** Chamado pelo painel ao abrir e no botão "Atualizar". */
 function carregarDados() {
   const ss = getSS_();
   const tz = ss.getSpreadsheetTimeZone();
+  const email = Session.getActiveUser().getEmail() || '';
+  const geradoEm = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm');
+  const ac = permissao_(ss, email);
+  if (ac.restrito && ac.semAcesso) return { semAcesso: true, usuario: email, geradoEm: geradoEm };
+  const filtro = ac.restrito ? {
+    orc: function (v) { return ac.ccs[chaveCC_(v.cc, ac.idx)]; },
+    fluxo: function (v) { return ac.ccs[chaveCC_(v.cc, ac.idx)]; },
+    real: function (v) { return ac.ccs[chaveCC_(v.ccFull || [v.ccCod, v.ccDesc].filter(String).join(' - '), ac.idx)]; }
+  } : {};
   return {
-    geradoEm: Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'),
-    usuario: Session.getActiveUser().getEmail() || '',
+    geradoEm: geradoEm,
+    usuario: email,
+    acesso: { restrito: ac.restrito, setores: ac.setores || [] },
     planilha: ss.getName(),
-    urlPlanilha: ss.getUrl(),
+    urlPlanilha: ac.restrito ? '' : ss.getUrl(),
     cfg: {
       ATENCAO: CONFIG.ATENCAO, ESTOURO: CONFIG.ESTOURO,
       REALIZADO_SOMA_SEMANA: CONFIG.REALIZADO_SOMA_SEMANA, EMPRESA: CONFIG.EMPRESA,
       PROJETADO_SO_EM_ABERTO: CONFIG.PROJETADO_SO_EM_ABERTO
     },
-    abas: { orc: lerAba_(ss, 'orc', tz), real: lerAba_(ss, 'real', tz), fluxo: lerAba_(ss, 'fluxo', tz) },
-    just: lerJustificativas_(ss, tz)
+    abas: { orc: lerAba_(ss, 'orc', tz, filtro.orc), real: lerAba_(ss, 'real', tz, filtro.real), fluxo: lerAba_(ss, 'fluxo', tz, filtro.fluxo) }
   };
 }
 
@@ -487,52 +588,13 @@ function excluirLinha(p) {
   }
 }
 
-/** p = { chave, usina, cc, status, comentario, acao, responsavel } */
-function salvarJustificativa(p) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    const ss = getSS_();
-    const tz = ss.getSpreadsheetTimeZone();
-    let sheet = getAba_(ss, CONFIG.ABA_JUSTIFICATIVAS, false);
-    if (!sheet) {
-      sheet = ss.insertSheet(CONFIG.ABA_JUSTIFICATIVAS);
-      sheet.getRange(1, 1, 1, CAB_JUST.length).setValues([CAB_JUST])
-        .setFontWeight('bold').setBackground('#0A0F14').setFontColor('#ffffff');
-      sheet.setFrozenRows(1);
-      sheet.setColumnWidth(1, 60);
-      sheet.hideColumns(1);
-      sheet.setColumnWidths(2, 2, 220);
-      sheet.setColumnWidths(5, 2, 360);
-    }
-    const agora = new Date();
-    const usuario = Session.getActiveUser().getEmail() || '';
-    const linhaNova = [p.chave, p.usina, p.cc, p.status || '', p.comentario || '', p.acao || '',
-      p.responsavel || '', agora, usuario];
-
-    let alvo = 0;
-    if (sheet.getLastRow() > 1) {
-      const chaves = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
-      for (let i = 0; i < chaves.length; i++) if (chaves[i][0] === p.chave) { alvo = i + 2; break; }
-    }
-    if (!alvo) alvo = sheet.getLastRow() + 1;
-    sheet.getRange(alvo, 1, 1, CAB_JUST.length).setValues([linhaNova]);
-    sheet.getRange(alvo, 8).setNumberFormat('dd/MM/yyyy HH:mm');
-    return {
-      usina: p.usina, cc: p.cc, status: p.status || '', comentario: p.comentario || '', acao: p.acao || '',
-      responsavel: p.responsavel || '', em: Utilities.formatDate(agora, tz, 'dd/MM/yyyy HH:mm'), por: usuario
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
 /* ------------------------------------------------------------------ */
 /* Diagnóstico — rode pelo editor para conferir se tudo foi encontrado */
 /* ------------------------------------------------------------------ */
 
 function diagnosticar() {
   const d = carregarDados();
+  if (d.semAcesso) { Logger.log('O e-mail ' + d.usuario + ' não tem nenhum centro de custo liberado na aba "' + CONFIG.ABA_ACESSOS + '".'); return; }
   Logger.log('Planilha: ' + d.planilha);
   Object.keys(d.abas).forEach(function (id) {
     const a = d.abas[id];
@@ -540,5 +602,23 @@ function diagnosticar() {
       a.linhas.length + ' linhas com dados' + (a.sinal === -1 ? ', valores negativos (sinal invertido no painel)' : ''))));
     if (a.faltando.length) Logger.log('   Colunas NÃO encontradas: ' + a.faltando.join(' | '));
   });
-  Logger.log('Justificativas salvas: ' + Object.keys(d.just).length);
+  verificarSetores_(getSS_());
+}
+
+/** Lista os centros de custo da aba "Setores" que não aparecem em nenhuma das três abas (grafia diferente). */
+function verificarSetores_(ss) {
+  const setores = lerTabela_(ss, CONFIG.ABA_SETORES);
+  const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
+  if (acessos === null) { Logger.log('Controle de acesso: desligado (não existe a aba "' + CONFIG.ABA_ACESSOS + '").'); return; }
+  Logger.log('Controle de acesso: ligado. ' + acessos.length + ' liberações na aba "' + CONFIG.ABA_ACESSOS + '".');
+  const idx = indiceCC_(ss), tz = ss.getSpreadsheetTimeZone();
+  const existe = {};
+  Object.keys(idx).forEach(function (k) { existe[idx[k]] = true; });
+  ['orc', 'fluxo'].forEach(function (id) {
+    lerAba_(ss, id, tz, function (v) { existe[chaveCC_(v.cc, idx)] = true; return false; });
+  });
+  const faltam = (setores || []).filter(function (l) { return !existe[chaveCC_(l[1], idx)]; });
+  if (faltam.length) Logger.log('Centros de custo da aba "' + CONFIG.ABA_SETORES + '" que NÃO foram encontrados nos dados: ' +
+    faltam.map(function (l) { return l[0] + ' → ' + l[1]; }).join(' | '));
+  else Logger.log('Todos os centros de custo da aba "' + CONFIG.ABA_SETORES + '" foram encontrados nos dados.');
 }
