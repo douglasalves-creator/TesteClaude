@@ -105,6 +105,7 @@
   .card{background:var(--branco); border-radius:var(--radius)}
   .card-h{display:flex; align-items:center; gap:12px; padding:16px 20px; flex-wrap:wrap}
   .card-h h2{margin:0; font-size:15px; font-weight:600}
+  .card-h .hint{font-size:12px; color:var(--ink-3)}
   .card-h .r{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   .search{border:1px solid var(--nevoa); border-radius:999px; padding:7px 14px; height:34px; width:250px; max-width:100%; background:var(--branco)}
   table{width:100%; border-collapse:collapse}
@@ -235,7 +236,7 @@
     </div>
     <p class="note">Clique nos centros de custo para ver só eles no gráfico abaixo. Use <b>Detalhar</b> para ver todos os lançamentos de um centro de custo. Valores em R$.</p>
     <div class="card mt">
-      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2><span class="chsel" id="chSel"></span></div>
+      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2><span class="chsel" id="chSel"></span><span class="hint" style="margin-left:auto">Projetado de cada mês: a última previsão feita para aquele mês no Fluxo de Caixa</span></div>
       <div class="chart-box"><canvas id="chCurvas" role="img" aria-label="Orçado, projetado e realizado por mês"></canvas></div>
       <div id="tabMeses"></div>
     </div>
@@ -331,7 +332,7 @@ const DEMO_API = DEMO ? (function () {
   const L = { orc: [], real: [], fluxo: [] }, just = {};
   const seg = new Date(hoje); seg.setDate(seg.getDate() - ((seg.getDay() + 6) % 7));
   const snaps = [];
-  for (let i = 6; i >= 0; i--) { const d = new Date(seg); d.setDate(d.getDate() - 7 * i); snaps.push(iso(d.getFullYear(), d.getMonth() + 1, d.getDate())); }
+  for (let d = new Date(seg); d.getFullYear() === Y; d.setDate(d.getDate() - 7)) snaps.unshift(iso(d.getFullYear(), d.getMonth() + 1, d.getDate()));
   let n = 2;
   usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
     if ((ui + ci) % 4 === 3) return; // nem toda usina tem todos os centros de custo
@@ -339,10 +340,12 @@ const DEMO_API = DEMO ? (function () {
     for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), cent(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
     const fator = (ui + ci) % 7 === 0 ? 1.4 : 0.9;
     for (let m = 1; m <= M; m++) L.real.push([n++, forn[ci % 8], c[0], c[1], u, 'NF ' + (1000 + n), iso(Y, m, 5), 'Parcela ' + m, cent(base * fator * (0.75 + rnd() * 0.5)), m === M ? 'REAL S' : 'Real Acumulado', c[0] + ' - ' + c[1]]);
-    snaps.forEach((s, si) => {
-      for (let m = M; m <= M + 3; m++) {
-        if (rnd() < 0.3) continue;
-        L.fluxo.push([n++, iso(Y, m, 15), forn[ci % 8], cent(base * (0.9 + rnd() * 0.5) * (1 + si * 0.02)), 'Parcela', u, c[1], m === M && si > 4 ? 'Pago' : 'Em Aberto', s]);
+    snaps.forEach((s) => {
+      const sm = +s.slice(5, 7);
+      for (let m = sm; m <= sm + 2; m++) {
+        if (rnd() < 0.1) continue;
+        const dp = iso(Y, m, 15);
+        L.fluxo.push([n++, dp, forn[ci % 8], cent(base * (0.9 + rnd() * 0.4)), 'Parcela', u, c[1], dp < s ? 'Pago' : 'Em Aberto', s]);
       }
     });
   }));
@@ -601,7 +604,13 @@ function renderCurvas() {
   const add = (obj, d, v) => { if (!d) return; const m = d.slice(0, 7); obj[m] = (obj[m] || 0) + (v || 0); ms.add(m); };
   const usa = (x) => !S.ccSel.size || S.ccSel.has(x._ck);
   S.F.orc.forEach((x) => { if (usa(x)) add(o, x._d, x.valor); });
-  S.F.fl.forEach((x) => { if (usa(x) && (!soAb || !x._pago)) add(p, x._d, x.valor); });
+  // Projetado de cada mês = a previsão mais recente feita para aquele mês (envio mais novo do
+  // fluxo que tem pagamentos programados nele), contando itens pagos e em aberto.
+  // Não depende do "Fluxo de" escolhido no topo.
+  const ultimo = {};
+  const fl = S.rows.fluxo.filter((x) => x.dataFluxo && x._d && passa(x) && usa(x));
+  fl.forEach((x) => { const m = x._d.slice(0, 7); if (!ultimo[m] || x.dataFluxo > ultimo[m]) ultimo[m] = x.dataFluxo; });
+  fl.forEach((x) => { if (x.dataFluxo === ultimo[x._d.slice(0, 7)]) add(p, x._d, x.valor); });
   S.F.real.forEach((x) => { if (!usa(x) || (x._t === 'S' && !cfg.REALIZADO_SOMA_SEMANA)) return; add(r, x._d, x.valor); });
   const n = S.ccSel.size;
   $('#chSel').innerHTML = n === 0 ? 'Todos os centros de custo'

@@ -36,6 +36,8 @@ O painel é só de consulta: ele não altera nada na planilha. No topo há dois 
 4. **Clique nos centros de custo** para marcar quais aparecem no gráfico. Sem nenhum marcado, o gráfico mostra todos.
 5. O botão **Detalhar** abre ao lado todos os lançamentos daquele centro de custo, separados em Orçado, Projetado e Realizado.
 6. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
+   O gráfico **não depende** do "Fluxo de": o Projetado de cada mês é a última previsão feita para aquele mês no
+   Fluxo de Caixa (itens pagos e em aberto).
 
 **Análise Semanal**
 1. Escolha a **Semana anterior** e a **Semana atual** (datas de envio do Fluxo de Caixa).
