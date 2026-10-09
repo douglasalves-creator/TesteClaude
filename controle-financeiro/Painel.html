@@ -106,6 +106,13 @@
   .card-h{display:flex; align-items:center; gap:12px; padding:16px 20px; flex-wrap:wrap}
   .card-h h2{margin:0; font-size:15px; font-weight:600}
   .card-h .hint{font-size:12px; color:var(--ink-3)}
+  .leg{display:flex; gap:8px; flex-wrap:wrap; margin-left:auto}
+  .leg button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:5px 13px 5px 11px; font-size:12.5px; font-weight:600; color:var(--ink-2)}
+  .leg button:hover{border-color:var(--ink-3)}
+  .leg button .sw{margin:0}
+  .leg button.off{color:var(--ink-3); background:var(--sirius); border-style:dashed}
+  .leg button.off .sw{opacity:.25}
+  .leg-nota{font-size:12px; color:var(--ink-3); margin:-6px 20px 6px}
   .card-h .r{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   .search{border:1px solid var(--nevoa); border-radius:999px; padding:7px 14px; height:34px; width:250px; max-width:100%; background:var(--branco)}
   table{width:100%; border-collapse:collapse}
@@ -236,7 +243,8 @@
     </div>
     <p class="note">Clique nos centros de custo para ver só eles no gráfico abaixo. Use <b>Detalhar</b> para ver todos os lançamentos de um centro de custo. Valores em R$.</p>
     <div class="card mt">
-      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2><span class="chsel" id="chSel"></span><span class="hint" style="margin-left:auto">Projetado de cada mês: a última previsão feita para aquele mês no Fluxo de Caixa</span></div>
+      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2><span class="chsel" id="chSel"></span><div class="leg" id="leg" title="Clique para mostrar ou esconder a linha"></div></div>
+      <p class="leg-nota">Clique em Orçado, Projetado ou Realizado para mostrar ou esconder a linha. Projetado de cada mês: a última previsão feita para aquele mês no Fluxo de Caixa.</p>
       <div class="chart-box"><canvas id="chCurvas" role="img" aria-label="Orçado, projetado e realizado por mês"></canvas></div>
       <div id="tabMeses"></div>
     </div>
@@ -276,7 +284,7 @@ const S = {
   d: null, rows: { orc: [], fluxo: [], real: [] },
   f: { us: new Set(), snap: '', semA: '', semB: '' }, mod: 'geral',
   sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, ccSel: new Set(),
-  ccSelSem: new Set(), qSem: '', sortSem: { k: 'nome', dir: 1 }, chartSem: null
+  ccSelSem: new Set(), qSem: '', sortSem: { k: 'nome', dir: 1 }, chartSem: null, linhasOff: new Set()
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const $ = (s) => document.querySelector(s);
@@ -597,8 +605,14 @@ function renderTabela() {
   $('#tree').innerHTML = h + '</tbody></table>';
 }
 
+const SERIES = [
+  { k: 'orc', nome: 'Orçado', sw: 'background:var(--cosmos)' },
+  { k: 'proj', nome: 'Projetado', sw: 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)' },
+  { k: 'real', nome: 'Realizado', sw: 'background:var(--aurora)' }
+];
 /** Orçado (vencimento), Projetado (data programada) e Realizado (pagamento) mês a mês. */
 function renderCurvas() {
+  $('#leg').innerHTML = SERIES.map((x) => '<button type="button" data-linha="' + x.k + '" class="' + (S.linhasOff.has(x.k) ? 'off' : '') + '" aria-pressed="' + !S.linhasOff.has(x.k) + '"><span class="sw" style="' + x.sw + '"></span>' + x.nome + '</button>').join('');
   const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
   const o = {}, p = {}, r = {}, ms = new Set();
   const add = (obj, d, v) => { if (!d) return; const m = d.slice(0, 7); obj[m] = (obj[m] || 0) + (v || 0); ms.add(m); };
@@ -629,16 +643,16 @@ function renderCurvas() {
       data: {
         labels: meses.map(mes),
         datasets: [
-          linha('Orçado', sO, COR.cosmos),
-          linha('Projetado', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2 }),
-          linha('Realizado', sR, COR.aurora)
+          linha('Orçado', sO, COR.cosmos, { hidden: S.linhasOff.has('orc') }),
+          linha('Projetado', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2, hidden: S.linhasOff.has('proj') }),
+          linha('Realizado', sR, COR.aurora, { hidden: S.linhasOff.has('real') })
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: { position: 'top', align: 'end', labels: { boxWidth: 22, boxHeight: 2, color: '#4B5259' } },
+          legend: { display: false },
           tooltip: { backgroundColor: '#0A0F14', padding: 10, filter: (c) => c.raw !== null, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
         },
         scales: {
@@ -653,9 +667,7 @@ function renderCurvas() {
   const soma = (arr) => arr.reduce((a, v) => a + (v || 0), 0);
   const lin = (nome, sw, arr) => '<tr><td><span class="sw" style="' + sw + '"></span>' + nome + '</td>' + arr.map((v) => '<td class="n">' + mil(v) + '</td>').join('') + '<td class="n dl first"><b>' + num(soma(arr)) + '</b></td></tr>';
   $('#tabMeses').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
-    lin('Orçado', 'background:var(--cosmos)', sO) +
-    lin('Projetado', 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)', sP) +
-    lin('Realizado', 'background:var(--aurora)', sR) + '</tbody></table>'
+    SERIES.filter((x) => !S.linhasOff.has(x.k)).map((x) => lin(x.nome, x.sw, { orc: sO, proj: sP, real: sR }[x.k])).join('') + '</tbody></table>'
     : '<div class="empty">Sem datas para montar o gráfico.</div>';
 }
 
@@ -850,6 +862,8 @@ document.addEventListener('click', (e) => {
   if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTabela(); return; }
   const ths = t.closest('#treeSem th[data-ssort]');
   if (ths) { const k = ths.dataset.ssort; S.sortSem = { k, dir: S.sortSem.k === k ? -S.sortSem.dir : (k === 'nome' ? 1 : -1) }; renderSemanal(); return; }
+  const lb = t.closest('[data-linha]');
+  if (lb) { const k = lb.dataset.linha; if (S.linhasOff.has(k)) S.linhasOff.delete(k); else S.linhasOff.add(k); renderCurvas(); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
   const dets = t.closest('[data-dets]');

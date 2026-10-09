@@ -1,4 +1,15 @@
-# Painel Financeiro — como instalar (10 minutos)
+# Controle Financeiro — como instalar na base oficial (10 minutos)
+
+O painel é só de consulta: ele **não altera nada** na planilha. Pode instalar direto na base oficial.
+
+**Antes de começar, confira na base oficial:**
+- As abas se chamam **Orçamento**, **Fluxo de Caixa** e **Realizado Controladoria**.
+- Os cabeçalhos usados estão com estes nomes (a posição da coluna não importa):
+  - Orçamento: SETOR, DATA DE VENCIMENTO, VALOR A PAGAR, PROJETO, CENTRO DE CUSTO
+  - Fluxo de Caixa: Data programada de pgto, Fornecedor, Valor, Comentário, Projeto, Centro de Custo, Situação, Data do Fluxo
+  - Realizado Controladoria: Favorecido, C. Custo, Centro de Custo, Projeto, Documento, Pagto., Consolidado, Pagamentos,
+    Real / Acumulado, Código + Centro de Custo
+- O nome da usina (Projeto) está escrito igual nas três abas.
 
 ## 1. Colar os arquivos
 

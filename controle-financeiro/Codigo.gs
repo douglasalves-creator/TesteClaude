@@ -16,8 +16,9 @@
  */
 
 const CONFIG = {
-  // ID da planilha (o trecho da URL entre /d/ e /edit).
-  PLANILHA_ID: '1lztgSD26g0uedQU-kSu-SFc9Anr4OTPd9KCfdEpGiVE',
+  // Deixe '' para usar a planilha onde o script foi instalado (recomendado).
+  // Para ler outra planilha, cole aqui o ID dela (o trecho da URL entre /d/ e /edit).
+  PLANILHA_ID: '',
 
   // Nome do arquivo HTML dentro do projeto do Apps Script.
   HTML_FILE: 'Painel',
