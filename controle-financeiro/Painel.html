@@ -635,6 +635,18 @@ function renderCurvas() {
   const serie = (obj, ini, fim) => meses.map((m) => (m < ini || m > fim ? null : obj[m] || 0));
   const sO = serie(o, oIni, oFim), sP = serie(p, pIni, pFim), sR = serie(r, rIni, rFim);
 
+  // Escala do eixo: acompanha os valores das linhas visíveis, com folga igual em cima e embaixo,
+  // para as linhas ficarem no meio do gráfico.
+  const vis = [['orc', sO], ['proj', sP], ['real', sR]].filter(([k]) => !S.linhasOff.has(k)).reduce((acc, [, arr]) => acc.concat(arr.filter((v) => v !== null)), []);
+  let yMin, yMax, yPasso;
+  if (vis.length) {
+    const lo = Math.min.apply(null, vis), hi = Math.max.apply(null, vis);
+    const folga = Math.max(hi - lo, Math.abs(hi) * 0.1, 1) * 0.8;
+    yMin = Math.max(0, lo - folga); yMax = hi + folga;
+    const bruto = (yMax - yMin) / 5, mag = Math.pow(10, Math.floor(Math.log10(bruto))), r = bruto / mag;
+    yPasso = (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * mag;
+    yMin = Math.floor(yMin / yPasso) * yPasso; yMax = Math.ceil(yMax / yPasso) * yPasso;
+  }
   if (S.chart) S.chart.destroy();
   if (window.Chart) {
     const linha = (label, data, cor, extra) => Object.assign({ label, data, borderColor: cor, backgroundColor: cor, borderWidth: 2.5, pointRadius: 3.5, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 1.5, tension: 0.25 }, extra || {});
@@ -657,7 +669,7 @@ function renderCurvas() {
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
-          y: { beginAtZero: true, border: { display: false }, grid: { color: COR.grid }, ticks: { color: COR.ink3, callback: (v) => compact(v) } }
+          y: { beginAtZero: false, min: yMin, max: yMax, border: { display: false }, grid: { color: COR.grid }, ticks: { color: COR.ink3, stepSize: yPasso, callback: (v) => compact(v) } }
         }
       }
     });
