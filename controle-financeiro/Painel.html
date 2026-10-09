@@ -215,6 +215,8 @@
         <div class="ms-list" id="msList"></div>
       </div>
     </div>
+    <span class="fg" id="fSetorWrap" hidden><span class="lbl">Setor</span>
+      <select class="sel" id="fSetor" aria-label="Setor"></select></span>
     <div class="tags" id="tags"></div>
     <div class="sp"></div>
     <span class="fg" id="fGeral"><span class="lbl">Fluxo de</span>
@@ -282,7 +284,7 @@
 /* =================================================================== */
 const S = {
   d: null, rows: { orc: [], fluxo: [], real: [] },
-  f: { us: new Set(), snap: '', semA: '', semB: '' }, mod: 'geral',
+  f: { us: new Set(), snap: '', semA: '', semB: '', setor: '' }, mod: 'geral', ccSetor: null,
   sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, ccSel: new Set(),
   ccSelSem: new Set(), qSem: '', sortSem: { k: 'nome', dir: 1 }, chartSem: null, linhasOff: new Set()
 };
@@ -363,6 +365,10 @@ const DEMO_API = DEMO ? (function () {
     carregarDados: () => ({
       geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#',
       cfg: { REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' },
+      setores: (() => {
+        const k = (i) => (ccs[i][0] + ' ' + ccs[i][1]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        return { 'Suprimentos': [0, 1, 2, 3].map(k), 'Obras': [4, 5].map(k), 'Logística': [6].map(k), 'Engenharia': [7, 8].map(k) };
+      })(),
       abas: { orc: aba('orc', 'Orçamento', true), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
       just: just
     })
@@ -476,6 +482,7 @@ function preparar() {
     ? S.snaps.map((s) => '<option value="' + esc(s) + '"' + (s === S.f.snap ? ' selected' : '') + '>' + (s ? dt(s) : '(sem data)') + '</option>').join('')
     : '<option value="">—</option>';
   renderUsel();
+  montarSetores();
 }
 
 /* =================================================================== */
@@ -509,7 +516,28 @@ function abrirUsel(abrir) {
 /* =================================================================== */
 /* Números                                                              */
 /* =================================================================== */
-function passa(r) { return S.f.us.has(r._u); }
+function passa(r) { return S.f.us.has(r._u) && ccNoSetor(r._ck); }
+/** Centro de custo pertence ao setor escolhido? ('' = todos; '~sem' = os que não estão em nenhum setor). */
+function ccNoSetor(k) { return !S.ccSetor || S.ccSetor.has(k); }
+function montarSetores() {
+  const st = S.d.setores || {};
+  const nomes = Object.keys(st).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const restrito = S.d.acesso && S.d.acesso.restrito;
+  $('#fSetorWrap').hidden = !nomes.length || (restrito && nomes.length < 2);
+  if (S.f.setor && S.f.setor !== '~sem' && !st[S.f.setor]) S.f.setor = '';
+  $('#fSetor').innerHTML = '<option value="">Todos os setores</option>' +
+    nomes.map((n) => '<option value="' + esc(n) + '"' + (n === S.f.setor ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
+    (restrito ? '' : '<option value="~sem"' + (S.f.setor === '~sem' ? ' selected' : '') + '>Sem setor</option>');
+  aplicarSetor();
+}
+function aplicarSetor() {
+  const st = S.d.setores || {};
+  if (!S.f.setor) { S.ccSetor = null; return; }
+  if (S.f.setor === '~sem') {
+    const com = new Set(); Object.values(st).forEach((ks) => ks.forEach((k) => com.add(k)));
+    S.ccSetor = new Set(Object.keys(S.ccNome).filter((k) => !com.has(k)));
+  } else S.ccSetor = new Set(st[S.f.setor] || []);
+}
 function filtrar() {
   return {
     orc: S.rows.orc.filter(passa),
@@ -595,7 +623,7 @@ function renderTabela() {
   const q = nk(S.qTree);
   const por = new Map(S.A.ccs.map((c) => [c.k, c]));
   Object.keys(S.ccNome).forEach((k) => {
-    if (k === '~' || por.has(k)) return;
+    if (k === '~' || por.has(k) || !ccNoSetor(k)) return;
     por.set(k, { k, nome: S.ccNome[k], m: derivar(novoM()) });
   });
   const lista = Array.from(por.values()).filter((c) => !q || nk(c.nome).indexOf(q) !== -1).sort(cmp);
@@ -710,7 +738,7 @@ function renderSemanal() {
   const A = projSem(S.f.semA), B = projSem(S.f.semB);
   const nA = S.f.semA ? dt(S.f.semA) : '—', nB = S.f.semB ? dt(S.f.semB) : '—';
   const M = new Map();
-  Object.keys(S.ccNome).forEach((k) => { if (k !== '~') M.set(k, { k, nome: S.ccNome[k], m: { a: 0, b: 0, d: 0 } }); });
+  Object.keys(S.ccNome).forEach((k) => { if (k !== '~' && ccNoSetor(k)) M.set(k, { k, nome: S.ccNome[k], m: { a: 0, b: 0, d: 0 } }); });
   const add = (r, campo) => { let c = M.get(r._ck); if (!c) { c = { k: r._ck, nome: S.ccNome[r._ck], m: { a: 0, b: 0, d: 0 } }; M.set(r._ck, c); } c.m[campo] += r.valor || 0; };
   A.forEach((r) => add(r, 'a')); B.forEach((r) => add(r, 'b'));
   const lista0 = Array.from(M.values()); lista0.forEach((c) => { c.m.d = c.m.b - c.m.a; });
@@ -864,6 +892,7 @@ $('#msTodas').addEventListener('click', () => { usVisiveis().forEach((k) => S.f.
 $('#msLimpar').addEventListener('click', () => { S.f.us.clear(); mudouUsinas(); });
 $('#tags').addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; S.f.us.delete(b.dataset.rm); mudouUsinas(); });
 $('#fSnap').addEventListener('change', (e) => { S.f.snap = e.target.value; render(); });
+$('#fSetor').addEventListener('change', (e) => { S.f.setor = e.target.value; aplicarSetor(); S.ccSel.clear(); S.ccSelSem.clear(); if (S.drawer) fecharDrawer(); render(); });
 $('#btnAtualizar').addEventListener('click', () => atualizar());
 $('#mods').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-mod]'); if (!b) return;

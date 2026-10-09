@@ -427,7 +427,7 @@ function lerTabela_(ss, nome) {
  * O que o e-mail de quem abriu pode ver.
  * { restrito:false } quando não há aba "Acessos" ou a pessoa tem o setor TODOS.
  */
-function permissao_(ss, email, abas) {
+function permissao_(ss, email, abas, tabSetores) {
   const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
   if (acessos === null) return { restrito: false };
   const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
@@ -439,7 +439,7 @@ function permissao_(ss, email, abas) {
   const quer = {};
   setores.forEach(function (st) { quer[nk_(st)] = true; });
   const ccs = {};
-  (lerTabela_(ss, CONFIG.ABA_SETORES) || []).forEach(function (l) {
+  (tabSetores || []).forEach(function (l) {
     if (quer[nk_(l[0])]) { const k = chaveCC_(l[1], idx); if (k) ccs[k] = true; }
   });
   return { restrito: true, setores: setores, ccs: ccs, idx: idx, semAcesso: !Object.keys(ccs).length };
@@ -482,8 +482,22 @@ function carregarDados(forcar) {
   }
 
   // Cada pessoa recebe só o que pode ver.
-  const ac = permissao_(ss, email, base.abas);
+  const tabSetores = lerTabela_(ss, CONFIG.ABA_SETORES) || [];
+  const ac = permissao_(ss, email, base.abas, tabSetores);
   if (ac.restrito && ac.semAcesso) return { semAcesso: true, usuario: email, geradoEm: base.geradoEm };
+
+  // Setores que a pessoa pode escolher no painel (todos, ou só os dela) e os centros de custo de cada um.
+  const idxSet = ac.idx || indiceDosDados_(base.abas.real);
+  const meus = ac.restrito ? ac.setores.map(nk_) : null;
+  const setores = {};
+  tabSetores.forEach(function (l) {
+    if (meus && meus.indexOf(nk_(l[0])) === -1) return;
+    const nome = Object.keys(setores).filter(function (x) { return nk_(x) === nk_(l[0]); })[0] || l[0];
+    const k = chaveCC_(l[1], idxSet);
+    if (!k) return;
+    (setores[nome] = setores[nome] || []);
+    if (setores[nome].indexOf(k) === -1) setores[nome].push(k);
+  });
   let abas = base.abas;
   if (ac.restrito) {
     const ok = function (txt) { return ac.ccs[chaveCC_(txt, ac.idx)]; };
@@ -497,6 +511,7 @@ function carregarDados(forcar) {
     geradoEm: base.geradoEm,
     usuario: email,
     acesso: { restrito: ac.restrito, setores: ac.setores || [] },
+    setores: setores,
     planilha: ss.getName(),
     urlPlanilha: ac.restrito ? '' : ss.getUrl(),
     cfg: {
