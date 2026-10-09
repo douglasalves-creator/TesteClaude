@@ -30,8 +30,6 @@ O painel é só de consulta: ele não altera nada na planilha.
 1. **Escolha as usinas** na lista suspensa do topo. Dá para digitar o nome para procurar e marcar várias.
    Sem nenhuma usina marcada, o painel pede para selecionar uma.
 2. **Escolha o fluxo** em "Fluxo de". Ele já vem com o envio mais recente.
-   Em **"comparar com"**, escolha outro envio (já vem o da semana anterior). A variação do Projetado aparece em letra pequena
-   abaixo de cada valor, e o gráfico ganha uma linha cinza com o Projetado daquele envio. Escolha "Não comparar" para esconder.
 3. A **tabela** mostra todos os centros de custo, com centavos: Orçado, Projetado, Realizado, **Orç − Proj − Real** e **Orç − Real**.
    Com várias usinas marcadas, os valores são somados.
 4. **Clique nos centros de custo** para marcar quais aparecem no gráfico. Sem nenhum marcado, o gráfico mostra todos.
