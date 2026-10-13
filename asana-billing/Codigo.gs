@@ -30,6 +30,9 @@ const CONFIG = {
 
   COLUNA_ID: 'Task ID',
 
+  // Coluna preenchida com a data de criação da tarefa no Asana.
+  COLUNA_DATA_CRIACAO: 'Data de Solicitação',
+
   // Colunas que a planilha "manda" no Asana. Coloque aqui, com o nome exato
   // do cabeçalho, os campos que serão preenchidos na planilha.
   // Ex.: ['Data de Pagamento', 'Valor a Pagar']
@@ -99,6 +102,7 @@ function montarLinha_(tarefa, cab, colId) {
   const campos = indexarCampos_(tarefa);
   return cab.map((nome, i) => {
     if (i === colId) return tarefa.gid;
+    if (ehColunaCriacao_(nome)) return new Date(tarefa.created_at);
     const cf = campos[normalizar_(nome)];
     return cf ? valorDoAsana_(cf) : '';
   });
@@ -120,7 +124,7 @@ function formatarDatas_(aba, cab, tarefas, primeira) {
   const campos = indexarCampos_(tarefas[0]);
   cab.forEach((nome, i) => {
     const cf = campos[normalizar_(nome)];
-    if (cf && cf.resource_subtype === 'date') {
+    if (ehColunaCriacao_(nome) || (cf && cf.resource_subtype === 'date')) {
       aba.getRange(primeira, i + 1, tarefas.length, 1).setNumberFormat('dd/mm/yyyy');
     }
   });
@@ -289,7 +293,7 @@ function testarConexao() {
 
   const cab = lerCabecalho_(abrirAba_());
   const semPar = cab.filter(h => h && normalizar_(h) !== normalizar_(CONFIG.COLUNA_ID)
-    && !chaves.has(normalizar_(h)));
+    && !ehColunaCriacao_(h) && !chaves.has(normalizar_(h)));
 
   let msg = `Conectado como ${eu.name} (${eu.email}).\nProjeto: ${proj.name}.\n\n`;
   msg += semPar.length
@@ -374,6 +378,10 @@ function lerIds_(aba, colId) {
 }
 
 // ---------------------------------------------------------------- utilitários
+
+function ehColunaCriacao_(nome) {
+  return normalizar_(nome) === normalizar_(CONFIG.COLUNA_DATA_CRIACAO);
+}
 
 function indexarCampos_(tarefa) {
   const mapa = {};
