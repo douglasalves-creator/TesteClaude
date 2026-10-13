@@ -36,9 +36,13 @@ const CONFIG = {
   ATENCAO: 0.90,
   ESTOURO: 1.00,
 
-  // Quais abas o painel pode alterar. Por enquanto o painel é só de consulta:
-  // tudo travado. Troque para true quando quiser liberar a edição.
-  EDITAVEL: { orc: false, fluxo: false, real: false },
+  // Quais abas podem ser alteradas pelo "Detalhar" do painel. O Realizado vem da
+  // Controladoria e fica travado; troque para true se quiser liberar.
+  // Quem pode editar: o dono do script e quem tiver "Sim" na coluna C da aba Acessos.
+  EDITAVEL: { orc: true, fluxo: true, real: false },
+
+  // Toda alteração feita pelo painel é registrada nesta aba (criada se não existir).
+  ABA_AUDITORIA: 'Auditoria',
 
   // Na coluna "Real / Acumulado": true = "REAL S" (última semana) é SOMADO ao
   // "Real Acumulado". Use false se o "Real Acumulado" já incluir a última semana.
@@ -415,12 +419,23 @@ function chaveCC_(texto, idx) {
   return nk_(t);
 }
 
+const TABELAS_ = {};
+/** Lê as colunas A:C de uma aba simples (Setores, Acessos). null = a aba não existe. */
 function lerTabela_(ss, nome) {
+  if (nome in TABELAS_) return TABELAS_[nome];
   const sh = getAba_(ss, nome, false);
-  if (!sh || sh.getLastRow() < 2) return sh ? [] : null;
-  return sh.getRange(2, 1, sh.getLastRow() - 1, 2).getDisplayValues()
-    .map(function (l) { return [String(l[0]).trim(), String(l[1]).trim()]; })
-    .filter(function (l) { return l[0] && l[1]; });
+  let out = null;
+  if (sh) {
+    out = [];
+    if (sh.getLastRow() >= 2) {
+      const larg = Math.max(2, Math.min(3, sh.getLastColumn()));
+      out = sh.getRange(2, 1, sh.getLastRow() - 1, larg).getDisplayValues()
+        .map(function (l) { return [String(l[0]).trim(), String(l[1]).trim(), String(l[2] || '').trim()]; })
+        .filter(function (l) { return l[0] && l[1]; });
+    }
+  }
+  TABELAS_[nome] = out;
+  return out;
 }
 
 /**
@@ -451,15 +466,15 @@ function prepararAcessos() {
   const cria = function (nome, cab, linhas) {
     if (getAba_(ss, nome, false)) return false;
     const sh = ss.insertSheet(nome);
-    sh.getRange(1, 1, 1, 2).setValues([cab]).setFontWeight('bold').setBackground('#0A0F14').setFontColor('#ffffff');
-    if (linhas.length) sh.getRange(2, 1, linhas.length, 2).setValues(linhas);
+    sh.getRange(1, 1, 1, cab.length).setValues([cab]).setFontWeight('bold').setBackground('#0A0F14').setFontColor('#ffffff');
+    if (linhas.length) sh.getRange(2, 1, linhas.length, cab.length).setValues(linhas);
     sh.setFrozenRows(1);
     sh.setColumnWidths(1, 2, 320);
     return true;
   };
   const dono = Session.getEffectiveUser().getEmail() || '';
   const a = cria(CONFIG.ABA_SETORES, ['Setor', 'Centro de Custo'], []);
-  const b = cria(CONFIG.ABA_ACESSOS, ['E-mail', 'Setor'], dono ? [[dono, CONFIG.SETOR_TOTAL]] : []);
+  const b = cria(CONFIG.ABA_ACESSOS, ['E-mail', 'Setor', 'Edita'], dono ? [[dono, CONFIG.SETOR_TOTAL, 'Sim']] : []);
   const msg = (a || b) ? 'Abas criadas. Preencha "' + CONFIG.ABA_SETORES + '" (Setor | Centro de Custo) e "' +
     CONFIG.ABA_ACESSOS + '" (E-mail | Setor). Use o setor TODOS para quem pode ver tudo.' : 'As abas já existiam.';
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
@@ -512,6 +527,7 @@ function carregarDados(forcar) {
     usuario: email,
     acesso: { restrito: ac.restrito, setores: ac.setores || [] },
     setores: setores,
+    podeEditar: editor_(ss, email, function () { return idxSet; }).ok,
     planilha: ss.getName(),
     urlPlanilha: ac.restrito ? '' : ss.getUrl(),
     cfg: {
@@ -622,8 +638,57 @@ function prepararGravacao_(id) {
   const sheet = getAba_(ss, def.nome, true);
   const mapa = mapear_(sheet, def);
   if (!mapa.linhaCab) throw new Error('Cabeçalho não encontrado na aba "' + def.nome + '".');
-  return { ss: ss, tz: ss.getSpreadsheetTimeZone(), sheet: sheet, def: def, mapa: mapa };
+  const email = Session.getActiveUser().getEmail() || '';
+  const ed = editor_(ss, email, function () { return idxAtual_(ss); });
+  if (!ed.ok) throw new Error('O seu e-mail não tem permissão para editar. Peça a liberação (coluna "Edita" da aba Acessos).');
+  const cols = def.campos.map(function (c) { return mapa.col[c.k]; }).filter(Boolean);
+  const c0 = Math.min.apply(null, cols), c1 = Math.max.apply(null, cols);
+  return { ss: ss, tz: ss.getSpreadsheetTimeZone(), sheet: sheet, def: def, mapa: mapa, id: id, email: email, ed: ed, c0: c0, larg: c1 - c0 + 1 };
 }
+
+function ehSim_(v) { const n = nk_(v); return n === 'sim' || n === 's' || n === 'x' || n === 'edita' || n === 'editar'; }
+
+/**
+ * Quem pode editar: o dono do script, ou quem tem "Sim" na coluna C da aba Acessos.
+ * Quem não é TODOS só edita os centros de custo dos setores marcados com "Sim".
+ */
+function editor_(ss, email, idxFn) {
+  const eu = String(email || '').toLowerCase();
+  const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
+  if (eu && eu === dono) return { ok: true, restrito: false };
+  const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
+  if (!acessos || !eu) return { ok: false };
+  const minhas = acessos.filter(function (l) { return l[0].toLowerCase() === eu && ehSim_(l[2]); });
+  if (!minhas.length) return { ok: false };
+  if (minhas.some(function (l) { return nk_(l[1]) === nk_(CONFIG.SETOR_TOTAL); })) return { ok: true, restrito: false };
+  const idx = idxFn();
+  const quer = {};
+  minhas.forEach(function (l) { quer[nk_(l[1])] = true; });
+  const ccs = {};
+  (lerTabela_(ss, CONFIG.ABA_SETORES) || []).forEach(function (l) {
+    if (quer[nk_(l[0])]) { const k = chaveCC_(l[1], idx); if (k) ccs[k] = true; }
+  });
+  return { ok: true, restrito: true, ccs: ccs, idx: idx };
+}
+
+/** Índice de centros de custo: dos dados guardados, se houver; senão lê o Realizado. */
+function idxAtual_(ss) {
+  const base = cacheLer_();
+  return base ? indiceDosDados_(base.abas.real) : indiceCC_(ss);
+}
+
+function ccDaLinha_(id, v) { return id === 'real' ? (v.ccFull || [v.ccCod, v.ccDesc].filter(String).join(' - ')) : v.cc; }
+
+/** Quem edita só alguns setores não pode mexer em centro de custo de outro setor. */
+function conferirSetor_(ctx, v) {
+  if (!ctx.ed.restrito) return;
+  if (!ctx.ed.ccs[chaveCC_(ccDaLinha_(ctx.id, v), ctx.ed.idx)]) {
+    throw new Error('Esse centro de custo não pertence aos setores que você pode editar.');
+  }
+}
+
+/** Texto começando com "=" ou "+" viraria fórmula na planilha: grava como texto. */
+function textoSeguro_(s) { s = String(s); return /^[=+@]/.test(s) ? "'" + s : s; }
 
 function paraCelula_(v, tipo, tz, sinal) {
   if (v === null || v === undefined || v === '') return '';
@@ -635,36 +700,78 @@ function paraCelula_(v, tipo, tz, sinal) {
     const iso = parseData_(v, tz);
     return iso ? Utilities.parseDate(iso, tz, 'yyyy-MM-dd') : '';
   }
-  return String(v);
+  return textoSeguro_(v);
 }
 
-/** Confere se a linha ainda é a mesma que o painel mostrou. */
-function conferirLinha_(ctx, linha, antes, sinal) {
-  if (linha <= ctx.mapa.linhaCab || linha > ctx.sheet.getLastRow()) {
-    throw new Error('Essa linha não existe mais na planilha. Clique em Atualizar.');
-  }
-  ctx.def.campos.forEach(function (c) {
-    const col = ctx.mapa.col[c.k];
-    if (!col || !(c.k in antes)) return;
-    const atual = normalizar_(ctx.sheet.getRange(linha, col).getValue(), c.tipo, ctx.tz, sinal);
-    if (!iguais_(atual, antes[c.k], c.tipo)) {
-      throw new Error('Essa linha foi alterada na planilha depois que o painel abriu ("' + c.nome +
-        '"). Clique em Atualizar e tente de novo.');
-    }
-  });
-}
-
+/** Lê a linha inteira de uma vez e devolve { campo: valor } no formato do painel. */
 function lerLinha_(ctx, linha, sinal) {
+  const l = ctx.sheet.getRange(linha, ctx.c0, 1, ctx.larg).getValues()[0];
   const out = { _r: linha };
   ctx.def.campos.forEach(function (c) {
     const col = ctx.mapa.col[c.k];
-    out[c.k] = col ? normalizar_(ctx.sheet.getRange(linha, col).getValue(), c.tipo, ctx.tz, sinal)
-                   : (c.tipo === 'valor' ? null : '');
+    out[c.k] = col ? normalizar_(l[col - ctx.c0], c.tipo, ctx.tz, sinal) : (c.tipo === 'valor' ? null : '');
   });
   return out;
 }
 
+/** Confere se a linha ainda é a mesma que o painel mostrou. Devolve os valores atuais. */
+function conferirLinha_(ctx, linha, antes, sinal) {
+  if (linha <= ctx.mapa.linhaCab || linha > ctx.sheet.getLastRow()) {
+    throw new Error('Essa linha não existe mais na planilha. Clique em Atualizar.');
+  }
+  const atual = lerLinha_(ctx, linha, sinal);
+  ctx.def.campos.forEach(function (c) {
+    if (!ctx.mapa.col[c.k] || !(c.k in antes)) return;
+    if (!iguais_(atual[c.k], antes[c.k], c.tipo)) {
+      throw new Error('Essa linha foi alterada na planilha depois que o painel abriu ("' + c.nome +
+        '"). Clique em Atualizar e tente de novo.');
+    }
+  });
+  return atual;
+}
+
 function sinalValido_(s) { return Number(s) === -1 ? -1 : 1; }
+
+/* ------------------------------------------------------------------ */
+/* Auditoria                                                           */
+/* ------------------------------------------------------------------ */
+
+const CAB_AUDITORIA = ['Data e hora', 'E-mail', 'Aba', 'Linha', 'Ação', 'Campo', 'Antes', 'Depois'];
+
+function txtAuditoria_(v, tipo) {
+  if (v === null || v === undefined) return '';
+  if (tipo === 'data' && /^\d{4}-\d{2}-\d{2}$/.test(String(v))) { const t = String(v); return t.slice(8, 10) + '/' + t.slice(5, 7) + '/' + t.slice(0, 4); }
+  return typeof v === 'number' ? v : textoSeguro_(v);
+}
+
+/** mudancas = [{ campo, tipo, antes, depois }] → uma linha por campo na aba Auditoria. */
+function auditar_(ctx, linha, acao, mudancas) {
+  if (!mudancas.length) return;
+  let sh = getAba_(ctx.ss, CONFIG.ABA_AUDITORIA, false);
+  if (!sh) sh = ctx.ss.insertSheet(CONFIG.ABA_AUDITORIA);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, CAB_AUDITORIA.length).setValues([CAB_AUDITORIA])
+      .setFontWeight('bold').setBackground('#0A0F14').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+  }
+  const agora = new Date();
+  const linhas = mudancas.map(function (m) {
+    return [agora, ctx.email || '(não identificado)', ctx.sheet.getName(), linha, acao, m.campo,
+      txtAuditoria_(m.antes, m.tipo), txtAuditoria_(m.depois, m.tipo)];
+  });
+  const ini = sh.getLastRow() + 1;
+  sh.getRange(ini, 1, linhas.length, CAB_AUDITORIA.length).setValues(linhas);
+  sh.getRange(ini, 1, linhas.length, 1).setNumberFormat('dd/MM/yyyy HH:mm:ss');
+}
+
+/** Depois de gravar, os dados guardados ficam velhos: descarta para a próxima abertura ler de novo. */
+function cacheLimpar_() {
+  try { CacheService.getScriptCache().remove('painel_meta'); } catch (e) { /* sem cache */ }
+}
+
+/* ------------------------------------------------------------------ */
+/* Editar, incluir e excluir (chamados pelo "Detalhar" do painel)      */
+/* ------------------------------------------------------------------ */
 
 /** p = { aba, linha, sinal, antes:{campo:valor}, depois:{campo:valor} } */
 function salvarLinha(p) {
@@ -672,18 +779,28 @@ function salvarLinha(p) {
   lock.waitLock(20000);
   try {
     const ctx = prepararGravacao_(p.aba);
-    const sinal = sinalValido_(p.sinal);
-    conferirLinha_(ctx, Number(p.linha), p.antes || {}, sinal);
+    const sinal = sinalValido_(p.sinal), linha = Number(p.linha), depois = p.depois || {};
+    const atual = conferirLinha_(ctx, linha, p.antes || {}, sinal);
+    const novo = {};
+    Object.keys(atual).forEach(function (k) { novo[k] = k in depois ? depois[k] : atual[k]; });
+    conferirSetor_(ctx, atual);
+    conferirSetor_(ctx, novo);
+    const mudancas = [];
     ctx.def.campos.forEach(function (c) {
-      if (!(c.k in (p.depois || {}))) return;
+      if (!(c.k in depois)) return;
       const col = ctx.mapa.col[c.k];
       if (!col) return;
-      const cel = ctx.sheet.getRange(Number(p.linha), col);
+      const cel = ctx.sheet.getRange(linha, col);
       if (cel.getFormula()) throw new Error('A coluna "' + c.nome + '" tem fórmula nessa linha e não pode ser editada pelo painel.');
-      cel.setValue(paraCelula_(p.depois[c.k], c.tipo, ctx.tz, sinal));
+      if (iguais_(atual[c.k], depois[c.k], c.tipo)) return;
+      cel.setValue(paraCelula_(depois[c.k], c.tipo, ctx.tz, sinal));
+      mudancas.push({ campo: c.nome, tipo: c.tipo, antes: atual[c.k], depois: depois[c.k] });
     });
     SpreadsheetApp.flush();
-    return lerLinha_(ctx, Number(p.linha), sinal);
+    const r = lerLinha_(ctx, linha, sinal);
+    auditar_(ctx, linha, 'Edição', mudancas);
+    cacheLimpar_();
+    return r;
   } finally {
     lock.releaseLock();
   }
@@ -695,20 +812,18 @@ function novaLinha(p) {
   lock.waitLock(20000);
   try {
     const ctx = prepararGravacao_(p.aba);
-    const sinal = sinalValido_(p.sinal);
-    const cols = ctx.def.campos.map(function (c) { return ctx.mapa.col[c.k]; }).filter(Boolean);
-
+    const sinal = sinalValido_(p.sinal), valores = p.valores || {};
+    conferirSetor_(ctx, valores);
     // Última linha com dado nas colunas do painel (ignora fórmulas "arrastadas" em outras colunas).
+    const bl = bloco_(ctx.sheet, ctx.def);
     let ultima = ctx.mapa.linhaCab;
-    const total = ctx.sheet.getLastRow();
-    if (total > ctx.mapa.linhaCab) {
-      cols.forEach(function (col) {
-        const vals = ctx.sheet.getRange(ctx.mapa.linhaCab + 1, col, total - ctx.mapa.linhaCab, 1).getValues();
-        for (let i = vals.length - 1; i >= 0; i--) {
-          if (vals[i][0] !== '' && vals[i][0] !== null) { ultima = Math.max(ultima, ctx.mapa.linhaCab + 1 + i); break; }
-        }
-      });
-    }
+    ctx.def.campos.forEach(function (c) {
+      const col = bl.coluna(c.k);
+      if (!col) return;
+      for (let i = col.length - 1; i >= 0; i--) {
+        if (col[i][0] !== '' && col[i][0] !== null) { ultima = Math.max(ultima, ctx.mapa.linhaCab + 1 + i); break; }
+      }
+    });
     const nova = ultima + 1;
     if (nova > ctx.sheet.getMaxRows()) ctx.sheet.insertRowsAfter(ctx.sheet.getMaxRows(), 1);
     if (ultima > ctx.mapa.linhaCab) {
@@ -716,13 +831,18 @@ function novaLinha(p) {
       ctx.sheet.getRange(ultima, 1, 1, largura)
         .copyTo(ctx.sheet.getRange(nova, 1, 1, largura), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
     }
+    const mudancas = [];
     ctx.def.campos.forEach(function (c) {
       const col = ctx.mapa.col[c.k];
-      if (!col || !(c.k in (p.valores || {}))) return;
-      ctx.sheet.getRange(nova, col).setValue(paraCelula_(p.valores[c.k], c.tipo, ctx.tz, sinal));
+      if (!col || !(c.k in valores)) return;
+      ctx.sheet.getRange(nova, col).setValue(paraCelula_(valores[c.k], c.tipo, ctx.tz, sinal));
+      if (valores[c.k] !== '' && valores[c.k] !== null) mudancas.push({ campo: c.nome, tipo: c.tipo, antes: '', depois: valores[c.k] });
     });
     SpreadsheetApp.flush();
-    return lerLinha_(ctx, nova, sinal);
+    const r = lerLinha_(ctx, nova, sinal);
+    auditar_(ctx, nova, 'Inclusão', mudancas);
+    cacheLimpar_();
+    return r;
   } finally {
     lock.releaseLock();
   }
@@ -734,8 +854,13 @@ function excluirLinha(p) {
   lock.waitLock(20000);
   try {
     const ctx = prepararGravacao_(p.aba);
-    conferirLinha_(ctx, Number(p.linha), p.antes || {}, sinalValido_(p.sinal));
-    ctx.sheet.deleteRow(Number(p.linha));
+    const linha = Number(p.linha);
+    const atual = conferirLinha_(ctx, linha, p.antes || {}, sinalValido_(p.sinal));
+    conferirSetor_(ctx, atual);
+    ctx.sheet.deleteRow(linha);
+    auditar_(ctx, linha, 'Exclusão', ctx.def.campos.filter(function (c) { return ctx.mapa.col[c.k] && atual[c.k] !== '' && atual[c.k] !== null; })
+      .map(function (c) { return { campo: c.nome, tipo: c.tipo, antes: atual[c.k], depois: '' }; }));
+    cacheLimpar_();
     return true;
   } finally {
     lock.releaseLock();

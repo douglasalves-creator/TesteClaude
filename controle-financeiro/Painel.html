@@ -153,6 +153,32 @@
   .sw.tr{background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)}
 
   .acts{white-space:nowrap; text-align:right}
+  .ib{border:0; background:transparent; border-radius:6px; padding:4px 5px; color:var(--ink-3); vertical-align:middle}
+  .ib:hover{background:var(--sirius); color:var(--aurora)}
+  .ib svg{width:15px; height:15px; display:block}
+  .btn{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:7px 16px; font-weight:600; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; text-transform:none; letter-spacing:0}
+  .btn:hover{border-color:var(--ink-3)}
+  .btn:disabled{opacity:.55; cursor:not-allowed}
+  .btn-sm{padding:4px 12px; font-size:12px}
+  .btn-pri{background:var(--aurora); border-color:var(--aurora); color:var(--branco)}
+  .btn-pri:hover{background:#d95f22; border-color:#d95f22}
+  .btn-danger{background:var(--neg); border-color:var(--neg); color:var(--branco)}
+  .modal-w{position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(10,15,20,.5)}
+  .modal-w.on{display:flex}
+  .modal{background:var(--branco); border-radius:16px; width:min(640px,100%); max-height:calc(100vh - 40px); display:flex; flex-direction:column}
+  .modal > header{padding:18px 22px 6px; display:flex; align-items:center}
+  .modal > header h2{margin:0; font-size:16px; font-weight:600}
+  .modal .mb{padding:10px 22px; overflow-y:auto}
+  .modal .mf{padding:14px 22px 18px; display:flex; gap:8px; justify-content:flex-end; align-items:center}
+  .modal .msg{font-size:12.5px; color:var(--neg); margin-right:auto}
+  .form{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 14px}
+  .form .full{grid-column:1/-1}
+  .fld{display:flex; flex-direction:column; gap:4px}
+  .fld label{font-size:11px; font-weight:600; color:var(--ink-3); text-transform:uppercase; letter-spacing:.06em}
+  .fld input,.fld select,.fld textarea{border:1px solid var(--nevoa); border-radius:10px; padding:8px 11px; background:var(--branco); width:100%}
+  .fld textarea{min-height:64px; resize:vertical}
+  .fld .era{font-size:11px; color:var(--ink-3)}
+  @media (max-width:640px){ .form{grid-template-columns:minmax(0,1fr)} }
 
   /* Detalhe (gaveta) */
   .scrim{position:fixed; inset:0; background:rgba(10,15,20,.4); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s}
@@ -276,6 +302,14 @@
   <div class="body" id="dwB"></div>
 </aside>
 
+<div class="modal-w" id="modal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <header><h2 id="mdT"></h2><button class="x" id="mdX" type="button" aria-label="Fechar">×</button></header>
+    <div class="mb" id="mdB"></div>
+    <div class="mf"><span class="msg" id="mdMsg"></span><button class="btn" id="mdCancel" type="button">Cancelar</button><button class="btn btn-pri" id="mdOk" type="button">Salvar</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -362,17 +396,22 @@ const DEMO_API = DEMO ? (function () {
   }));
   const aba = (id, nome, ed) => ({ id, aba: nome, editavel: ed, sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], linhaCab: 1, erro: '' });
   const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
+  const idx = (id, linha) => L[id].findIndex((l) => l[0] === +linha);
+  const obj = (id, l) => { const o = { _r: l[0] }; C[id].forEach((c, j) => { o[c[0]] = l[j + 1]; }); return o; };
   return {
     carregarDados: () => ({
       geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#',
-      cfg: { REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' },
+      cfg: { REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' }, podeEditar: true,
       setores: (() => {
         const k = (i) => (ccs[i][0] + ' ' + ccs[i][1]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
         return { 'Suprimentos': [0, 1, 2, 3].map(k), 'Obras': [4, 5].map(k), 'Logística': [6].map(k), 'Engenharia': [7, 8].map(k) };
       })(),
       abas: { orc: aba('orc', 'Orçamento', true), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
       just: just
-    })
+    }),
+    salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
+    novaLinha: (p) => { const l = [n++].concat(C[p.aba].map((c) => p.valores[c[0]] === undefined ? '' : p.valores[c[0]])); L[p.aba].push(l); return obj(p.aba, l); },
+    excluirLinha: (p) => { L[p.aba].splice(idx(p.aba, p.linha), 1); return true; }
   };
 })() : null;
 
@@ -391,10 +430,10 @@ function toast(msg, erro) {
   t.textContent = msg; t.className = 'toast on' + (erro ? ' err' : '');
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast' + (erro ? ' err' : ''); }, erro ? 6000 : 2600);
 }
-function atualizar(silencioso) {
+function atualizar(silencioso, forcar) {
   $('#icoAtualizar').classList.add('spin'); $('#btnAtualizar').disabled = true;
   // No "Atualizar" busca direto na planilha; ao abrir, aceita os dados guardados há poucos minutos.
-  return run('carregarDados', !silencioso).then((d) => { receber(d); if (!silencioso) toast('Dados atualizados.'); })
+  return run('carregarDados', forcar === undefined ? !silencioso : forcar).then((d) => { receber(d); if (!silencioso) toast('Dados atualizados.'); })
     .catch((e) => { if (!S.d) $('#loading').innerHTML = '<h3>Não consegui ler a planilha</h3><p>' + esc(e) + '</p>'; else toast(e, true); })
     .finally(() => { $('#icoAtualizar').classList.remove('spin'); $('#btnAtualizar').disabled = false; });
 }
@@ -649,12 +688,9 @@ function render() {
 /** Todos os centros de custo existentes aparecem, mesmo os sem valor para as usinas escolhidas. */
 function renderTabela() {
   const q = nk(S.qTree);
-  const por = new Map(S.A.ccs.map((c) => [c.k, c]));
-  Object.keys(S.ccNome).forEach((k) => {
-    if (k === '~' || por.has(k) || !ccNoSetor(k)) return;
-    por.set(k, { k, nome: S.ccNome[k], m: derivar(novoM()) });
-  });
-  const lista = Array.from(por.values()).filter((c) => !q || nk(c.nome).indexOf(q) !== -1).sort(cmp);
+  // Só aparecem centros de custo com algum valor (positivo ou negativo) em Orçado, Projetado ou Realizado.
+  const temValor = (m) => Math.abs(m.orc) >= 0.005 || Math.abs(m.proj) >= 0.005 || Math.abs(m.real) >= 0.005;
+  const lista = S.A.ccs.filter((c) => temValor(c.m) && (!q || nk(c.nome).indexOf(q) !== -1)).sort(cmp);
   let h = '<table class="tb-c"><thead><tr>' + COLS.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
     (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '<th></th></tr></thead><tbody>';
@@ -766,7 +802,6 @@ function renderSemanal() {
   const A = projSem(S.f.semA), B = projSem(S.f.semB);
   const nA = S.f.semA ? dt(S.f.semA) : '—', nB = S.f.semB ? dt(S.f.semB) : '—';
   const M = new Map();
-  Object.keys(S.ccNome).forEach((k) => { if (k !== '~' && ccNoSetor(k)) M.set(k, { k, nome: S.ccNome[k], m: { a: 0, b: 0, d: 0 } }); });
   const add = (r, campo) => { let c = M.get(r._ck); if (!c) { c = { k: r._ck, nome: S.ccNome[r._ck], m: { a: 0, b: 0, d: 0 } }; M.set(r._ck, c); } c.m[campo] += r.valor || 0; };
   A.forEach((r) => add(r, 'a')); B.forEach((r) => add(r, 'b'));
   const lista0 = Array.from(M.values()); lista0.forEach((c) => { c.m.d = c.m.b - c.m.a; });
@@ -777,7 +812,7 @@ function renderSemanal() {
   $('#ttlSem').textContent = 'Projetado por centro de custo · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
 
   const q = nk(S.qSem), k = S.sortSem.k, dir = S.sortSem.dir;
-  const lista = lista0.filter((c) => !q || nk(c.nome).indexOf(q) !== -1)
+  const lista = lista0.filter((c) => (Math.abs(c.m.a) >= 0.005 || Math.abs(c.m.b) >= 0.005) && (!q || nk(c.nome).indexOf(q) !== -1))
     .sort((x, y) => k === 'nome' ? String(x.nome).localeCompare(String(y.nome), 'pt-BR', { numeric: true }) * dir : (x.m[k] - y.m[k]) * dir);
   const cols = [{ k: 'nome', t: 'Centro de custo' }, { k: 'a', t: 'Projetado em ' + nA, n: 1 }, { k: 'b', t: 'Projetado em ' + nB, n: 1 }, { k: 'd', t: dh('(Semana atual − Semana anterior)'), n: 1, dl: 1 }];
   let h = '<table class="tb-c"><thead><tr>' + cols.map((c) => '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl first' : '') + '" data-ssort="' + c.k + '">' + c.t +
@@ -853,13 +888,22 @@ function celula(r, col) {
   if (tp === 'valor') return '<td class="n">' + brl2(r[k]) + '</td>';
   return '<td>' + esc(r[k]) + '</td>';
 }
-function tabelaLanc(aba, rows) {
+const IC = {
+  ed: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5l2.5 2.5L5.5 13H3v-2.5z"/></svg>',
+  del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.7 9h6.6l.7-9"/></svg>'
+};
+function podeEditar(aba) { return S.d.podeEditar && S.d.abas[aba] && S.d.abas[aba].editavel; }
+function tabelaLanc(aba, rows, edita) {
   const cols = COLS_LANC[aba].filter((c) => c[0] !== 'projeto' || S.f.us.size > 1);
+  const ed = edita && podeEditar(aba);
   const lista = rows.slice().sort((a, b) => (a[cols[0][0]] || '').localeCompare(b[cols[0][0]] || ''));
-  let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + '</tr></thead><tbody>';
-  if (!lista.length) h += '<tr><td colspan="' + cols.length + '" class="empty">Nenhum lançamento.</td></tr>';
-  lista.forEach((r) => { h += '<tr>' + cols.map((c) => celula(r, c)).join('') + '</tr>'; });
-  if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">Total</td><td class="n">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</td></tr>';
+  let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
+  if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
+  lista.forEach((r) => {
+    h += '<tr>' + cols.map((c) => celula(r, c)).join('') + (ed ? '<td class="acts"><button type="button" class="ib" data-ed="' + aba + '|' + r._r + '" title="Editar">' + IC.ed +
+      '</button><button type="button" class="ib" data-del="' + aba + '|' + r._r + '" title="Excluir">' + IC.del + '</button></td>' : '') + '</tr>';
+  });
+  if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">Total</td><td class="n">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
   return h + '</tbody></table>';
 }
 function abrirCC(ck, semanal) {
@@ -897,12 +941,114 @@ function renderDrawer(novo) {
   $('#dwS').textContent = selNome() + ' · fluxo de ' + (S.f.snap ? dt(S.f.snap) : '—');
   let h = '<div class="kpis">' + kpisHtml(m) + '</div>';
   [['orc', Fx.orc, 'Orçado'], ['fluxo', proj, 'Projetado' + (soAb ? ' (em aberto no fluxo)' : '')], ['real', real, 'Realizado']].forEach(([aba, rows, t]) => {
-    h += '<div class="h3">' + t + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '<span class="tt">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</span></div>' +
-      '<div class="card">' + tabelaLanc(aba, rows) + '</div>';
+    h += '<div class="h3">' + t + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') +
+      (podeEditar(aba) ? '<button type="button" class="btn btn-sm" data-novo="' + aba + '">+ Novo</button>' : '') +
+      '<span class="tt">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</span></div>' +
+      '<div class="card">' + tabelaLanc(aba, rows, true) + '</div>';
   });
   const body = $('#dwB'), sc = body.scrollTop;
   body.innerHTML = h;
   body.scrollTop = novo ? 0 : sc;
+}
+
+/* =================================================================== */
+/* Edição pelo Detalhar (cada alteração vai para a aba Auditoria)        */
+/* =================================================================== */
+const NOME_ABA = { orc: 'Orçamento', fluxo: 'Fluxo de Caixa', real: 'Realizado' };
+const ROTULO = { setor: 'Setor', venc: 'Data de vencimento', valor: 'Valor', projeto: 'Usina (Projeto)', cc: 'Centro de custo',
+  dataProg: 'Data programada', fornecedor: 'Fornecedor', coment: 'Comentário', situacao: 'Situação', dataFluxo: 'Data do fluxo' };
+function parseBR(t) {
+  t = String(t || '').trim().replace(/[R$\s]/g, '');
+  if (!t) return null;
+  if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(t);
+  return isFinite(n) ? n : null;
+}
+function acharLinha(aba, linha) { return S.rows[aba].find((r) => r._r === +linha); }
+function sugestoes(aba, k) {
+  const set = new Set();
+  S.rows[aba].forEach((r) => { if (r[k]) set.add(String(r[k])); });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR')).slice(0, 800);
+}
+let MD = null;
+function abrirModal(titulo, corpo, okTxt, onOk, perigo) {
+  MD = onOk;
+  $('#mdT').textContent = titulo; $('#mdB').innerHTML = corpo; $('#mdMsg').textContent = '';
+  const ok = $('#mdOk'); ok.textContent = okTxt; ok.disabled = false; ok.className = 'btn ' + (perigo ? 'btn-danger' : 'btn-pri');
+  $('#modal').classList.add('on');
+  const f = $('#mdB').querySelector('input,select,textarea'); if (f) setTimeout(() => f.focus(), 30);
+}
+function fecharModal() { $('#modal').classList.remove('on'); MD = null; }
+
+function abrirEditor(aba, row, preset) {
+  const def = S.d.abas[aba];
+  const faltam = new Set(def.faltando);
+  const campos = def.campos.filter((c) => !faltam.has(c.nome));
+  const val = row || Object.assign({}, preset || {});
+  let h = '<div class="form">';
+  campos.forEach((c) => {
+    const v = val[c.k];
+    h += '<div class="fld' + (c.k === 'coment' ? ' full' : '') + '"><label for="e_' + c.k + '">' + (ROTULO[c.k] || c.nome) + '</label>';
+    if (c.tipo === 'data') h += '<input type="date" id="e_' + c.k + '" value="' + esc(v || '') + '">';
+    else if (c.tipo === 'valor') h += '<input id="e_' + c.k + '" inputmode="decimal" placeholder="0,00" value="' + (v === null || v === undefined || v === '' ? '' : _n2.format(v)) + '">';
+    else if (c.k === 'situacao') {
+      const ops = ['Em Aberto', 'Pago']; if (v && !ops.includes(v)) ops.push(v);
+      h += '<select id="e_' + c.k + '">' + ops.map((o) => '<option' + (o === (v || 'Em Aberto') ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
+    } else if (c.k === 'coment') h += '<textarea id="e_' + c.k + '">' + esc(v || '') + '</textarea>';
+    else h += '<input id="e_' + c.k + '" list="dl_' + c.k + '" value="' + esc(v || '') + '" autocomplete="off"><datalist id="dl_' + c.k + '">' +
+      sugestoes(aba, c.k).map((x) => '<option value="' + esc(x) + '">').join('') + '</datalist>';
+    h += '</div>';
+  });
+  h += '</div><p style="font-size:12px;color:var(--ink-3);margin:12px 0 0">Grava na aba ' + esc(def.aba) + (row ? ', linha ' + row._r : ', na primeira linha livre') +
+    '. A alteração fica registrada na aba Auditoria.</p>';
+
+  abrirModal((row ? 'Editar' : 'Novo lançamento') + ' · ' + NOME_ABA[aba], h, row ? 'Salvar' : 'Incluir', () => {
+    const novo = {};
+    for (const c of campos) {
+      let v = document.getElementById('e_' + c.k).value.trim();
+      if (c.tipo === 'valor') {
+        if (v === '') v = null;
+        else { v = parseBR(v); if (v === null) return 'Valor inválido em "' + (ROTULO[c.k] || c.nome) + '".'; v = Math.round(v * 100) / 100; }
+      }
+      novo[c.k] = v;
+    }
+    if (novo.valor === null || novo.valor === undefined) return 'Informe o valor.';
+    if ('projeto' in novo && !novo.projeto) return 'Informe a usina (Projeto).';
+    if (row) {
+      const depois = {}, antes = {};
+      campos.forEach((c) => {
+        antes[c.k] = row[c.k];
+        const a = row[c.k], b = novo[c.k];
+        const igual = c.tipo === 'valor' ? (a === null || a === undefined ? b === null : b !== null && Math.abs(a - b) < 0.005) : String(a || '') === String(b || '');
+        if (!igual) depois[c.k] = b;
+      });
+      if (!Object.keys(depois).length) { fecharModal(); return; }
+      return run('salvarLinha', { aba, linha: row._r, sinal: def.sinal, antes, depois }).then((r) => {
+        Object.assign(row, r); preparar(); render(); fecharModal(); toast('Salvo na planilha (linha ' + row._r + ').');
+      });
+    }
+    return run('novaLinha', { aba, sinal: def.sinal, valores: novo }).then((r) => {
+      S.rows[aba].push(r); preparar(); render(); fecharModal(); toast('Incluído na linha ' + r._r + '.');
+    });
+  });
+}
+function excluir(aba, row) {
+  const def = S.d.abas[aba];
+  const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
+  const resumo = COLS_LANC[aba].map((c) => {
+    const v = row[c[0]];
+    return v === '' || v === null || v === undefined ? '' : '<div><span style="color:var(--ink-3)">' + c[1] + ':</span> ' + esc(c[2] === 'data' ? dt(v) : c[2] === 'valor' ? brl2(v) : v) + '</div>';
+  }).join('');
+  abrirModal('Excluir lançamento', '<p style="margin-top:0">A linha ' + row._r + ' será apagada da aba ' + esc(def.aba) + '. A exclusão fica registrada na aba Auditoria.</p>' +
+    '<div class="card" style="background:var(--sirius);padding:12px 14px">' + resumo + '</div>', 'Excluir',
+    () => run('excluirLinha', { aba, linha: row._r, sinal: def.sinal, antes }).then(() => { fecharModal(); toast('Excluído.'); return atualizar(true, true); }), true);
+}
+function novoPreset(aba, ck) {
+  const p = {};
+  if (S.f.us.size === 1) p.projeto = S.uNome[Array.from(S.f.us)[0]];
+  if (ck && S.ccNome[ck] && S.ccNome[ck][0] !== '(') p.cc = S.ccNome[ck];
+  if (aba === 'fluxo') { p.situacao = 'Em Aberto'; p.dataFluxo = S.f.snap || ''; }
+  return p;
 }
 
 /* =================================================================== */
@@ -945,6 +1091,12 @@ document.addEventListener('click', (e) => {
   if (ths) { const k = ths.dataset.ssort; S.sortSem = { k, dir: S.sortSem.k === k ? -S.sortSem.dir : (k === 'nome' ? 1 : -1) }; renderSemanal(); return; }
   const lb = t.closest('[data-linha]');
   if (lb) { const k = lb.dataset.linha; if (S.linhasOff.has(k)) S.linhasOff.delete(k); else S.linhasOff.add(k); renderCurvas(); return; }
+  const ed = t.closest('[data-ed]');
+  if (ed) { const [aba, l] = ed.dataset.ed.split('|'); const r = acharLinha(aba, l); if (r) abrirEditor(aba, r); return; }
+  const del = t.closest('[data-del]');
+  if (del) { const [aba, l] = del.dataset.del.split('|'); const r = acharLinha(aba, l); if (r) excluir(aba, r); return; }
+  const nv = t.closest('[data-novo]');
+  if (nv) { abrirEditor(nv.dataset.novo, null, novoPreset(nv.dataset.novo, S.drawer && S.drawer.ck)); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
   const dets = t.closest('[data-dets]');
@@ -962,8 +1114,21 @@ document.addEventListener('click', (e) => {
 });
 $('#scrim').addEventListener('click', fecharDrawer);
 $('#dwX').addEventListener('click', fecharDrawer);
+$('#mdX').addEventListener('click', fecharModal);
+$('#mdCancel').addEventListener('click', fecharModal);
+$('#mdOk').addEventListener('click', () => {
+  if (!MD) return;
+  const ok = $('#mdOk'), txt = ok.textContent;
+  const r = MD();
+  if (typeof r === 'string') { $('#mdMsg').textContent = r; return; }
+  if (r && r.then) {
+    ok.disabled = true; ok.textContent = 'Gravando…'; $('#mdMsg').textContent = '';
+    r.catch((e) => { $('#mdMsg').textContent = e; ok.disabled = false; ok.textContent = txt; });
+  }
+});
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
+  if ($('#modal').classList.contains('on')) { fecharModal(); return; }
   if ($('#ms').classList.contains('on')) abrirUsel(false);
   else if (S.drawer) fecharDrawer();
 });

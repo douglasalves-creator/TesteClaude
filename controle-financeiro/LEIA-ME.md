@@ -1,6 +1,6 @@
 # Controle Financeiro — como instalar na base oficial (10 minutos)
 
-O painel é só de consulta: ele **não altera nada** na planilha. Pode instalar direto na base oficial.
+O painel só altera a planilha pelo botão **Detalhar**, e só para quem tem permissão de edição. Toda alteração fica registrada na aba **Auditoria**.
 
 **Antes de começar, confira na base oficial:**
 - As abas se chamam **Orçamento**, **Fluxo de Caixa** e **Realizado Controladoria**.
@@ -40,8 +40,9 @@ Cada pessoa vê só os centros de custo do setor dela.
 
 1. No menu **Controle Financeiro → Criar abas de acesso**. Vão aparecer duas abas:
    - **Setores**: uma linha por centro de custo → `Setor | Centro de Custo` (pode usar o código ou o nome).
-   - **Acessos**: uma linha por pessoa e setor → `E-mail | Setor`. O setor **TODOS** libera tudo (Diretoria).
-     Seu e-mail já entra com TODOS.
+   - **Acessos**: uma linha por pessoa e setor → `E-mail | Setor | Edita`. O setor **TODOS** libera tudo (Diretoria).
+     Na coluna **Edita**, escreva **Sim** para quem pode editar pelo painel; em branco = só consulta.
+     Seu e-mail já entra com TODOS. O dono do script sempre pode editar.
 2. Rode **`diagnosticar`**: ele avisa se algum centro de custo da aba Setores não foi encontrado nos dados (grafia diferente).
 3. Publique como **App da Web** com **"Executar como: Eu"** e mande o link para as pessoas.
 4. **Importante:** quem só pode ver o próprio setor **não pode ter acesso à planilha**. A pessoa usa só o link do painel.
@@ -51,7 +52,7 @@ Enquanto a aba **Acessos** não existir, o painel mostra tudo para todos.
 
 ## 4. O que o painel faz
 
-O painel é só de consulta: ele não altera nada na planilha. No topo há dois módulos.
+No topo há dois módulos.
 
 **Visão Geral**
 1. **Escolha as usinas** na lista suspensa. Dá para digitar o nome para procurar e marcar várias.
@@ -62,10 +63,13 @@ O painel é só de consulta: ele não altera nada na planilha. No topo há dois 
    Os dois filtros funcionam em cascata: escolhendo um setor, a lista de usinas mostra só as que têm aquele setor;
    escolhendo usinas, a lista de setores mostra só os que existem nelas.
 2. **Escolha o fluxo** em "Fluxo de". Ele já vem com o envio mais recente.
-3. A **tabela** mostra todos os centros de custo, com centavos: Orçado, Projetado, Realizado,
+3. A **tabela** mostra os centros de custo que têm algum valor (os totalmente zerados não aparecem), com centavos: Orçado, Projetado, Realizado,
    **Δ (Orçado − Projetado − Realizado)** e **Δ (Orçado − Realizado)**. Com várias usinas marcadas, os valores são somados.
 4. **Clique nos centros de custo** para marcar quais aparecem no gráfico. Sem nenhum marcado, o gráfico mostra todos.
 5. O botão **Detalhar** abre ao lado todos os lançamentos daquele centro de custo, separados em Orçado, Projetado e Realizado.
+   Quem tem permissão vê os botões **Editar** (lápis), **Excluir** (lixeira) e **+ Novo** no Orçamento e no Fluxo de Caixa.
+   O Realizado é travado (vem da Controladoria). Cada alteração vira linhas na aba **Auditoria**:
+   Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 6. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
    O gráfico **não depende** do "Fluxo de": o Projetado de cada mês é a última previsão feita para aquele mês no
    Fluxo de Caixa (itens pagos e em aberto).
