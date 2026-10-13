@@ -66,9 +66,10 @@ No topo há dois módulos.
 3. A **tabela** mostra os centros de custo que têm algum valor (os totalmente zerados não aparecem), com centavos: Orçado, Projetado, Realizado,
    **Δ (Orçado − Projetado − Realizado)** e **Δ (Orçado − Realizado)**. Com várias usinas marcadas, os valores são somados.
 4. **Clique nos centros de custo** para marcar quais aparecem no gráfico. Sem nenhum marcado, o gráfico mostra todos.
-5. O botão **Detalhar** abre ao lado todos os lançamentos daquele centro de custo, separados em Orçado, Projetado e Realizado.
-   Quem tem permissão vê os botões **Editar** (lápis), **Excluir** (lixeira) e **+ Novo** no Orçamento e no Fluxo de Caixa.
-   O Realizado é travado (vem da Controladoria). Cada alteração vira linhas na aba **Auditoria**:
+5. O botão **Detalhar** abre ao lado os lançamentos daquele centro de custo: primeiro o **Projetado** (Fluxo de Caixa),
+   já aberto; depois **Orçado** e **Realizado**, fechados (clique no título para abrir).
+   Só o **Fluxo de Caixa** pode ser editado: quem tem permissão vê **Editar** (lápis), **Excluir** (lixeira) e **+ Novo**.
+   Orçamento e Realizado Controladoria são imutáveis pelo painel. Cada alteração vira linhas na aba **Auditoria**:
    Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 6. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
    O gráfico **não depende** do "Fluxo de": o Projetado de cada mês é a última previsão feita para aquele mês no

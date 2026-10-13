@@ -153,6 +153,18 @@
   .sw.tr{background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)}
 
   .acts{white-space:nowrap; text-align:right}
+  /* Blocos do Detalhar: Projetado aberto; Orçado e Realizado fechados até o clique */
+  .blk{margin-top:14px}
+  .blk > summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 18px; background:var(--branco); border:1px solid var(--line); border-radius:12px}
+  .blk > summary::-webkit-details-marker{display:none}
+  .blk > summary:hover{border-color:var(--nevoa)}
+  .blk[open] > summary{border-radius:12px 12px 0 0}
+  .blk > summary .chev{color:var(--aurora); font-size:12px; transition:transform .15s}
+  .blk[open] > summary .chev{transform:rotate(90deg)}
+  .blk > summary .t{font-size:14px; font-weight:700}
+  .blk > summary .src{font-size:12px; color:var(--ink-3)}
+  .blk > summary .tt{margin-left:auto; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums}
+  .blk > .card{border:1px solid var(--line); border-top:0; border-radius:0 0 12px 12px}
   .ib{border:0; background:transparent; border-radius:6px; padding:4px 5px; color:var(--ink-3); vertical-align:middle}
   .ib:hover{background:var(--sirius); color:var(--aurora)}
   .ib svg{width:15px; height:15px; display:block}
@@ -319,7 +331,7 @@
 const S = {
   d: null, rows: { orc: [], fluxo: [], real: [] },
   f: { us: new Set(), snap: '', semA: '', semB: '', setor: '' }, mod: 'geral', ccSetor: null,
-  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, ccSel: new Set(),
+  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, dwAbertos: new Set(['fluxo']), ccSel: new Set(),
   ccSelSem: new Set(), qSem: '', sortSem: { k: 'nome', dir: 1 }, chartSem: null, linhasOff: new Set()
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
@@ -406,7 +418,7 @@ const DEMO_API = DEMO ? (function () {
         const k = (i) => (ccs[i][0] + ' ' + ccs[i][1]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
         return { 'Suprimentos': [0, 1, 2, 3].map(k), 'Obras': [4, 5].map(k), 'Logística': [6].map(k), 'Engenharia': [7, 8].map(k) };
       })(),
-      abas: { orc: aba('orc', 'Orçamento', true), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
+      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
       just: just
     }),
     salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
@@ -908,6 +920,7 @@ function tabelaLanc(aba, rows, edita) {
 }
 function abrirCC(ck, semanal) {
   S.drawer = { ck, semanal: !!semanal };
+  S.dwAbertos = new Set(['fluxo']);
   $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
   renderDrawer(true);
 }
@@ -940,14 +953,24 @@ function renderDrawer(novo) {
   $('#dwT').textContent = S.ccNome[ck] || '';
   $('#dwS').textContent = selNome() + ' · fluxo de ' + (S.f.snap ? dt(S.f.snap) : '—');
   let h = '<div class="kpis">' + kpisHtml(m) + '</div>';
-  [['orc', Fx.orc, 'Orçado'], ['fluxo', proj, 'Projetado' + (soAb ? ' (em aberto no fluxo)' : '')], ['real', real, 'Realizado']].forEach(([aba, rows, t]) => {
-    h += '<div class="h3">' + t + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') +
+  const blocos = [
+    ['fluxo', proj, 'Projetado', 'Fluxo de Caixa de ' + (S.f.snap ? dt(S.f.snap) : '—') + (soAb ? ' · itens em aberto' : ''), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
+    ['orc', Fx.orc, 'Orçado', 'Orçamento', 'background:var(--cosmos)'],
+    ['real', real, 'Realizado', 'Realizado Controladoria', 'background:var(--aurora)']
+  ];
+  blocos.forEach(([aba, rows, t, fonte, sw]) => {
+    h += '<details class="blk" data-blk="' + aba + '"' + (S.dwAbertos.has(aba) ? ' open' : '') + '><summary>' +
+      '<span class="chev">▶</span><span class="sw" style="' + sw + '"></span><span class="t">' + t + '</span>' +
+      '<span class="src">' + esc(fonte) + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</span>' +
       (podeEditar(aba) ? '<button type="button" class="btn btn-sm" data-novo="' + aba + '">+ Novo</button>' : '') +
-      '<span class="tt">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</span></div>' +
-      '<div class="card">' + tabelaLanc(aba, rows, true) + '</div>';
+      '<span class="tt">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</span></summary>' +
+      '<div class="card">' + tabelaLanc(aba, rows, true) + '</div></details>';
   });
   const body = $('#dwB'), sc = body.scrollTop;
   body.innerHTML = h;
+  body.querySelectorAll('details.blk').forEach((d) => d.addEventListener('toggle', () => {
+    if (d.open) S.dwAbertos.add(d.dataset.blk); else S.dwAbertos.delete(d.dataset.blk);
+  }));
   body.scrollTop = novo ? 0 : sc;
 }
 
@@ -1096,7 +1119,7 @@ document.addEventListener('click', (e) => {
   const del = t.closest('[data-del]');
   if (del) { const [aba, l] = del.dataset.del.split('|'); const r = acharLinha(aba, l); if (r) excluir(aba, r); return; }
   const nv = t.closest('[data-novo]');
-  if (nv) { abrirEditor(nv.dataset.novo, null, novoPreset(nv.dataset.novo, S.drawer && S.drawer.ck)); return; }
+  if (nv) { e.preventDefault(); abrirEditor(nv.dataset.novo, null, novoPreset(nv.dataset.novo, S.drawer && S.drawer.ck)); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
   const dets = t.closest('[data-dets]');

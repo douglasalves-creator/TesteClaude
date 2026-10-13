@@ -36,10 +36,10 @@ const CONFIG = {
   ATENCAO: 0.90,
   ESTOURO: 1.00,
 
-  // Quais abas podem ser alteradas pelo "Detalhar" do painel. O Realizado vem da
-  // Controladoria e fica travado; troque para true se quiser liberar.
+  // Quais abas podem ser alteradas pelo "Detalhar" do painel: só o Fluxo de Caixa.
+  // Orçamento e Realizado Controladoria são imutáveis pelo painel.
   // Quem pode editar: o dono do script e quem tiver "Sim" na coluna C da aba Acessos.
-  EDITAVEL: { orc: true, fluxo: true, real: false },
+  EDITAVEL: { orc: false, fluxo: true, real: false },
 
   // Toda alteração feita pelo painel é registrada nesta aba (criada se não existir).
   ABA_AUDITORIA: 'Auditoria',
