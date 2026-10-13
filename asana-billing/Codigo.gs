@@ -65,6 +65,25 @@ function onOpen() {
     .addItem('▶️ Ativar Importação Automática', 'ativarAutomatico')
     .addItem('⏸️ Desativar Importação Automática', 'desativarAutomatico')
     .addToUi();
+
+  mostrarStatus_();
+}
+
+// Aviso no canto da tela ao abrir a planilha.
+function mostrarStatus_() {
+  const props = PropertiesService.getScriptProperties();
+  const ultima = props.getProperty('ULTIMA_IMPORTACAO');
+  const msg = (props.getProperty('AUTO_ATIVO') === 'sim'
+    ? `🟢 Importação automática ATIVA (a cada ${CONFIG.INTERVALO_MINUTOS} min).`
+    : '🔴 Importação automática DESATIVADA.')
+    + (ultima ? ` Última importação: ${ultima}.` : '');
+  SpreadsheetApp.getActive().toast(msg, '🔗 Conexão c/ Asana', 10);
+}
+
+// Grava o estado e pinta a aba: verde = automático ativo, vermelho = desativado.
+function registrarAutomatico_(ativo) {
+  PropertiesService.getScriptProperties().setProperty('AUTO_ATIVO', ativo ? 'sim' : 'nao');
+  abrirAba_().setTabColor(ativo ? '#34a853' : '#ea4335');
 }
 
 // ---------------------------------------------------------------- importação
@@ -89,6 +108,9 @@ function importarTarefas() {
       aba.getRange(primeira, 1, linhas.length, cab.length).setValues(linhas);
       formatarDatas_(aba, cab, novas, primeira);
     }
+
+    PropertiesService.getScriptProperties().setProperty('ULTIMA_IMPORTACAO',
+      Utilities.formatDate(new Date(), FUSO, 'dd/MM/yyyy HH:mm'));
 
     avisar_(novas.length
       ? `${novas.length} tarefa(s) importada(s).`
@@ -264,6 +286,7 @@ function ativarAutomatico() {
     .timeBased()
     .everyMinutes(CONFIG.INTERVALO_MINUTOS)
     .create();
+  registrarAutomatico_(true);
   avisar_(`Importação automática ativada (a cada ${CONFIG.INTERVALO_MINUTOS} min).`);
 }
 
@@ -276,6 +299,7 @@ function desativarAutomatico_(silencioso) {
   ScriptApp.getProjectTriggers()
     .filter(t => t.getHandlerFunction() === 'importarTarefas')
     .forEach(t => { ScriptApp.deleteTrigger(t); n++; });
+  registrarAutomatico_(false);
   if (!silencioso) avisar_(n ? 'Importação automática desativada.' : 'Não havia importação automática ativa.');
 }
 
