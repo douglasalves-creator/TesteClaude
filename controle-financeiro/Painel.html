@@ -346,6 +346,7 @@ const DEMO_API = DEMO ? (function () {
   let n = 2;
   usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
     if ((ui + ci) % 4 === 3) return; // nem toda usina tem todos os centros de custo
+    if ((ci === 6 && ui % 3 !== 0) || (ci === 7 && ui % 2)) return; // Logística e Engenharia só em parte das usinas
     const base = 8000 + rnd() * 30000;
     for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), cent(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
     const fator = (ui + ci) % 7 === 0 ? 1.4 : 0.9;
@@ -481,8 +482,12 @@ function preparar() {
   $('#fSnap').innerHTML = S.snaps.length
     ? S.snaps.map((s) => '<option value="' + esc(s) + '"' + (s === S.f.snap ? ' selected' : '') + '>' + (s ? dt(s) : '(sem data)') + '</option>').join('')
     : '<option value="">—</option>';
-  renderUsel();
+  // Centros de custo de cada usina, para os filtros Usina × Setor em cascata.
+  S.uCC = {};
+  ['orc', 'fluxo', 'real'].forEach((a) => S.rows[a].forEach((r) => { (S.uCC[r._u] = S.uCC[r._u] || new Set()).add(r._ck); }));
   montarSetores();
+  podarUsinas();
+  renderUsel();
 }
 
 /* =================================================================== */
@@ -490,7 +495,17 @@ function preparar() {
 /* =================================================================== */
 function selKey() { return Array.from(S.f.us).sort().join('+'); }
 function selNome() { return Array.from(S.f.us).map((k) => S.uNome[k]).sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })).join(' + '); }
-function usVisiveis() { const q = nk(S.qUs); return S.uLista.filter((k) => !q || nk(S.uNome[k]).indexOf(q) !== -1); }
+/** Usinas que têm algum centro de custo do setor escolhido (todas, se nenhum setor filtra). */
+function usinasPermitidas() {
+  if (!S.ccSetor) return S.uLista;
+  return S.uLista.filter((u) => { const cs = S.uCC[u]; if (!cs) return false; for (const k of cs) if (S.ccSetor.has(k)) return true; return false; });
+}
+/** Tira da seleção as usinas que não têm o setor escolhido. */
+function podarUsinas() {
+  const ok = new Set(usinasPermitidas());
+  Array.from(S.f.us).forEach((u) => { if (!ok.has(u)) S.f.us.delete(u); });
+}
+function usVisiveis() { const q = nk(S.qUs); return usinasPermitidas().filter((k) => !q || nk(S.uNome[k]).indexOf(q) !== -1); }
 function renderUList() {
   const vis = usVisiveis();
   $('#msList').innerHTML = vis.length
@@ -500,7 +515,7 @@ function renderUList() {
 function renderUsel() {
   const n = S.f.us.size;
   $('#msBtn').textContent = n === 0 ? 'Selecione as usinas' : n === 1 ? selNome() : n + ' usinas selecionadas';
-  $('#msCont').textContent = n + ' de ' + S.uLista.length;
+  $('#msCont').textContent = n + ' de ' + usinasPermitidas().length;
   const sel = Array.from(S.f.us).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
   const MAX = 6;
   $('#tags').innerHTML = n < 2 ? '' : sel.slice(0, MAX).map((k) => '<span class="tag">' + esc(S.uNome[k]) + '<button type="button" data-rm="' + esc(k) + '" aria-label="Remover">×</button></span>').join('') +
@@ -521,10 +536,17 @@ function passa(r) { return S.f.us.has(r._u) && ccNoSetor(r._ck); }
 function ccNoSetor(k) { return !S.ccSetor || S.ccSetor.has(k); }
 function montarSetores() {
   const st = S.d.setores || {};
-  const nomes = Object.keys(st).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const todos = Object.keys(st).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const restrito = S.d.acesso && S.d.acesso.restrito;
-  $('#fSetorWrap').hidden = !nomes.length || (restrito && nomes.length < 2);
-  if (S.f.setor && S.f.setor !== '~sem' && !st[S.f.setor]) S.f.setor = '';
+  $('#fSetorWrap').hidden = !todos.length || (restrito && todos.length < 2);
+  // Com usinas marcadas, só os setores que têm centro de custo nessas usinas.
+  let nomes = todos;
+  if (S.f.us.size) {
+    const cs = new Set();
+    S.f.us.forEach((u) => (S.uCC[u] || []).forEach((k) => cs.add(k)));
+    nomes = todos.filter((n) => st[n].some((k) => cs.has(k)));
+  }
+  if (S.f.setor && S.f.setor !== '~sem' && nomes.indexOf(S.f.setor) === -1) S.f.setor = '';
   $('#fSetor').innerHTML = '<option value="">Todos os setores</option>' +
     nomes.map((n) => '<option value="' + esc(n) + '"' + (n === S.f.setor ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
     (restrito ? '' : '<option value="~sem"' + (S.f.setor === '~sem' ? ' selected' : '') + '>Sem setor</option>');
@@ -886,7 +908,7 @@ function renderDrawer(novo) {
 /* =================================================================== */
 /* Eventos                                                              */
 /* =================================================================== */
-function mudouUsinas() { if (S.drawer) fecharDrawer(); renderUsel(); render(); }
+function mudouUsinas() { if (S.drawer) fecharDrawer(); montarSetores(); renderUsel(); render(); }
 $('#msBtn').addEventListener('click', () => abrirUsel(!$('#ms').classList.contains('on')));
 $('#msQ').addEventListener('input', (e) => { S.qUs = e.target.value; renderUList(); });
 $('#msList').addEventListener('change', (e) => {
@@ -898,7 +920,10 @@ $('#msTodas').addEventListener('click', () => { usVisiveis().forEach((k) => S.f.
 $('#msLimpar').addEventListener('click', () => { S.f.us.clear(); mudouUsinas(); });
 $('#tags').addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; S.f.us.delete(b.dataset.rm); mudouUsinas(); });
 $('#fSnap').addEventListener('change', (e) => { S.f.snap = e.target.value; render(); });
-$('#fSetor').addEventListener('change', (e) => { S.f.setor = e.target.value; aplicarSetor(); S.ccSel.clear(); S.ccSelSem.clear(); if (S.drawer) fecharDrawer(); render(); });
+$('#fSetor').addEventListener('change', (e) => {
+  S.f.setor = e.target.value; aplicarSetor(); podarUsinas(); montarSetores(); renderUsel();
+  S.ccSel.clear(); S.ccSelSem.clear(); if (S.drawer) fecharDrawer(); render();
+});
 $('#btnAtualizar').addEventListener('click', () => atualizar());
 $('#mods').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-mod]'); if (!b) return;

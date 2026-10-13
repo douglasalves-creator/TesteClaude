@@ -59,6 +59,8 @@ O painel é só de consulta: ele não altera nada na planilha. No topo há dois 
    Em **Setor**, escolha um setor para ver só os centros de custo dele (os setores vêm da aba Setores).
    "Todos os setores" mostra só os centros de custo que estão na aba Setores: para esconder um centro de custo
    desativado, basta tirá-lo de lá. "Sem setor" mostra os que não estão em nenhum setor.
+   Os dois filtros funcionam em cascata: escolhendo um setor, a lista de usinas mostra só as que têm aquele setor;
+   escolhendo usinas, a lista de setores mostra só os que existem nelas.
 2. **Escolha o fluxo** em "Fluxo de". Ele já vem com o envio mais recente.
 3. A **tabela** mostra todos os centros de custo, com centavos: Orçado, Projetado, Realizado,
    **Δ (Orçado − Projetado − Realizado)** e **Δ (Orçado − Realizado)**. Com várias usinas marcadas, os valores são somados.
