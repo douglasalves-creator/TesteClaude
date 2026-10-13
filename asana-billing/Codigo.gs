@@ -1,17 +1,17 @@
 /**
  * INTEGRAÇÃO ASANA ⇄ PLANILHA — CSC - Pagamento / Adiantamento - Billing
  *
- * Menu "Asana" na planilha:
- *   - Importar tarefas novas: traz do Asana as tarefas criadas a partir de
+ * Menu "Conexão c/ Asana" na planilha:
+ *   - Importar Novas Solicitações: traz do Asana as tarefas criadas a partir de
  *     CONFIG.DATA_INICIO que ainda não estão na aba (chave: coluna "Task ID").
  *     Linhas já existentes não são alteradas.
- *   - Enviar alterações para o Asana: para cada linha com Task ID, envia as
+ *   - Atualizar Requisições no Asana: para cada linha com Task ID, envia as
  *     colunas listadas em CONFIG.COLUNAS_ENVIAR_ASANA. Só envia células
  *     preenchidas e que estejam diferentes do Asana.
  *   - Ativar/Desativar importação automática: cria/remove um gatilho que roda
  *     a importação a cada CONFIG.INTERVALO_MINUTOS.
- *   - Testar conexão: confere o token e mostra quais cabeçalhos casaram com
- *     campos do projeto.
+ *   - testarConexao (sem item no menu; rodar pelo editor): confere o token e
+ *     mostra quais cabeçalhos casaram com campos do projeto.
  *
  * Os cabeçalhos da aba precisam ter o mesmo nome dos campos do Asana
  * (maiúsculas, acentos, espaços e pontuação são ignorados na comparação).
@@ -58,14 +58,12 @@ const CAMPOS_TAREFA = [
 
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('Asana')
-    .addItem('Importar tarefas novas', 'importarTarefas')
-    .addItem('Enviar alterações para o Asana', 'enviarParaAsana')
+    .createMenu('🔗 Conexão c/ Asana')
+    .addItem('📥 Importar Novas Solicitações', 'importarTarefas')
+    .addItem('📤 Atualizar Requisições no Asana', 'enviarParaAsana')
     .addSeparator()
-    .addItem('Ativar importação automática', 'ativarAutomatico')
-    .addItem('Desativar importação automática', 'desativarAutomatico')
-    .addSeparator()
-    .addItem('Testar conexão', 'testarConexao')
+    .addItem('▶️ Ativar Importação Automática', 'ativarAutomatico')
+    .addItem('⏸️ Desativar Importação Automática', 'desativarAutomatico')
     .addToUi();
 }
 

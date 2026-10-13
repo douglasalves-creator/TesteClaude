@@ -8,17 +8,16 @@
 2. Na planilha: **Extensões → Apps Script**. Cole o conteúdo de `Codigo.gs` e salve.
 3. No Apps Script: **Configurações do projeto (engrenagem) → Propriedades do script →
    Adicionar propriedade**: nome `ASANA_TOKEN`, valor = token copiado.
-4. Recarregue a planilha. Aparece o menu **Asana**.
-5. Rode **Asana → Testar conexão** (na 1ª vez, autorize o script).
+4. Recarregue a planilha. Aparece o menu **🔗 Conexão c/ Asana**.
+5. No editor do Apps Script, selecione a função `testarConexao` e clique em **Executar** (na 1ª vez, autorize o script).
 
 ## Menu
 
 | Item | O que faz |
 |---|---|
-| Importar tarefas novas | Traz tarefas criadas desde `DATA_INICIO` que ainda não estão na aba. Não altera linhas existentes. |
-| Enviar alterações para o Asana | Envia as colunas de `COLUNAS_ENVIAR_ASANA`, só células preenchidas e diferentes do Asana. |
-| Ativar / Desativar importação automática | Roda a importação a cada `INTERVALO_MINUTOS`. |
-| Testar conexão | Valida o token e lista cabeçalhos sem campo correspondente no Asana. |
+| 📥 Importar Novas Solicitações | Traz tarefas criadas desde `DATA_INICIO` que ainda não estão na aba. Não altera linhas existentes. |
+| 📤 Atualizar Requisições no Asana | Envia as colunas de `COLUNAS_ENVIAR_ASANA`, só células preenchidas e diferentes do Asana. |
+| ▶️ / ⏸️ Ativar / Desativar Importação Automática | Roda a importação a cada `INTERVALO_MINUTOS`. |
 
 ## Configuração (topo do `Codigo.gs`)
 
