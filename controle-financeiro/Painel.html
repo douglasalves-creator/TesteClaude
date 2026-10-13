@@ -153,6 +153,7 @@
   .sw.tr{background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)}
 
   .acts{white-space:nowrap; text-align:right}
+  .muted{color:var(--ink-3)}
   /* Blocos do Detalhar: Projetado aberto; Orçado e Realizado fechados até o clique */
   .blk{margin-top:14px}
   .blk > summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 18px; background:var(--branco); border:1px solid var(--line); border-radius:12px}
@@ -896,6 +897,8 @@ const COLS_LANC = {
 };
 function celula(r, col) {
   const k = col[0], tp = col[2];
+  if (tp === 'linha') return '<td class="muted" style="white-space:nowrap">' + r._r + '</td>';
+  if (tp === 'orig') return '<td class="muted" style="font-size:12px">' + esc(r.ccFull !== undefined ? ccReal(r) : r.cc) + '</td>';
   if (tp === 'data') return '<td style="white-space:nowrap">' + (r[k] ? dt(r[k]) : '—') + '</td>';
   if (tp === 'valor') return '<td class="n">' + brl2(r[k]) + '</td>';
   return '<td>' + esc(r[k]) + '</td>';
@@ -906,9 +909,12 @@ const IC = {
 };
 function podeEditar(aba) { return S.d.podeEditar && S.d.abas[aba] && S.d.abas[aba].editavel; }
 function tabelaLanc(aba, rows, edita) {
-  const cols = COLS_LANC[aba].filter((c) => c[0] !== 'projeto' || S.f.us.size > 1);
+  // Linha e centro de custo exatamente como estão na planilha, para achar a origem de cada lançamento.
+  const cols = [['_r', 'Linha', 'linha']].concat(COLS_LANC[aba].filter((c) => c[0] !== 'projeto' || S.f.us.size > 1), [['_ccOrig', 'Centro de custo na planilha', 'orig']]);
+  const vl = cols.findIndex((c) => c[2] === 'valor'); cols.push(cols.splice(vl, 1)[0]);
   const ed = edita && podeEditar(aba);
-  const lista = rows.slice().sort((a, b) => (a[cols[0][0]] || '').localeCompare(b[cols[0][0]] || ''));
+  const ord = COLS_LANC[aba][0][0]; // ordena pela data (primeira coluna do lançamento)
+  const lista = rows.slice().sort((a, b) => String(a[ord] || '').localeCompare(String(b[ord] || '')));
   let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
   if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
   lista.forEach((r) => {

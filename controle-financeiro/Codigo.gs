@@ -253,6 +253,8 @@ function iguais_(a, b, tipo) {
 /* Leitura                                                             */
 /* ------------------------------------------------------------------ */
 
+function letraColuna_(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
 /** Acha a linha de cabeçalho e a coluna de cada campo. */
 function mapear_(sheet, def) {
   const lastRow = sheet.getLastRow();
@@ -326,6 +328,8 @@ function lerAba_(ss, id, tz, filtro) {
   const tMapa = t0;
   base.linhaCab = mapa.linhaCab;
   base.faltando = mapa.faltando;
+  base.colunas = def.campos.filter(function (c) { return mapa.col[c.k]; })
+    .map(function (c) { return c.nome + ' → coluna ' + letraColuna_(mapa.col[c.k]); });
   base.aba = sheet.getName();
   if (!mapa.linhaCab) { base.erro = 'Cabeçalho não encontrado na aba "' + def.nome + '".'; return base; }
 
@@ -883,6 +887,7 @@ function diagnosticar() {
       a.linhas.length + ' linhas com dados' + (a.sinal === -1 ? ', valores negativos (sinal invertido no painel)' : ''))));
     if (a.tempo) Logger.log('   Tempo: leitura ' + (a.tempo.leitura / 1000).toFixed(1) +
       ' s · processamento ' + (a.tempo.processamento / 1000).toFixed(1) + ' s (' + a.tempo.linhas + ' linhas × ' + a.tempo.colunas + ' colunas na aba)');
+    if (a.colunas && a.colunas.length) Logger.log('   Lendo: ' + a.colunas.join(' · '));
     if (a.faltando.length) Logger.log('   Colunas NÃO encontradas: ' + a.faltando.join(' | '));
   });
   verificarSetores_(getSS_());
