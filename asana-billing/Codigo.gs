@@ -77,7 +77,7 @@ function mostrarStatus_() {
     ? `🟢 Importação automática ATIVA (a cada ${CONFIG.INTERVALO_MINUTOS} min).`
     : '🔴 Importação automática DESATIVADA.')
     + (ultima ? ` Última importação: ${ultima}.` : '');
-  SpreadsheetApp.getActive().toast(msg, '🔗 Conexão c/ Asana', 10);
+  SpreadsheetApp.getActive().toast(msg, '🔗 Conexão c/ Asana', -1); // -1: fica até fechar no X
 }
 
 // Grava o estado e pinta a aba: verde = automático ativo, vermelho = desativado.
