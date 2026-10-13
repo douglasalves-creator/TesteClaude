@@ -385,7 +385,7 @@ function indexarCampos_(tarefa) {
 function normalizar_(texto) {
   return String(texto)
     .replace(/[°º]/g, '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
 }
