@@ -36,7 +36,7 @@ const CONFIG = {
   // Colunas que a planilha "manda" no Asana. Coloque aqui, com o nome exato
   // do cabeçalho, os campos que serão preenchidos na planilha.
   // Ex.: ['Data de Pagamento', 'Valor a Pagar']
-  COLUNAS_ENVIAR_ASANA: [],
+  COLUNAS_ENVIAR_ASANA: ['N° de Requisição'],
 
   INTERVALO_MINUTOS: 15,
 };
