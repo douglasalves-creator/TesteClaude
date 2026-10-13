@@ -26,7 +26,7 @@ const CONFIG = {
   PROJETO_GID: '1217461344794017',
 
   // Só importa tarefas criadas a partir desta data (horário de Brasília).
-  DATA_INICIO: '2026-10-01',
+  DATA_INICIO: '2026-10-13',
 
   COLUNA_ID: 'Task ID',
 
