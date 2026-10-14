@@ -70,25 +70,96 @@ function doGet() {
 function buildTemplate_() {
   const t = HtmlService.createTemplateFromFile(CONFIG.HTML_FILE);
   t.logoUrl = CONFIG.LOGO_URL;
+  // Se o resultado já estiver em cache, vai junto com a página (abre sem esperar).
+  let json = 'null';
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getSheet_(ss, CONFIG.SHEET_NAME);
+    if (sheet) json = lerCache_(chaveCache_(sheet)) || 'null';
+  } catch (e) { json = 'null'; }
+  t.dadosJson = json.replace(/</g, '\\u003c');
   return t;
 }
 
-/** Chamado pelo HTML. */
-function getFarol() {
+/** Chamado pelo HTML. Usa o cache quando o relatório não mudou. */
+function getFarol(forcar) {
+  return JSON.parse(getFarolJson_(forcar));
+}
+
+function getFarolJson_(forcar) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getSheet_(ss, CONFIG.SHEET_NAME);
   if (!sheet) {
     throw new Error('Não encontrei a aba "' + CONFIG.SHEET_NAME + '". Abas disponíveis: ' +
       ss.getSheets().map(function (s) { return s.getName(); }).join(' | '));
   }
+  const chave = chaveCache_(sheet);
+  if (!forcar) {
+    const emCache = lerCache_(chave);
+    if (emCache) return emCache;
+  }
   const data = sheet.getDataRange().getValues();
   const feriados = lerFeriadosExtras_(ss);
-  return processarRelatorio_(data, hojeSP_(), feriados);
+  const json = JSON.stringify(processarRelatorio_(data, hojeSP_(), feriados));
+  gravarCache_(chave, json);
+  return json;
+}
+
+/**
+ * Gatilho simples: ao colar um relatório novo na aba, já processa e guarda no
+ * cache, para o farol abrir rápido depois.
+ */
+function onEdit(e) {
+  try {
+    if (!e || !e.range || norm_(e.range.getSheet().getName()) !== norm_(CONFIG.SHEET_NAME)) return;
+    getFarolJson_(true);
+  } catch (err) { /* o farol processa ao abrir */ }
+}
+
+/* ------------------------------------------------------------------ */
+/* Cache                                                               */
+/* ------------------------------------------------------------------ */
+
+const CACHE_VERSAO = 'v2';
+const CACHE_TTL = 21600;       // 6 h (máximo do CacheService)
+const CACHE_PEDACO = 30000;    // caracteres por chave (limite de 100 KB por valor)
+
+/** Muda quando o relatório muda (linha 1 do MXM, tamanho da aba) ou o dia vira. */
+function chaveCache_(sheet) {
+  const a1 = txt_(sheet.getRange(1, 1).getDisplayValue());
+  const assinatura = [CACHE_VERSAO, hojeSP_(), sheet.getLastRow(), sheet.getLastColumn(), a1].join('|');
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, assinatura, Utilities.Charset.UTF_8);
+  return 'farol_' + bytes.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
+}
+
+function lerCache_(chave) {
+  const cache = CacheService.getScriptCache();
+  const n = Number(cache.get(chave + '_n'));
+  if (!n) return null;
+  const chaves = [];
+  for (let i = 0; i < n; i++) chaves.push(chave + '_' + i);
+  const partes = cache.getAll(chaves);
+  let json = '';
+  for (let i = 0; i < n; i++) {
+    if (partes[chaves[i]] === undefined || partes[chaves[i]] === null) return null;
+    json += partes[chaves[i]];
+  }
+  return json;
+}
+
+function gravarCache_(chave, json) {
+  try {
+    const valores = {};
+    let n = 0;
+    for (let i = 0; i < json.length; i += CACHE_PEDACO) valores[chave + '_' + (n++)] = json.slice(i, i + CACHE_PEDACO);
+    valores[chave + '_n'] = String(n);
+    CacheService.getScriptCache().putAll(valores, CACHE_TTL);
+  } catch (e) { /* sem cache: o farol só demora mais para abrir */ }
 }
 
 /** Rode pelo editor (Executar) para conferir a leitura em Ver > Registros de execução. */
 function diagnosticar() {
-  const r = getFarol();
+  const r = getFarol(true);
   Logger.log('Atualização do relatório: ' + (r.atualizacao || '(não encontrada na linha 1)'));
   Logger.log('Linhas lidas: ' + r.diag.linhas + ' | requisições: ' + r.diag.requisicoes);
   Logger.log('Status encontrados: ' + JSON.stringify(r.diag.status));
@@ -268,6 +339,8 @@ function mapColunas_(headerRow) {
     tipo: find('Tip. Requisição'),
     setor: find('Setor'),
     vencimento: find('Data Vencimento'),
+    valorApr: find('Valor líquido - Apr'),
+    foraPrazo: find('Fora do Prazo'),
     aprovadorAlocado: find('Aprovador alocado', true),
     aprovador: find('Aprovador'),
     fornecedor: find('Fornecedor'),
@@ -360,11 +433,12 @@ function processarRelatorio_(data, hojeIso, feriadosExtras) {
         chave: chave,
         tipo: cdCat ? 'categoria' : 'estrutura',
         cargo: txt_(cel(row, cdCat ? col.descCat : col.descEst)) || txt_(cel(row, col.descEst)),
-        alocado: '', aprovador: '', data: null, linhas: 0, aprovadas: 0
+        alocado: '', aprovador: '', data: null, linhas: 0, aprovadas: 0, idx: []
       };
       q.ordem.push(chave);
     }
     nv.linhas++;
+    nv.idx.push(r);
     if (!nv.alocado) nv.alocado = txt_(cel(row, col.aprovadorAlocado));
     const dt = parseData_(cel(row, col.dataAprovacao));
     if (dt) {
@@ -449,6 +523,17 @@ function processarRelatorio_(data, hojeIso, feriadosExtras) {
     });
     const atual = etapas[feitos.length] || null;
 
+    // Linhas do relatório do nível atual (uma por rateio), para o arquivo do aprovador.
+    const linhasAtual = !pendentes.length ? [] : q.niveis[pendentes[0]].idx.map(function (r) {
+      const row = data[r];
+      return [
+        txt_(cel(row, col.empresa)), txt_(cel(row, col.status)), txt_(cel(row, col.centroCusto)),
+        txt_(cel(row, col.numeroTitulo)), id, num_(cel(row, col.valorApr)), txt_(cel(row, col.projeto)),
+        txt_(cel(row, col.setor)), iso_(parseData_(cel(row, col.vencimento))), txt_(cel(row, col.foraPrazo)),
+        txt_(cel(row, col.aprovadorAlocado)), txt_(cel(row, col.fornecedor))
+      ];
+    });
+
     const valor = Object.keys(q.titulos).reduce(function (s, t) { return s + q.titulos[t]; }, 0);
     valorTotal += valor;
     const progIso = iso_(q.progPagto);
@@ -477,7 +562,8 @@ function processarRelatorio_(data, hojeIso, feriadosExtras) {
       cargoAtual: atual ? atual.cargo : '',
       atualSemNome: !!(atual && !atual.aprovador),
       usualAtual: atual ? atual.usual : '',
-      etapas: etapas
+      etapas: etapas,
+      linhasAtual: linhasAtual
     });
   });
 

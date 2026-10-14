@@ -34,9 +34,28 @@ farol de prazo até a Prog. Pagto.
 1. Baixe o relatório "Requisições Pagamento Status" no MXM.
 2. Na aba **Relatório de Aprovações**, apague tudo e cole o relatório inteiro,
    como veio (inclusive a linha 1 com "Data: ... Hora: ...").
-3. No farol, clique em **Atualizar**.
+3. Pronto. Ao colar, o script já processa o relatório em segundo plano e
+   guarda o resultado em cache. Nas próximas aberturas o farol carrega na hora.
+   Se o farol já estiver aberto, clique em **Atualizar**.
 
 Não é preciso mexer em mais nada. O script acha o cabeçalho sozinho.
+
+O cache vale por 6 horas e é refeito sozinho quando o relatório muda ou o dia
+vira. Quando isso acontece, a primeira abertura leva alguns segundos.
+
+## 4.1 Downloads
+
+- **Com quem está → ícone de download** ao lado de cada aprovador: baixa um
+  Excel com as requisições pendentes com ele (respeitando os filtros ativos),
+  uma linha por rateio, com as colunas Cd.Empresa, St.Requisição, Centro de
+  Custo, Número do Título, Req.Pagto, Valor líquido - Apr, Projeto, Setor,
+  Data Vencimento, Fora do Prazo, Aprovador alocado e Fornecedor.
+- **Exportar Excel**: a lista que está na tela.
+- **Copiar nº das requisições**: copia os números da lista (um por linha),
+  para conferir com o relatório.
+
+O Excel é gerado no navegador com a biblioteca SheetJS (cdnjs.cloudflare.com).
+Se a rede da empresa bloquear esse endereço, o download não funciona.
 
 ## 5. Regras usadas
 
