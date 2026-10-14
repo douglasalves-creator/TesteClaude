@@ -547,7 +547,7 @@
   document.getElementById('btnCsv').addEventListener('click', exportarCsv);
 
   var logo = document.getElementById('logo');
-  logo.innerHTML = LOGO_URL && LOGO_URL.indexOf('<?') !== 0
+  logo.innerHTML = LOGO_URL && LOGO_URL.charAt(0) !== '<'
     ? '<img src="' + esc(LOGO_URL) + '" alt="SolarGrid">'
     : '<span class="logo-txt">SolarGrid</span>';
 
