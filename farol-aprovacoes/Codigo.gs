@@ -98,6 +98,7 @@ function getFarolJson_(forcar) {
     const emCache = lerCache_(chave);
     if (emCache) return emCache;
   }
+  FUSO_PLANILHA_ = ss.getSpreadsheetTimeZone();
   const data = sheet.getDataRange().getValues();
   const feriados = lerFeriadosExtras_(ss);
   const json = JSON.stringify(processarRelatorio_(data, hojeSP_(), feriados));
@@ -120,7 +121,10 @@ function onEdit(e) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const CACHE_VERSAO = 'v2';
+const CACHE_VERSAO = 'v3';
+
+// Fuso da planilha; definido antes de processar (vazio nos testes fora do Apps Script).
+let FUSO_PLANILHA_ = '';
 const CACHE_TTL = 21600;       // 6 h (máximo do CacheService)
 const CACHE_PEDACO = 30000;    // caracteres por chave (limite de 100 KB por valor)
 
@@ -206,7 +210,13 @@ function getSheet_(ss, nome) {
  */
 function parseData_(v) {
   if (v === null || v === undefined || v === '') return null;
-  if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v.getTime()) ? null : v;
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    if (isNaN(v.getTime())) return null;
+    // Lê a data exatamente como aparece na planilha (fuso da planilha), para
+    // não virar o dia anterior se o fuso do script for outro.
+    if (!FUSO_PLANILHA_) return v;
+    v = Utilities.formatDate(v, FUSO_PLANILHA_, 'yyyy-MM-dd HH:mm:ss');
+  }
   if (typeof v === 'number') return new Date(Math.round((v - 25569) * 86400000) + new Date(0).getTimezoneOffset() * 60000);
   const s = txt_(v);
   let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
@@ -260,6 +270,7 @@ function feriadosNacionais_(ano) {
 }
 
 function lerFeriadosExtras_(ss) {
+  FUSO_PLANILHA_ = FUSO_PLANILHA_ || ss.getSpreadsheetTimeZone();
   const sh = getSheet_(ss, CONFIG.FERIADOS_SHEET);
   if (!sh || sh.getLastRow() === 0) return [];
   return sh.getRange(1, 1, sh.getLastRow(), 1).getValues()
