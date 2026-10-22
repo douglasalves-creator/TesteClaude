@@ -228,6 +228,23 @@
   .toast.on{opacity:1; transform:translateX(-50%)}
   .toast.err{background:var(--neg)}
   @media (max-width:640px){ .wrap{padding:0 16px} .top-in{padding:16px} .top-r .stamp{display:none} .kpi .v{font-size:19px} .ms-btn{min-width:0; width:100%} .ms{width:100%} td,th{padding-left:8px; padding-right:8px} }
+  /* Abas de setor e seletores de projeção */
+  .mods{overflow-x:auto; scrollbar-width:none}
+  .mods button{white-space:nowrap; flex-shrink:0}
+  @media (max-width:640px){ .mods{gap:20px; padding-inline:16px} }
+  .mods .soon{font-size:9.5px; font-weight:600; color:#80868C; margin-left:6px; text-transform:uppercase; letter-spacing:.06em}
+  .kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr)); margin-bottom:12px}
+  @media (max-width:900px){ .kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  .snapsel{display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .snapsel .fg{gap:8px}
+  .snapsel .sel{min-width:150px}
+  .th2{display:inline-flex; flex-direction:column; align-items:center; line-height:1.15}
+  .th2 small{font-size:9.5px; font-weight:600; text-transform:none; letter-spacing:0; color:var(--ink-3); margin-top:2px}
+  td.pt,th.pt{background:#FFF8F3}
+  .obra{background:var(--branco); border-radius:var(--radius); padding:70px 20px; text-align:center; color:var(--ink-2)}
+  .obra .ic{width:46px; height:46px; border-radius:50%; background:var(--sirius); color:var(--ink-3); display:grid; place-items:center; margin:0 auto 14px; font-size:20px; font-weight:700}
+  .obra h3{margin:0 0 6px; font-size:17px; color:var(--ink)}
+  .obra p{margin:0}
 </style>
 </head>
 <body>
@@ -241,7 +258,7 @@
       <button id="btnAtualizar" type="button"><svg class="ico" id="icoAtualizar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Atualizar</button>
     </div>
   </div>
-  <nav class="mods" id="mods"><button type="button" data-mod="geral" class="on">Visão Geral</button><button type="button" data-mod="semanal">Análise Semanal</button></nav>
+  <nav class="mods" id="mods"></nav>
 </header>
 
 <div class="wrap">
@@ -254,16 +271,14 @@
         <div class="ms-list" id="msList"></div>
       </div>
     </div>
-    <span class="fg" id="fSetorWrap" hidden><span class="lbl">Setor</span>
-      <select class="sel" id="fSetor" aria-label="Setor"></select></span>
     <div class="tags" id="tags"></div>
     <div class="sp"></div>
-    <span class="fg" id="fGeral"><span class="lbl">Fluxo de</span>
-      <select class="sel" id="fSnap" aria-label="Fluxo de caixa usado no Projetado"></select></span>
-    <span class="fg" id="fSem" hidden><span class="lbl">Semana anterior</span>
-      <select class="sel" id="fSemA" aria-label="Fluxo da semana anterior"></select>
-      <span class="lbl">Semana atual</span>
-      <select class="sel" id="fSemB" aria-label="Fluxo da semana atual"></select></span>
+    <div class="snapsel">
+      <span class="fg"><span class="lbl">Projeção anterior</span>
+        <select class="sel" id="fAnt" aria-label="Data do fluxo da projeção anterior"></select></span>
+      <span class="fg"><span class="lbl">Projeção atual</span>
+        <select class="sel" id="fAtu" aria-label="Data do fluxo da projeção atual"></select></span>
+    </div>
   </div>
   <div id="avisos"></div>
 </div>
@@ -271,10 +286,13 @@
 <main class="wrap" id="main">
   <div class="state" id="loading"><div class="loader"></div><h3>Lendo a planilha…</h3></div>
 
+  <div class="obra" id="obra" hidden><div class="ic">…</div><h3 id="obraT">Em construção</h3><p>Esta aba ainda está sendo montada.</p></div>
+
   <div class="pick" id="pick" hidden><div class="ic">↑</div><h3>Selecione uma usina</h3><p>Escolha uma ou mais usinas na lista acima para ver os centros de custo.</p></div>
 
   <div id="resumoBody" hidden>
-    <div class="kpis" id="kpis"></div>
+    <div class="kpis k4" id="kpis"></div>
+    <div class="kpis k3" id="kpisD"></div>
     <div class="card">
       <div class="card-h">
         <h2 id="ttlCC">Centros de custo</h2>
@@ -284,27 +302,10 @@
     </div>
     <p class="note">Clique nos centros de custo para ver só eles no gráfico abaixo. Use <b>Detalhar</b> para ver todos os lançamentos de um centro de custo. Valores em R$.</p>
     <div class="card mt">
-      <div class="card-h"><h2>Orçado × Projetado × Realizado por mês</h2><span class="chsel" id="chSel"></span><div class="leg" id="leg" title="Clique para mostrar ou esconder a linha"></div></div>
-      <p class="leg-nota">Clique em Orçado, Projetado ou Realizado para mostrar ou esconder a linha. Projetado de cada mês: a última previsão feita para aquele mês no Fluxo de Caixa.</p>
-      <div class="chart-box"><canvas id="chCurvas" role="img" aria-label="Orçado, projetado e realizado por mês"></canvas></div>
+      <div class="card-h"><h2>Orçado × Projeção atual × Realizado por mês</h2><span class="chsel" id="chSel"></span><div class="leg" id="leg" title="Clique para mostrar ou esconder a linha"></div></div>
+      <p class="leg-nota" id="legNota"></p>
+      <div class="chart-box"><canvas id="chCurvas" role="img" aria-label="Orçado, projeção atual e realizado por mês"></canvas></div>
       <div id="tabMeses"></div>
-    </div>
-  </div>
-
-  <div id="semBody" hidden>
-    <div class="kpis k3" id="kpisSem"></div>
-    <div class="card">
-      <div class="card-h">
-        <h2 id="ttlSem">Projetado por centro de custo</h2>
-        <div class="r"><input class="search" id="qSem" type="search" placeholder="Buscar centro de custo"></div>
-      </div>
-      <div id="treeSem"></div>
-    </div>
-    <p class="note">Compara o Projetado (itens em aberto) de dois envios do Fluxo de Caixa. ▲ o Projetado subiu da semana anterior para a atual; ▼ caiu. Clique nos centros de custo para ver só eles no gráfico. Valores em R$.</p>
-    <div class="card mt">
-      <div class="card-h"><h2>Projetado por mês de pagamento</h2><span class="chsel" id="chSelSem"></span></div>
-      <div class="chart-box"><canvas id="chSem" role="img" aria-label="Projetado por mês nas duas semanas"></canvas></div>
-      <div id="tabSem"></div>
     </div>
   </div>
 </main>
@@ -330,10 +331,9 @@
 /* Estado                                                               */
 /* =================================================================== */
 const S = {
-  d: null, rows: { orc: [], fluxo: [], real: [] },
-  f: { us: new Set(), snap: '', semA: '', semB: '', setor: '' }, mod: 'geral', ccSetor: null,
-  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, dwAbertos: new Set(['fluxo']), ccSel: new Set(),
-  ccSelSem: new Set(), qSem: '', sortSem: { k: 'nome', dir: 1 }, chartSem: null, linhasOff: new Set()
+  d: null, rows: { orc: [], real: [] }, proj: {}, setor: null, snapSetor: {},
+  f: { us: new Set(), ant: '', atu: '' },
+  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set(), linhasOff: new Set()
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const $ = (s) => document.querySelector(s);
@@ -375,52 +375,47 @@ const DEMO_API = DEMO ? (function () {
     'Ubá', 'Cataguases', 'Leopoldina', 'Juiz de Fora', 'Barbacena', 'Lavras', 'Varginha', 'Pouso Alegre', 'Itajubá', 'Poços de Caldas', 'Passos', 'Franca',
     'Uberaba', 'Uberlândia', 'Patos de Minas', 'Paracatu', 'Unaí', 'Montes Claros', 'Janaúba', 'Pirapora', 'Curvelo', 'Sete Lagoas', 'Divinópolis', 'Formiga', 'Itaúna'];
   const usinas = cidades.map((c) => 'UFV ' + c);
-  const ccs = [['1.01.001', 'MATERIAIS ELÉTRICOS'], ['1.01.002', 'ESTRUTURAS METÁLICAS'], ['1.01.003', 'MÓDULOS FOTOVOLTAICOS'], ['1.01.004', 'INVERSORES'],
-    ['1.02.001', 'MÃO DE OBRA CIVIL'], ['1.02.002', 'MONTAGEM ELETROMECÂNICA'], ['1.03.001', 'FRETES E LOGÍSTICA'], ['1.04.001', 'SUBESTAÇÃO'],
-    ['1.05.001', 'ENGENHARIA E PROJETOS'], ['1.06.001', 'SEGUROS E GARANTIAS']];
-  const forn = ['WEG S.A.', 'Gerdau', 'Transportes Rápido', 'Montadora Sol', 'Prysmian', 'Engecivil Ltda', 'Huawei', 'Trina Solar'];
+  // Centros de custo do Supply e de outros setores (os de outros setores não entram na aba Supply).
+  const ccSupply = ['MATERIAIS ELÉTRICOS', 'ESTRUTURAS METÁLICAS', 'MÓDULOS FOTOVOLTAICOS', 'INVERSORES', 'CABOS E CONECTORES', 'FRETES E LOGÍSTICA'];
+  const ccOutros = ['MÃO DE OBRA CIVIL', 'ENGENHARIA E PROJETOS'];
+  const forn = ['WEG S.A.', 'Gerdau', 'Trina Solar', 'Huawei', 'Prysmian', 'Transportes Rápido'];
   const C = {
-    orc: [['setor', 'SETOR', 'texto'], ['venc', 'DATA DE VENCIMENTO', 'data'], ['valor', 'VALOR A PAGAR', 'valor'], ['projeto', 'PROJETO', 'texto'], ['cc', 'CENTRO DE CUSTO', 'texto']],
-    real: [['favorecido', 'Favorecido', 'texto'], ['ccCod', 'C. Custo', 'texto'], ['ccDesc', 'Centro de Custo', 'texto'], ['projeto', 'Projeto', 'texto'], ['doc', 'Documento', 'texto'],
-      ['pagto', 'Pagto.', 'data'], ['obs', 'Consolidado', 'texto'], ['valor', 'Pagamentos', 'valor'], ['tipo', 'Real / Acumulado', 'texto'], ['ccFull', 'Código + Centro de Custo', 'texto']],
-    fluxo: [['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor', 'texto'], ['valor', 'Valor', 'valor'], ['coment', 'Comentário', 'texto'],
-      ['projeto', 'Projeto', 'texto'], ['cc', 'Centro de Custo', 'texto'], ['situacao', 'Situação', 'texto'], ['dataFluxo', 'Data do Fluxo', 'data']]
+    orc: [['projeto', 'PROJETO', 'texto'], ['cc', 'CENTRO DE CUSTO', 'texto'], ['valor', 'VALOR A PAGAR', 'valor'], ['venc', 'DATA DE VENCIMENTO', 'data']],
+    real: [['pagto', 'Data Prog.Pagto.', 'data'], ['pago', 'Pago(Sim/Não)', 'texto'], ['valor', 'Valor líquido (Cont)', 'valor'], ['projeto', 'Projeto', 'texto'], ['cc', 'Centro Custo Contab', 'texto'],
+      ['favorecido', 'Fornecedor', 'texto'], ['doc', 'Documento', 'texto']],
+    p_supply: [['projeto', 'Projeto Padrão', 'texto'], ['cc', 'Centro de Custo Padrão', 'texto'], ['valor', 'Valor', 'valor'], ['dataProg', 'Data programada de pgto', 'data'],
+      ['dataFluxo', 'Data do Fluxo', 'data'], ['fornecedor', 'Fornecedor', 'texto'], ['coment', 'Comentário', 'texto']]
   };
-  const L = { orc: [], real: [], fluxo: [] }, just = {};
+  const L = { orc: [], real: [], p_supply: [] };
   const seg = new Date(hoje); seg.setDate(seg.getDate() - ((seg.getDay() + 6) % 7));
   const snaps = [];
   for (let d = new Date(seg); d.getFullYear() === Y; d.setDate(d.getDate() - 7)) snaps.unshift(iso(d.getFullYear(), d.getMonth() + 1, d.getDate()));
   let n = 2;
-  usinas.forEach((u, ui) => ccs.forEach((c, ci) => {
+  usinas.forEach((u, ui) => ccSupply.concat(ccOutros).forEach((c, ci) => {
     if ((ui + ci) % 4 === 3) return; // nem toda usina tem todos os centros de custo
-    if ((ci === 6 && ui % 3 !== 0) || (ci === 7 && ui % 2)) return; // Logística e Engenharia só em parte das usinas
     const base = 8000 + rnd() * 30000;
-    for (let m = 1; m <= 12; m++) L.orc.push([n++, 'SUPPLY', iso(Y, m, 10), cent(base * (0.8 + rnd() * 0.4)), u, ci % 2 ? c[1] : c[0] + ' - ' + c[1]]);
+    for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10)]);
     const fator = (ui + ci) % 7 === 0 ? 1.4 : 0.9;
-    for (let m = 1; m <= M; m++) L.real.push([n++, forn[ci % 8], c[0], c[1], u, 'NF ' + (1000 + n), iso(Y, m, 5), 'Parcela ' + m, cent(base * fator * (0.75 + rnd() * 0.5)), m === M ? 'REAL S' : 'Real Acumulado', c[0] + ' - ' + c[1]]);
-    snaps.forEach((s) => {
-      const sm = +s.slice(5, 7);
-      for (let m = sm; m <= sm + 2; m++) {
-        if (rnd() < 0.1) continue;
-        const dp = iso(Y, m, 15);
-        L.fluxo.push([n++, dp, forn[ci % 8], cent(base * (0.9 + rnd() * 0.4)), 'Parcela', u, c[1], dp < s ? 'Pago' : 'Em Aberto', s]);
+    for (let m = 1; m < M; m++) L.real.push([n++, iso(Y, m, 5), 'Sim', cent(base * fator * (0.75 + rnd() * 0.5)), u, c, forn[ci % 6], 'NF ' + (1000 + n)]);
+    if (ci >= ccSupply.length) return; // só o Supply tem aba de projeções
+    snaps.forEach((s, si) => {
+      const sm = +s.slice(5, 7), deriva = 1 + (si - snaps.length) * 0.012 * ((ui + ci) % 3 - 1);
+      for (let m = sm; m <= 12; m++) {
+        if (rnd() < 0.08) continue;
+        L.p_supply.push([n++, u, c, cent(base * deriva * (0.9 + rnd() * 0.25)), iso(Y, m, 15), s, forn[ci % 6], m === sm ? 'Parcela do mês' : '']);
       }
     });
   }));
-  const aba = (id, nome, ed) => ({ id, aba: nome, editavel: ed, sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], linhaCab: 1, erro: '' });
+  const aba = (id, nome, ed, setor) => ({ id, aba: nome, editavel: ed, setor: setor || '', sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], ausentes: [], linhaCab: id === 'real' ? 2 : 1, erro: '' });
   const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
   const idx = (id, linha) => L[id].findIndex((l) => l[0] === +linha);
   const obj = (id, l) => { const o = { _r: l[0] }; C[id].forEach((c, j) => { o[c[0]] = l[j + 1]; }); return o; };
   return {
     carregarDados: () => ({
-      geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#',
-      cfg: { REALIZADO_SOMA_SEMANA: true, PROJETADO_SO_EM_ABERTO: true, EMPRESA: 'SolarGrid' }, podeEditar: true,
-      setores: (() => {
-        const k = (i) => (ccs[i][0] + ' ' + ccs[i][1]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-        return { 'Suprimentos': [0, 1, 2, 3].map(k), 'Obras': [4, 5].map(k), 'Logística': [6].map(k), 'Engenharia': [7, 8].map(k) };
-      })(),
-      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), fluxo: aba('fluxo', 'Fluxo de Caixa', true) },
-      just: just
+      geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#', acesso: { tudo: true, setores: ['Supply', 'Projetos', 'EP', 'GA'] },
+      setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(nk), origemCC: 'setores', edita: true },
+        { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: '', pronto: false, ccs: [], edita: false }, { nome: 'GA', id: '', pronto: false, ccs: [], edita: false }],
+      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Pagamentos / Adiantamentos', false), p_supply: aba('p_supply', 'Projeções - Supply', true, 'Supply') }
     }),
     salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
     novaLinha: (p) => { const l = [n++].concat(C[p.aba].map((c) => p.valores[c[0]] === undefined ? '' : p.valores[c[0]])); L[p.aba].push(l); return obj(p.aba, l); },
@@ -461,103 +456,80 @@ function receber(d) {
   if (d.semAcesso) {
     $('#loading').style.display = '';
     $('#loading').innerHTML = '<h3>Acesso não liberado</h3><p>O e-mail <b>' + esc(d.usuario || '(não identificado)') +
-      '</b> não tem nenhum centro de custo liberado neste painel. Peça a liberação ao responsável pelo Controle Financeiro.</p>';
+      '</b> não tem nenhum setor liberado neste painel. Peça a liberação ao responsável pelo Controle Financeiro.</p>';
     return;
   }
   S.d = d;
-  S.rows = { orc: decodificar(d.abas.orc), fluxo: decodificar(d.abas.fluxo), real: decodificar(d.abas.real) };
+  S.rows = { orc: decodificar(d.abas.orc), real: decodificar(d.abas.real) };
+  S.proj = {};
+  d.setores.forEach((s) => { if (s.id && d.abas[s.id]) S.proj[s.id] = decodificar(d.abas[s.id]); });
   $('#loading').style.display = 'none';
-  $('#filtros').hidden = false;
-  const ac = d.acesso && d.acesso.restrito ? 'Setor: ' + d.acesso.setores.join(', ') + ' · ' : '';
+  const ac = d.acesso && !d.acesso.tudo ? 'Acesso: ' + d.acesso.setores.join(', ') + ' · ' : '';
   $('#stamp').textContent = ac + 'Atualizado em ' + d.geradoEm;
   $('#lnkPlan').hidden = !d.urlPlanilha;
   $('#lnkPlan').href = d.urlPlanilha || '#';
-  const msgs = [];
-  Object.values(d.abas).forEach((a) => {
-    if (a.erro) msgs.push('<b>' + esc(a.aba) + ':</b> ' + esc(a.erro));
-    else if (a.faltando.length) msgs.push('<b>' + esc(a.aba) + ':</b> colunas não encontradas — ' + a.faltando.map(esc).join(', '));
-  });
-  $('#avisos').innerHTML = (DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '') +
-    (msgs.length ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '');
-  preparar();
+  const atual = S.setor && d.setores.find((s) => s.nome === S.setor.nome);
+  S.setor = atual || d.setores.find((s) => s.pronto) || d.setores[0];
+  $('#mods').innerHTML = d.setores.map((s) => '<button type="button" data-setor="' + esc(s.nome) + '"' + (s === S.setor ? ' class="on"' : '') + '>' +
+    esc(s.nome) + (s.pronto ? '' : '<span class="soon">em breve</span>') + '</button>').join('');
+  prepararSetor();
   render();
 }
 
 /* =================================================================== */
-/* Liga Usina + Centro de Custo nas três abas                           */
+/* Dados da aba de setor escolhida                                      */
 /* =================================================================== */
-function ccReal(r) {
-  const full = String(r.ccFull || '').trim();
-  if (full) return full;
-  return [r.ccCod, r.ccDesc].map((x) => String(x || '').trim()).filter(Boolean).join(' - ');
+/** Linhas de cada fonte para o setor escolhido: Orçado e Realizado só dos centros de custo dele. */
+function linhasSetor() {
+  const st = S.setor;
+  const ccs = st.ccs && st.ccs.length ? new Set(st.ccs) : null;
+  const doSetor = (r) => !ccs || ccs.has(nk(r.cc));
+  return { orc: S.rows.orc.filter(doSetor), real: S.rows.real.filter(doSetor), proj: S.proj[st.id] || [] };
 }
-function canonCC(txt) {
-  const t = String(txt || '').trim();
-  if (!t) return '(sem centro de custo)';
-  const idx = S.ccIdx;
-  if (idx[nk(t)]) return idx[nk(t)];
-  const m = t.match(/^([0-9][0-9.\-\/]*)/);
-  if (m && idx[nk(m[1])]) return idx[nk(m[1])];
-  const desc = t.replace(/^[0-9][0-9.\-\/]*\s*[-–—:|]?\s*/, '');
-  if (desc && idx[nk(desc)]) return idx[nk(desc)];
-  return t;
-}
-function tipoReal(v) { const n = nk(v); return n.indexOf('acum') !== -1 ? 'A' : n.indexOf('real') === 0 ? 'S' : 'A'; }
-
-function preparar() {
-  const { orc, fluxo, real } = S.rows;
-  S.ccIdx = {};
-  real.forEach((r) => {
-    const full = ccReal(r); if (!full) return;
-    [full, r.ccCod, r.ccDesc].forEach((x) => { const k = nk(x); if (k && !(k in S.ccIdx)) S.ccIdx[k] = full; });
-  });
+function prepararSetor() {
+  const st = S.setor;
+  S.L = linhasSetor();
   S.uNome = {}; S.ccNome = {};
-  const tag = (r, proj, cc) => {
-    const p = String(proj || '').trim();
+  const tag = (r, d) => {
+    const p = String(r.projeto || '').trim(), c = String(r.cc || '').trim();
     r._u = nk(p) || '~'; if (!(r._u in S.uNome)) S.uNome[r._u] = p || '(sem usina)';
-    r._ck = nk(cc) || '~'; if (!(r._ck in S.ccNome)) S.ccNome[r._ck] = cc;
+    r._ck = nk(c) || '~'; if (!(r._ck in S.ccNome)) S.ccNome[r._ck] = c || '(sem centro de custo)';
+    r._d = d;
   };
-  orc.forEach((r) => { tag(r, r.projeto, canonCC(r.cc)); r._d = r.venc; });
-  fluxo.forEach((r) => { tag(r, r.projeto, canonCC(r.cc)); r._d = r.dataProg; r._pago = nk(r.situacao).indexOf('pago') === 0; });
-  real.forEach((r) => { tag(r, r.projeto, ccReal(r) || '(sem centro de custo)'); r._d = r.pagto; r._t = tipoReal(r.tipo); });
+  S.L.orc.forEach((r) => tag(r, r.venc));
+  S.L.real.forEach((r) => tag(r, r.pagto));
+  S.L.proj.forEach((r) => tag(r, r.dataProg));
   S.uLista = Object.keys(S.uNome).filter((k) => k !== '~').sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
-  const snaps = {};
-  fluxo.forEach((r) => { snaps[r.dataFluxo || ''] = true; });
-  S.snaps = Object.keys(snaps).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a < b ? 1 : -1));
-  if (!S.snaps.includes(S.f.snap)) S.f.snap = S.snaps[0] || '';
   S.f.us.forEach((k) => { if (!(k in S.uNome)) S.f.us.delete(k); });
-  const ds = S.snaps.filter(Boolean);
-  if (!ds.includes(S.f.semB)) S.f.semB = ds[0] || '';
-  if (!ds.includes(S.f.semA)) S.f.semA = ds.find((d) => d < S.f.semB) || '';
+
+  // Datas do Fluxo: a anterior começa na menor data e a atual na maior.
+  const ds = Array.from(new Set(S.L.proj.map((r) => r.dataFluxo).filter(Boolean))).sort();
+  S.snaps = ds;
+  const g = S.snapSetor[st.nome] || {};
+  S.f.ant = ds.includes(g.ant) ? g.ant : ds[0] || '';
+  S.f.atu = ds.includes(g.atu) ? g.atu : ds[ds.length - 1] || '';
+  guardarSnaps();
   const opts = (atual) => ds.length ? ds.map((d) => '<option value="' + esc(d) + '"' + (d === atual ? ' selected' : '') + '>' + dt(d) + '</option>').join('') : '<option value="">—</option>';
-  $('#fSemA').innerHTML = opts(S.f.semA); $('#fSemB').innerHTML = opts(S.f.semB);
-  $('#fSnap').innerHTML = S.snaps.length
-    ? S.snaps.map((s) => '<option value="' + esc(s) + '"' + (s === S.f.snap ? ' selected' : '') + '>' + (s ? dt(s) : '(sem data)') + '</option>').join('')
-    : '<option value="">—</option>';
-  // Centros de custo de cada usina, para os filtros Usina × Setor em cascata.
-  S.uCC = {};
-  ['orc', 'fluxo', 'real'].forEach((a) => S.rows[a].forEach((r) => { (S.uCC[r._u] = S.uCC[r._u] || new Set()).add(r._ck); }));
-  montarSetores();
-  podarUsinas();
+  $('#fAnt').innerHTML = opts(S.f.ant); $('#fAtu').innerHTML = opts(S.f.atu);
+
+  const msgs = [];
+  [S.d.abas.orc, S.d.abas.real, S.d.abas[st.id]].forEach((a) => {
+    if (!a) return;
+    if (a.erro) msgs.push('<b>' + esc(a.aba) + ':</b> ' + esc(a.erro));
+    else if (a.faltando.length) msgs.push('<b>' + esc(a.aba) + ':</b> colunas não encontradas — ' + a.faltando.map(esc).join(', '));
+  });
+  if (st.pronto && !(st.ccs && st.ccs.length)) msgs.push('Nenhum centro de custo do ' + esc(st.nome) + ' na aba Setores: Orçado e Realizado mostram todos os centros de custo.');
+  $('#avisos').innerHTML = (DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '') +
+    (msgs.length && st.pronto ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '');
   renderUsel();
 }
+function guardarSnaps() { S.snapSetor[S.setor.nome] = { ant: S.f.ant, atu: S.f.atu }; }
 
 /* =================================================================== */
 /* Lista suspensa de usinas                                             */
 /* =================================================================== */
-function selKey() { return Array.from(S.f.us).sort().join('+'); }
 function selNome() { return Array.from(S.f.us).map((k) => S.uNome[k]).sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })).join(' + '); }
-/** Usinas que têm algum centro de custo do setor escolhido (todas, se nenhum setor filtra). */
-function usinasPermitidas() {
-  if (!S.ccSetor) return S.uLista;
-  return S.uLista.filter((u) => { const cs = S.uCC[u]; if (!cs) return false; for (const k of cs) if (S.ccSetor.has(k)) return true; return false; });
-}
-/** Tira da seleção as usinas que não têm o setor escolhido. */
-function podarUsinas() {
-  const ok = new Set(usinasPermitidas());
-  Array.from(S.f.us).forEach((u) => { if (!ok.has(u)) S.f.us.delete(u); });
-}
-function usVisiveis() { const q = nk(S.qUs); return usinasPermitidas().filter((k) => !q || nk(S.uNome[k]).indexOf(q) !== -1); }
+function usVisiveis() { const q = nk(S.qUs); return S.uLista.filter((k) => !q || nk(S.uNome[k]).indexOf(q) !== -1); }
 function renderUList() {
   const vis = usVisiveis();
   $('#msList').innerHTML = vis.length
@@ -567,7 +539,7 @@ function renderUList() {
 function renderUsel() {
   const n = S.f.us.size;
   $('#msBtn').textContent = n === 0 ? 'Selecione as usinas' : n === 1 ? selNome() : n + ' usinas selecionadas';
-  $('#msCont').textContent = n + ' de ' + usinasPermitidas().length;
+  $('#msCont').textContent = n + ' de ' + S.uLista.length;
   const sel = Array.from(S.f.us).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
   const MAX = 6;
   $('#tags').innerHTML = n < 2 ? '' : sel.slice(0, MAX).map((k) => '<span class="tag">' + esc(S.uNome[k]) + '<button type="button" data-rm="' + esc(k) + '" aria-label="Remover">×</button></span>').join('') +
@@ -583,70 +555,28 @@ function abrirUsel(abrir) {
 /* =================================================================== */
 /* Números                                                              */
 /* =================================================================== */
-function passa(r) { return S.f.us.has(r._u) && ccNoSetor(r._ck); }
-/** Centro de custo pertence ao setor escolhido? ('' = todos; '~sem' = os que não estão em nenhum setor). */
-function ccNoSetor(k) { return !S.ccSetor || S.ccSetor.has(k); }
-function montarSetores() {
-  const st = S.d.setores || {};
-  const todos = Object.keys(st).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const restrito = S.d.acesso && S.d.acesso.restrito;
-  $('#fSetorWrap').hidden = !todos.length || (restrito && todos.length < 2);
-  // Com usinas marcadas, só os setores que têm centro de custo nessas usinas.
-  let nomes = todos;
-  if (S.f.us.size) {
-    const cs = new Set();
-    S.f.us.forEach((u) => (S.uCC[u] || []).forEach((k) => cs.add(k)));
-    nomes = todos.filter((n) => st[n].some((k) => cs.has(k)));
-  }
-  if (S.f.setor && S.f.setor !== '~sem' && nomes.indexOf(S.f.setor) === -1) S.f.setor = '';
-  $('#fSetor').innerHTML = '<option value="">Todos os setores</option>' +
-    nomes.map((n) => '<option value="' + esc(n) + '"' + (n === S.f.setor ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
-    (restrito ? '' : '<option value="~sem"' + (S.f.setor === '~sem' ? ' selected' : '') + '>Sem setor</option>');
-  aplicarSetor();
-}
-function aplicarSetor() {
-  const st = S.d.setores || {};
-  if (!S.f.setor) {
-    // "Todos os setores" = os centros de custo que estão em algum setor da aba Setores.
-    // Os que foram retirados de lá (desativados) não aparecem; ficam só em "Sem setor".
-    const todos = new Set(); Object.values(st).forEach((ks) => ks.forEach((k) => todos.add(k)));
-    S.ccSetor = todos.size ? todos : null;
-    return;
-  }
-  if (S.f.setor === '~sem') {
-    const com = new Set(); Object.values(st).forEach((ks) => ks.forEach((k) => com.add(k)));
-    S.ccSetor = new Set(Object.keys(S.ccNome).filter((k) => !com.has(k)));
-  } else S.ccSetor = new Set(st[S.f.setor] || []);
-}
+function passa(r) { return S.f.us.has(r._u); }
 function filtrar() {
   return {
-    orc: S.rows.orc.filter(passa),
-    fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && passa(r)),
-    real: S.rows.real.filter(passa)
+    orc: S.L.orc.filter(passa),
+    pa: S.L.proj.filter((r) => r.dataFluxo === S.f.ant && passa(r)),
+    pt: S.L.proj.filter((r) => r.dataFluxo === S.f.atu && passa(r)),
+    real: S.L.real.filter(passa)
   };
 }
-function novoM() { return { orc: 0, proj: 0, projAb: 0, projPg: 0, real: 0, realSem: 0 }; }
-function somaM(a, b) { ['orc', 'proj', 'projAb', 'projPg', 'real', 'realSem'].forEach((k) => { a[k] += b[k]; }); return a; }
-function derivar(m) { m.d1 = m.orc - m.proj - m.real; m.d2 = m.orc - m.real; return m; }
+const MK = ['orc', 'pa', 'pt', 'real'];
+function novoM() { return { orc: 0, pa: 0, pt: 0, real: 0 }; }
+function somaM(a, b) { MK.forEach((k) => { a[k] += b[k]; }); return a; }
+/** Δ Projeções = anterior − atual · Δ1 = Orçado − Projeção atual − Realizado · Δ2 = Orçado − Realizado */
+function derivar(m) { m.dP = m.pa - m.pt; m.d1 = m.orc - m.pt - m.real; m.d2 = m.orc - m.real; return m; }
 /** Soma por centro de custo (o mesmo centro de custo em usinas diferentes vira uma linha só). */
 function agregar(F) {
-  const cfg = S.d.cfg, soAberto = cfg.PROJETADO_SO_EM_ABERTO !== false;
   const M = new Map();
-  const cc = (r) => {
+  MK.forEach((k) => F[k].forEach((r) => {
     let c = M.get(r._ck);
     if (!c) { c = { k: r._ck, nome: S.ccNome[r._ck], m: novoM() }; M.set(r._ck, c); }
-    return c.m;
-  };
-  F.orc.forEach((r) => { cc(r).orc += r.valor || 0; });
-  F.fl.forEach((r) => {
-    const m = cc(r), v = r.valor || 0;
-    if (r._pago) m.projPg += v; else m.projAb += v;
-    if (!soAberto || !r._pago) m.proj += v;
-  });
-  F.real.forEach((r) => {
-    const m = cc(r), v = r.valor || 0;
-    if (r._t === 'S') { m.realSem += v; if (cfg.REALIZADO_SOMA_SEMANA) m.real += v; } else m.real += v;
-  });
+    c.m[k] += r.valor || 0;
+  }));
   const tot = novoM(), ccs = [];
   M.forEach((c) => { derivar(c.m); somaM(tot, c.m); ccs.push(c); });
   return { ccs, tot: derivar(tot) };
@@ -659,60 +589,67 @@ function kpi(l, v, dark) {
   return '<div class="kpi' + (dark ? ' dark' : '') + '"><div class="l">' + l + '</div><div class="v tnum' + numCls(v) + '">' + brl2(v) + '</div></div>';
 }
 function dh(sub) { return '<span class="dh">Δ<small>' + sub + '</small></span>'; }
+const DH = {
+  dP: dh('Projeções (Anterior − Atual)'),
+  d1: dh('(Orçado − Projeção atual − Realizado)'),
+  d2: dh('(Orçado − Realizado)')
+};
 function kpisHtml(m) {
-  return kpi('Orçado', m.orc) + kpi('Projetado', m.proj) + kpi('Realizado', m.real) +
-    kpi(dh('(Orçado − Projetado − Realizado)'), m.d1, true) + kpi(dh('(Orçado − Realizado)'), m.d2, true);
+  return [kpi('Orçado', m.orc) + kpi('Projeção anterior', m.pa) + kpi('Projeção atual', m.pt) + kpi('Realizado', m.real),
+    kpi(DH.dP, m.dP, true) + kpi(DH.d1, m.d1, true) + kpi(DH.d2, m.d2, true)];
 }
-const COLS = [
-  { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 }, { k: 'proj', t: 'Projetado', n: 1 },
-  { k: 'real', t: 'Realizado', n: 1 }, { k: 'd1', t: dh('(Orçado − Projetado − Realizado)'), n: 1, dl: 'first' }, { k: 'd2', t: dh('(Orçado − Realizado)'), n: 1, dl: 1 }
-];
+function th2(t, d) { return '<span class="th2">' + t + '<small>' + (d ? dt(d) : '—') + '</small></span>'; }
+function colunas() {
+  return [
+    { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
+    { k: 'pa', t: th2('Projeção anterior', S.f.ant), n: 1 }, { k: 'pt', t: th2('Projeção atual', S.f.atu), n: 1, c: 'pt' },
+    { k: 'real', t: 'Realizado', n: 1 },
+    { k: 'dP', t: DH.dP, n: 1, dl: 'first' }, { k: 'd1', t: DH.d1, n: 1, dl: 1 }, { k: 'd2', t: DH.d2, n: 1, dl: 1 }
+  ];
+}
 function cmp(a, b) {
   const k = S.sort.k;
   if (k === 'nome') return String(a.nome).localeCompare(String(b.nome), 'pt-BR', { numeric: true }) * S.sort.dir;
   return (a.m[k] - b.m[k]) * S.sort.dir;
 }
 function celulas(m) {
-  return '<td class="n">' + num(m.orc) + '</td><td class="n">' + num(m.proj) + '</td><td class="n">' + num(m.real) + '</td>' +
-    '<td class="n dl first' + numCls(m.d1) + '">' + num(m.d1) + '</td><td class="n dl' + numCls(m.d2) + '">' + num(m.d2) + '</td>';
+  return '<td class="n">' + num(m.orc) + '</td><td class="n">' + num(m.pa) + '</td><td class="n pt">' + num(m.pt) + '</td><td class="n">' + num(m.real) + '</td>' +
+    '<td class="n dl first' + numCls(m.dP) + '">' + num(m.dP) + '</td><td class="n dl' + numCls(m.d1) + '">' + num(m.d1) + '</td><td class="n dl' + numCls(m.d2) + '">' + num(m.d2) + '</td>';
 }
-function justKey(uk, ck) { return uk + '||' + ck; }
 
 function render() {
   if (!S.d) return;
-  const tem = S.f.us.size > 0, sem = S.mod === 'semanal';
-  $('#fGeral').hidden = sem; $('#fSem').hidden = !sem;
-  $('#pick').hidden = tem; $('#resumoBody').hidden = !tem || sem; $('#semBody').hidden = !tem || !sem;
-  if (!tem) {
-    if (S.chart) { S.chart.destroy(); S.chart = null; }
-    if (S.chartSem) { S.chartSem.destroy(); S.chartSem = null; }
-    return;
-  }
-  if (sem) { renderSemanal(); if (S.drawer) renderDrawer(); return; }
+  const st = S.setor, pronto = st.pronto;
+  $('#filtros').hidden = !pronto;
+  $('#obra').hidden = pronto;
+  $('#obraT').textContent = st.nome + ' · em construção';
+  const tem = pronto && S.f.us.size > 0;
+  $('#pick').hidden = !pronto || tem; $('#resumoBody').hidden = !tem;
+  if (!tem) { if (S.chart) { S.chart.destroy(); S.chart = null; } return; }
   S.F = filtrar();
   S.A = agregar(S.F);
-  $('#kpis').innerHTML = kpisHtml(S.A.tot);
-  $('#ttlCC').textContent = 'Centros de custo · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
+  const k = kpisHtml(S.A.tot);
+  $('#kpis').innerHTML = k[0]; $('#kpisD').innerHTML = k[1];
+  $('#ttlCC').textContent = 'Centros de custo · ' + st.nome + ' · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
   renderTabela();
   renderCurvas();
   if (S.drawer) renderDrawer();
 }
 
-/** Todos os centros de custo existentes aparecem, mesmo os sem valor para as usinas escolhidas. */
 function renderTabela() {
   const q = nk(S.qTree);
-  // Só aparecem centros de custo com algum valor (positivo ou negativo) em Orçado, Projetado ou Realizado.
-  const temValor = (m) => Math.abs(m.orc) >= 0.005 || Math.abs(m.proj) >= 0.005 || Math.abs(m.real) >= 0.005;
+  // Só aparecem centros de custo com algum valor (positivo ou negativo).
+  const temValor = (m) => MK.some((k) => Math.abs(m[k]) >= 0.005);
   const lista = S.A.ccs.filter((c) => temValor(c.m) && (!q || nk(c.nome).indexOf(q) !== -1)).sort(cmp);
-  let h = '<table class="tb-c"><thead><tr>' + COLS.map((c) =>
-    '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
+  const cols = colunas();
+  let h = '<table class="tb-c"><thead><tr>' + cols.map((c) =>
+    '<th class="sort' + (c.n ? ' n' : '') + (c.c ? ' ' + c.c : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
     (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '<th></th></tr></thead><tbody>';
-  if (!lista.length) h += '<tr><td colspan="7" class="empty">Nada encontrado.</td></tr>';
+  if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nada encontrado.</td></tr>';
   const tot = novoM();
   lista.forEach((c) => {
     somaM(tot, c.m);
-    const zero = Math.abs(c.m.orc) < 0.005 && Math.abs(c.m.proj) < 0.005 && Math.abs(c.m.real) < 0.005;
-    h += '<tr class="c' + (zero ? ' zero' : '') + (S.ccSel.has(c.k) ? ' sel' : '') + '" data-cc="' + esc(c.k) + '"><td><span class="ck"></span>' + esc(c.nome) + '</td>' +
+    h += '<tr class="c' + (S.ccSel.has(c.k) ? ' sel' : '') + '" data-cc="' + esc(c.k) + '"><td><span class="ck"></span>' + esc(c.nome) + '</td>' +
       celulas(c.m) + '<td class="acts"><button type="button" class="det" data-det="' + esc(c.k) + '">Detalhar</button></td></tr>';
   });
   if (lista.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '<td></td></tr>';
@@ -721,44 +658,38 @@ function renderTabela() {
 
 const SERIES = [
   { k: 'orc', nome: 'Orçado', sw: 'background:var(--cosmos)' },
-  { k: 'proj', nome: 'Projetado', sw: 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)' },
+  { k: 'pt', nome: 'Projeção atual', sw: 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)' },
   { k: 'real', nome: 'Realizado', sw: 'background:var(--aurora)' }
 ];
-/** Orçado (vencimento), Projetado (data programada) e Realizado (pagamento) mês a mês. */
+/** Orçado (vencimento), Projeção atual (data programada) e Realizado (data do pagamento) mês a mês. */
 function renderCurvas() {
   $('#leg').innerHTML = SERIES.map((x) => '<button type="button" data-linha="' + x.k + '" class="' + (S.linhasOff.has(x.k) ? 'off' : '') + '" aria-pressed="' + !S.linhasOff.has(x.k) + '"><span class="sw" style="' + x.sw + '"></span>' + x.nome + '</button>').join('');
-  const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
+  $('#legNota').textContent = 'Clique em Orçado, Projeção atual ou Realizado para mostrar ou esconder a linha. Projeção atual: fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + ', pela data programada de pagamento.';
   const o = {}, p = {}, r = {}, ms = new Set();
   const add = (obj, d, v) => { if (!d) return; const m = d.slice(0, 7); obj[m] = (obj[m] || 0) + (v || 0); ms.add(m); };
   const usa = (x) => !S.ccSel.size || S.ccSel.has(x._ck);
   S.F.orc.forEach((x) => { if (usa(x)) add(o, x._d, x.valor); });
-  // Projetado de cada mês = a previsão mais recente feita para aquele mês (envio mais novo do
-  // fluxo que tem pagamentos programados nele), contando itens pagos e em aberto.
-  // Não depende do "Fluxo de" escolhido no topo.
-  const ultimo = {};
-  const fl = S.rows.fluxo.filter((x) => x.dataFluxo && x._d && passa(x) && usa(x));
-  fl.forEach((x) => { const m = x._d.slice(0, 7); if (!ultimo[m] || x.dataFluxo > ultimo[m]) ultimo[m] = x.dataFluxo; });
-  fl.forEach((x) => { if (x.dataFluxo === ultimo[x._d.slice(0, 7)]) add(p, x._d, x.valor); });
-  S.F.real.forEach((x) => { if (!usa(x) || (x._t === 'S' && !cfg.REALIZADO_SOMA_SEMANA)) return; add(r, x._d, x.valor); });
+  S.F.pt.forEach((x) => { if (usa(x)) add(p, x._d, x.valor); });
+  S.F.real.forEach((x) => { if (usa(x)) add(r, x._d, x.valor); });
   const n = S.ccSel.size;
   $('#chSel').innerHTML = n === 0 ? 'Todos os centros de custo'
     : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSel)[0]]) : n + ' centros de custo selecionados') + '</b><button type="button" id="ccLimpar">Mostrar todos</button>';
   const meses = Array.from(ms).sort();
   const faixa = (obj) => { const k = Object.keys(obj).sort(); return [k[0] || '9999', k[k.length - 1] || '']; };
-  const [oIni, oFim] = faixa(o), [pIni, pFim] = faixa(p), [rIni, rFim] = faixa(r);
-  const serie = (obj, ini, fim) => meses.map((m) => (m < ini || m > fim ? null : obj[m] || 0));
-  const sO = serie(o, oIni, oFim), sP = serie(p, pIni, pFim), sR = serie(r, rIni, rFim);
+  const serie = (obj) => { const [ini, fim] = faixa(obj); return meses.map((m) => (m < ini || m > fim ? null : obj[m] || 0)); };
+  const sO = serie(o), sP = serie(p), sR = serie(r);
+  const dados = { orc: sO, pt: sP, real: sR };
 
   // Escala do eixo: acompanha os valores das linhas visíveis, com folga igual em cima e embaixo,
   // para as linhas ficarem no meio do gráfico.
-  const vis = [['orc', sO], ['proj', sP], ['real', sR]].filter(([k]) => !S.linhasOff.has(k)).reduce((acc, [, arr]) => acc.concat(arr.filter((v) => v !== null)), []);
+  const vis = SERIES.filter((x) => !S.linhasOff.has(x.k)).reduce((acc, x) => acc.concat(dados[x.k].filter((v) => v !== null)), []);
   let yMin, yMax, yPasso;
   if (vis.length) {
     const lo = Math.min.apply(null, vis), hi = Math.max.apply(null, vis);
     const folga = Math.max(hi - lo, Math.abs(hi) * 0.1, 1) * 0.8;
     yMin = Math.max(0, lo - folga); yMax = hi + folga;
-    const bruto = (yMax - yMin) / 5, mag = Math.pow(10, Math.floor(Math.log10(bruto))), r = bruto / mag;
-    yPasso = (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * mag;
+    const bruto = (yMax - yMin) / 5, mag = Math.pow(10, Math.floor(Math.log10(bruto))), q = bruto / mag;
+    yPasso = (q <= 1 ? 1 : q <= 2 ? 2 : q <= 2.5 ? 2.5 : q <= 5 ? 5 : 10) * mag;
     yMin = Math.floor(yMin / yPasso) * yPasso; yMax = Math.ceil(yMax / yPasso) * yPasso;
   }
   if (S.chart) S.chart.destroy();
@@ -770,7 +701,7 @@ function renderCurvas() {
         labels: meses.map(mes),
         datasets: [
           linha('Orçado', sO, COR.cosmos, { hidden: S.linhasOff.has('orc') }),
-          linha('Projetado', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2, hidden: S.linhasOff.has('proj') }),
+          linha('Projeção atual', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2, hidden: S.linhasOff.has('pt') }),
           linha('Realizado', sR, COR.aurora, { hidden: S.linhasOff.has('real') })
         ]
       },
@@ -789,116 +720,26 @@ function renderCurvas() {
     });
   }
   // Tabela com o valor de cada mês
-  const mil = (v) => (v === null ? '<span style="color:var(--nevoa)">—</span>' : '<span class="' + numCls(v).trim() + '">' + num(v) + '</span>');
+  const cel = (v) => (v === null ? '<span style="color:var(--nevoa)">—</span>' : '<span class="' + numCls(v).trim() + '">' + num(v) + '</span>');
   const soma = (arr) => arr.reduce((a, v) => a + (v || 0), 0);
-  const lin = (nome, sw, arr) => '<tr><td><span class="sw" style="' + sw + '"></span>' + nome + '</td>' + arr.map((v) => '<td class="n">' + mil(v) + '</td>').join('') + '<td class="n dl first"><b>' + num(soma(arr)) + '</b></td></tr>';
+  const lin = (nome, sw, arr) => '<tr><td><span class="sw" style="' + sw + '"></span>' + nome + '</td>' + arr.map((v) => '<td class="n">' + cel(v) + '</td>').join('') + '<td class="n dl first"><b>' + num(soma(arr)) + '</b></td></tr>';
   $('#tabMeses').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
-    SERIES.filter((x) => !S.linhasOff.has(x.k)).map((x) => lin(x.nome, x.sw, { orc: sO, proj: sP, real: sR }[x.k])).join('') + '</tbody></table>'
+    SERIES.filter((x) => !S.linhasOff.has(x.k)).map((x) => lin(x.nome, x.sw, dados[x.k])).join('') + '</tbody></table>'
     : '<div class="empty">Sem datas para montar o gráfico.</div>';
 }
 
 /* =================================================================== */
-/* Análise Semanal: Projetado de dois envios do fluxo                    */
-/* =================================================================== */
-/** Linhas do fluxo daquele envio que contam como Projetado. */
-function projSem(data, ck) {
-  const soAb = S.d.cfg.PROJETADO_SO_EM_ABERTO !== false;
-  if (!data) return [];
-  return S.rows.fluxo.filter((r) => r.dataFluxo === data && passa(r) && (!soAb || !r._pago) && (!ck || r._ck === ck));
-}
-function delta(v) {
-  const d = Math.round((v || 0) * 100) / 100;
-  if (Math.abs(d) < 0.005) return '<span class="muted">0,00</span>';
-  return '<span class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '▲ ' : '▼ ') + _n2.format(Math.abs(d)) + '</span>';
-}
-function renderSemanal() {
-  const A = projSem(S.f.semA), B = projSem(S.f.semB);
-  const nA = S.f.semA ? dt(S.f.semA) : '—', nB = S.f.semB ? dt(S.f.semB) : '—';
-  const M = new Map();
-  const add = (r, campo) => { let c = M.get(r._ck); if (!c) { c = { k: r._ck, nome: S.ccNome[r._ck], m: { a: 0, b: 0, d: 0 } }; M.set(r._ck, c); } c.m[campo] += r.valor || 0; };
-  A.forEach((r) => add(r, 'a')); B.forEach((r) => add(r, 'b'));
-  const lista0 = Array.from(M.values()); lista0.forEach((c) => { c.m.d = c.m.b - c.m.a; });
-  const tA = lista0.reduce((s, c) => s + c.m.a, 0), tB = lista0.reduce((s, c) => s + c.m.b, 0);
-
-  $('#kpisSem').innerHTML = kpi('Projetado em ' + nA, tA) + kpi('Projetado em ' + nB, tB) +
-    '<div class="kpi dark"><div class="l">' + dh('(Semana atual − Semana anterior)') + '</div><div class="v tnum">' + delta(tB - tA).replace('class="up"', 'style="color:#ffb08a"').replace('class="down"', 'style="color:#9cc3ff"') + '</div></div>';
-  $('#ttlSem').textContent = 'Projetado por centro de custo · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
-
-  const q = nk(S.qSem), k = S.sortSem.k, dir = S.sortSem.dir;
-  const lista = lista0.filter((c) => (Math.abs(c.m.a) >= 0.005 || Math.abs(c.m.b) >= 0.005) && (!q || nk(c.nome).indexOf(q) !== -1))
-    .sort((x, y) => k === 'nome' ? String(x.nome).localeCompare(String(y.nome), 'pt-BR', { numeric: true }) * dir : (x.m[k] - y.m[k]) * dir);
-  const cols = [{ k: 'nome', t: 'Centro de custo' }, { k: 'a', t: 'Projetado em ' + nA, n: 1 }, { k: 'b', t: 'Projetado em ' + nB, n: 1 }, { k: 'd', t: dh('(Semana atual − Semana anterior)'), n: 1, dl: 1 }];
-  let h = '<table class="tb-c"><thead><tr>' + cols.map((c) => '<th class="sort' + (c.n ? ' n' : '') + (c.dl ? ' dl first' : '') + '" data-ssort="' + c.k + '">' + c.t +
-    (k === c.k ? (dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '<th></th></tr></thead><tbody>';
-  lista.forEach((c) => {
-    const zero = Math.abs(c.m.a) < 0.005 && Math.abs(c.m.b) < 0.005;
-    h += '<tr class="c' + (zero ? ' zero' : '') + (S.ccSelSem.has(c.k) ? ' sel' : '') + '" data-cs="' + esc(c.k) + '"><td><span class="ck"></span>' + esc(c.nome) + '</td>' +
-      '<td class="n">' + num(c.m.a) + '</td><td class="n">' + num(c.m.b) + '</td><td class="n dl first">' + delta(c.m.d) + '</td>' +
-      '<td class="acts"><button type="button" class="det" data-dets="' + esc(c.k) + '">Detalhar</button></td></tr>';
-  });
-  if (!lista.length) h += '<tr><td colspan="5" class="empty">Nada encontrado.</td></tr>';
-  else {
-    const sa = lista.reduce((s, c) => s + c.m.a, 0), sb = lista.reduce((s, c) => s + c.m.b, 0);
-    h += '<tr class="tot"><td>Total</td><td class="n">' + num(sa) + '</td><td class="n">' + num(sb) + '</td><td class="n dl first">' + delta(sb - sa) + '</td><td></td></tr>';
-  }
-  $('#treeSem').innerHTML = h + '</tbody></table>';
-  renderCurvasSem(A, B, nA, nB);
-}
-function renderCurvasSem(A, B, nA, nB) {
-  const usa = (x) => !S.ccSelSem.size || S.ccSelSem.has(x._ck);
-  const a = {}, b = {}, ms = new Set();
-  const add = (obj, x) => { if (!x._d || !usa(x)) return; const m = x._d.slice(0, 7); obj[m] = (obj[m] || 0) + (x.valor || 0); ms.add(m); };
-  A.forEach((x) => add(a, x)); B.forEach((x) => add(b, x));
-  const n = S.ccSelSem.size;
-  $('#chSelSem').innerHTML = n === 0 ? 'Todos os centros de custo'
-    : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSelSem)[0]]) : n + ' centros de custo selecionados') + '</b><button type="button" id="ccLimparSem">Mostrar todos</button>';
-  const meses = Array.from(ms).sort();
-  const sA = meses.map((m) => a[m] || 0), sB = meses.map((m) => b[m] || 0);
-  if (S.chartSem) S.chartSem.destroy();
-  if (window.Chart) {
-    const linha = (label, data, cor, extra) => Object.assign({ label, data, borderColor: cor, backgroundColor: cor, borderWidth: 2.5, pointRadius: 3.5, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 1.5, tension: 0.25 }, extra || {});
-    S.chartSem = new Chart($('#chSem'), {
-      type: 'line',
-      data: { labels: meses.map(mes), datasets: [
-        linha('Semana anterior · ' + nA, sA, '#9AA0A6', { borderDash: [6, 4] }),
-        linha('Semana atual · ' + nB, sB, COR.aurora)
-      ] },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { position: 'top', align: 'end', labels: { boxWidth: 22, boxHeight: 2, color: '#4B5259' } },
-          tooltip: { backgroundColor: '#0A0F14', padding: 10, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
-          y: { beginAtZero: true, border: { display: false }, grid: { color: COR.grid }, ticks: { color: COR.ink3, callback: (v) => compact(v) } }
-        }
-      }
-    });
-  }
-  const soma = (arr) => arr.reduce((s, v) => s + v, 0);
-  const lin = (nome, sw, arr, fmt, cls) => '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + (sw ? '<span class="sw" style="' + sw + '"></span>' : '') + nome + '</td>' +
-    arr.map((v) => '<td class="n">' + fmt(v) + '</td>').join('') + '<td class="n dl first"><b>' + fmt(soma(arr)) + '</b></td></tr>';
-  $('#tabSem').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
-    lin('Semana anterior · ' + nA, 'background:repeating-linear-gradient(90deg,#9AA0A6 0 5px,transparent 5px 8px)', sA, num, 'mut') +
-    lin('Semana atual · ' + nB, 'background:var(--aurora)', sB, num) +
-    lin('Δ (atual − anterior)', '', meses.map((m, i) => sB[i] - sA[i]), delta) + '</tbody></table>'
-    : '<div class="empty">Sem itens em aberto nessas semanas.</div>';
-}
-
-/* =================================================================== */
-/* Detalhar: todos os lançamentos de um centro de custo (só leitura)     */
+/* Detalhar: todos os lançamentos de um centro de custo                  */
 /* =================================================================== */
 const COLS_LANC = {
-  orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['setor', 'Setor'], ['valor', 'Valor', 'valor']],
-  fluxo: [['dataProg', 'Data programada', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['coment', 'Comentário'], ['situacao', 'Situação'], ['valor', 'Valor', 'valor']],
-  real: [['pagto', 'Pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['valor', 'Valor', 'valor']]
+  orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['valor', 'Valor', 'valor']],
+  proj: [['dataProg', 'Data programada', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['coment', 'Comentário'], ['valor', 'Valor', 'valor']],
+  real: [['pagto', 'Data do pagamento', 'data'], ['favorecido', 'Fornecedor'], ['projeto', 'Usina'], ['doc', 'Documento'], ['valor', 'Valor', 'valor']]
 };
+function tipoLanc(aba) { return aba === 'orc' || aba === 'real' ? aba : 'proj'; }
 function celula(r, col) {
   const k = col[0], tp = col[2];
   if (tp === 'linha') return '<td class="muted" style="white-space:nowrap">' + r._r + '</td>';
-  if (tp === 'orig') return '<td class="muted" style="font-size:12px">' + esc(r.ccFull !== undefined ? ccReal(r) : r.cc) + '</td>';
   if (tp === 'data') return '<td style="white-space:nowrap">' + (r[k] ? dt(r[k]) : '—') + '</td>';
   if (tp === 'valor') return '<td class="n">' + brl2(r[k]) + '</td>';
   return '<td>' + esc(r[k]) + '</td>';
@@ -907,13 +748,13 @@ const IC = {
   ed: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5l2.5 2.5L5.5 13H3v-2.5z"/></svg>',
   del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.7 9h6.6l.7-9"/></svg>'
 };
-function podeEditar(aba) { return S.d.podeEditar && S.d.abas[aba] && S.d.abas[aba].editavel; }
-function tabelaLanc(aba, rows, edita) {
-  // Linha e centro de custo exatamente como estão na planilha, para achar a origem de cada lançamento.
-  const cols = [['_r', 'Linha', 'linha']].concat(COLS_LANC[aba].filter((c) => c[0] !== 'projeto' || S.f.us.size > 1), [['_ccOrig', 'Centro de custo na planilha', 'orig']]);
-  const vl = cols.findIndex((c) => c[2] === 'valor'); cols.push(cols.splice(vl, 1)[0]);
-  const ed = edita && podeEditar(aba);
-  const ord = COLS_LANC[aba][0][0]; // ordena pela data (primeira coluna do lançamento)
+/** Só as abas de Projeções podem ser editadas, e só por quem tem "Edita" no setor. */
+function podeEditar(aba) { const a = S.d.abas[aba]; return !!(a && a.editavel && S.setor.edita && a.setor === S.setor.nome); }
+function tabelaLanc(aba, rows) {
+  const aus = new Set((S.d.abas[aba] && S.d.abas[aba].ausentes) || []);
+  const cols = [['_r', 'Linha', 'linha']].concat(COLS_LANC[tipoLanc(aba)].filter((c) => !aus.has(c[0]) && (c[0] !== 'projeto' || S.f.us.size > 1)));
+  const ed = podeEditar(aba);
+  const ord = cols[1][0]; // ordena pela data
   const lista = rows.slice().sort((a, b) => String(a[ord] || '').localeCompare(String(b[ord] || '')));
   let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
   if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
@@ -924,9 +765,9 @@ function tabelaLanc(aba, rows, edita) {
   if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">Total</td><td class="n">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
   return h + '</tbody></table>';
 }
-function abrirCC(ck, semanal) {
-  S.drawer = { ck, semanal: !!semanal };
-  S.dwAbertos = new Set(['fluxo']);
+function abrirCC(ck) {
+  S.drawer = { ck };
+  S.dwAbertos = new Set(['pt']);
   $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
   renderDrawer(true);
 }
@@ -935,42 +776,28 @@ function fecharDrawer() {
   $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); $('#drawer').setAttribute('aria-hidden', 'true');
 }
 function renderDrawer(novo) {
-  const { ck } = S.drawer;
-  if (S.drawer.semanal) {
-    const A = projSem(S.f.semA, ck), B = projSem(S.f.semB, ck);
-    const tA = A.reduce((s, r) => s + (r.valor || 0), 0), tB = B.reduce((s, r) => s + (r.valor || 0), 0);
-    $('#dwT').textContent = S.ccNome[ck] || '';
-    $('#dwS').textContent = selNome() + ' · Análise Semanal';
-    let hs = '<div class="kpis k3">' + kpi('Projetado em ' + dt(S.f.semA), tA) + kpi('Projetado em ' + dt(S.f.semB), tB) +
-      '<div class="kpi dark"><div class="l">' + dh('(Semana atual − Semana anterior)') + '</div><div class="v tnum">' + delta(tB - tA).replace('class="up"', 'style="color:#ffb08a"').replace('class="down"', 'style="color:#9cc3ff"') + '</div></div></div>';
-    [[A, 'Semana anterior · fluxo de ' + dt(S.f.semA), tA], [B, 'Semana atual · fluxo de ' + dt(S.f.semB), tB]].forEach(([rows, t, tot]) => {
-      hs += '<div class="h3">' + t + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '<span class="tt">' + brl2(tot) + '</span></div><div class="card">' + tabelaLanc('fluxo', rows) + '</div>';
-    });
-    $('#dwB').innerHTML = hs;
-    if (novo) $('#dwB').scrollTop = 0;
-    return;
-  }
-  const cfg = S.d.cfg, soAb = cfg.PROJETADO_SO_EM_ABERTO !== false;
-  const sel = (r) => r._ck === ck && passa(r);
-  const Fx = { orc: S.rows.orc.filter(sel), real: S.rows.real.filter(sel), fl: S.rows.fluxo.filter((r) => (r.dataFluxo || '') === S.f.snap && sel(r)) };
+  const { ck } = S.drawer, st = S.setor;
+  const F = filtrar(), Fx = {};
+  MK.forEach((k) => { Fx[k] = F[k].filter((r) => r._ck === ck); });
   const m = agregar(Fx).tot;
-  const proj = Fx.fl.filter((r) => !soAb || !r._pago);
-  const real = Fx.real.filter((r) => r._t !== 'S' || cfg.REALIZADO_SOMA_SEMANA);
   $('#dwT').textContent = S.ccNome[ck] || '';
-  $('#dwS').textContent = selNome() + ' · fluxo de ' + (S.f.snap ? dt(S.f.snap) : '—');
-  let h = '<div class="kpis">' + kpisHtml(m) + '</div>';
+  $('#dwS').textContent = st.nome + ' · ' + selNome();
+  const k = kpisHtml(m);
+  let h = '<div class="kpis k4">' + k[0] + '</div><div class="kpis k3">' + k[1] + '</div>';
+  const proj = S.d.abas[st.id] ? S.d.abas[st.id].aba : 'Projeções';
   const blocos = [
-    ['fluxo', proj, 'Projetado', 'Fluxo de Caixa de ' + (S.f.snap ? dt(S.f.snap) : '—') + (soAb ? ' · itens em aberto' : ''), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
-    ['orc', Fx.orc, 'Orçado', 'Orçamento', 'background:var(--cosmos)'],
-    ['real', real, 'Realizado', 'Realizado Controladoria', 'background:var(--aurora)']
+    ['pt', st.id, Fx.pt, 'Projeção atual', proj + ' · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
+    ['pa', st.id, Fx.pa, 'Projeção anterior', proj + ' · fluxo de ' + (S.f.ant ? dt(S.f.ant) : '—'), 'background:repeating-linear-gradient(90deg,#9AA0A6 0 5px,transparent 5px 8px)'],
+    ['orc', 'orc', Fx.orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'],
+    ['real', 'real', Fx.real, 'Realizado', S.d.abas.real.aba + ' · pagos (Sim)', 'background:var(--aurora)']
   ];
-  blocos.forEach(([aba, rows, t, fonte, sw]) => {
-    h += '<details class="blk" data-blk="' + aba + '"' + (S.dwAbertos.has(aba) ? ' open' : '') + '><summary>' +
+  blocos.forEach(([blk, aba, rows, t, fonte, sw]) => {
+    h += '<details class="blk" data-blk="' + blk + '"' + (S.dwAbertos.has(blk) ? ' open' : '') + '><summary>' +
       '<span class="chev">▶</span><span class="sw" style="' + sw + '"></span><span class="t">' + t + '</span>' +
       '<span class="src">' + esc(fonte) + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</span>' +
-      (podeEditar(aba) ? '<button type="button" class="btn btn-sm" data-novo="' + aba + '">+ Novo</button>' : '') +
+      (blk === 'pt' && podeEditar(aba) ? '<button type="button" class="btn btn-sm" data-novo="' + aba + '">+ Novo</button>' : '') +
       '<span class="tt">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</span></summary>' +
-      '<div class="card">' + tabelaLanc(aba, rows, true) + '</div></details>';
+      '<div class="card">' + tabelaLanc(aba, rows) + '</div></details>';
   });
   const body = $('#dwB'), sc = body.scrollTop;
   body.innerHTML = h;
@@ -981,11 +808,10 @@ function renderDrawer(novo) {
 }
 
 /* =================================================================== */
-/* Edição pelo Detalhar (cada alteração vai para a aba Auditoria)        */
+/* Edição pelo Detalhar (só Projeções; cada alteração vai para a Auditoria) */
 /* =================================================================== */
-const NOME_ABA = { orc: 'Orçamento', fluxo: 'Fluxo de Caixa', real: 'Realizado' };
-const ROTULO = { setor: 'Setor', venc: 'Data de vencimento', valor: 'Valor', projeto: 'Usina (Projeto)', cc: 'Centro de custo',
-  dataProg: 'Data programada', fornecedor: 'Fornecedor', coment: 'Comentário', situacao: 'Situação', dataFluxo: 'Data do fluxo' };
+const ROTULO = { projeto: 'Usina (Projeto Padrão)', cc: 'Centro de custo', valor: 'Valor', dataProg: 'Data programada de pgto',
+  dataFluxo: 'Data do fluxo', fornecedor: 'Fornecedor', coment: 'Comentário' };
 function parseBR(t) {
   t = String(t || '').trim().replace(/[R$\s]/g, '');
   if (!t) return null;
@@ -993,10 +819,12 @@ function parseBR(t) {
   const n = parseFloat(t);
   return isFinite(n) ? n : null;
 }
-function acharLinha(aba, linha) { return S.rows[aba].find((r) => r._r === +linha); }
+function linhasDaAba(aba) { return aba === 'orc' || aba === 'real' ? S.rows[aba] : S.proj[aba] || []; }
+function acharLinha(aba, linha) { return linhasDaAba(aba).find((r) => r._r === +linha); }
 function sugestoes(aba, k) {
   const set = new Set();
-  S.rows[aba].forEach((r) => { if (r[k]) set.add(String(r[k])); });
+  linhasDaAba(aba).forEach((r) => { if (r[k]) set.add(String(r[k])); });
+  if (k === 'cc' && S.setor.ccs) S.L.orc.concat(S.L.real).forEach((r) => { if (r.cc) set.add(String(r.cc)); });
   return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR')).slice(0, 800);
 }
 let MD = null;
@@ -1008,11 +836,13 @@ function abrirModal(titulo, corpo, okTxt, onOk, perigo) {
   const f = $('#mdB').querySelector('input,select,textarea'); if (f) setTimeout(() => f.focus(), 30);
 }
 function fecharModal() { $('#modal').classList.remove('on'); MD = null; }
+/** Depois de gravar: refaz os números sem perder as datas escolhidas. */
+function depoisDeGravar() { prepararSetor(); render(); }
 
 function abrirEditor(aba, row, preset) {
   const def = S.d.abas[aba];
-  const faltam = new Set(def.faltando);
-  const campos = def.campos.filter((c) => !faltam.has(c.nome));
+  const aus = new Set(def.ausentes || []);
+  const campos = def.campos.filter((c) => !aus.has(c.k));
   const val = row || Object.assign({}, preset || {});
   let h = '<div class="form">';
   campos.forEach((c) => {
@@ -1020,10 +850,7 @@ function abrirEditor(aba, row, preset) {
     h += '<div class="fld' + (c.k === 'coment' ? ' full' : '') + '"><label for="e_' + c.k + '">' + (ROTULO[c.k] || c.nome) + '</label>';
     if (c.tipo === 'data') h += '<input type="date" id="e_' + c.k + '" value="' + esc(v || '') + '">';
     else if (c.tipo === 'valor') h += '<input id="e_' + c.k + '" inputmode="decimal" placeholder="0,00" value="' + (v === null || v === undefined || v === '' ? '' : _n2.format(v)) + '">';
-    else if (c.k === 'situacao') {
-      const ops = ['Em Aberto', 'Pago']; if (v && !ops.includes(v)) ops.push(v);
-      h += '<select id="e_' + c.k + '">' + ops.map((o) => '<option' + (o === (v || 'Em Aberto') ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
-    } else if (c.k === 'coment') h += '<textarea id="e_' + c.k + '">' + esc(v || '') + '</textarea>';
+    else if (c.k === 'coment') h += '<textarea id="e_' + c.k + '">' + esc(v || '') + '</textarea>';
     else h += '<input id="e_' + c.k + '" list="dl_' + c.k + '" value="' + esc(v || '') + '" autocomplete="off"><datalist id="dl_' + c.k + '">' +
       sugestoes(aba, c.k).map((x) => '<option value="' + esc(x) + '">').join('') + '</datalist>';
     h += '</div>';
@@ -1031,7 +858,7 @@ function abrirEditor(aba, row, preset) {
   h += '</div><p style="font-size:12px;color:var(--ink-3);margin:12px 0 0">Grava na aba ' + esc(def.aba) + (row ? ', linha ' + row._r : ', na primeira linha livre') +
     '. A alteração fica registrada na aba Auditoria.</p>';
 
-  abrirModal((row ? 'Editar' : 'Novo lançamento') + ' · ' + NOME_ABA[aba], h, row ? 'Salvar' : 'Incluir', () => {
+  abrirModal((row ? 'Editar' : 'Novo lançamento') + ' · ' + def.aba, h, row ? 'Salvar' : 'Incluir', () => {
     const novo = {};
     for (const c of campos) {
       let v = document.getElementById('e_' + c.k).value.trim();
@@ -1042,7 +869,9 @@ function abrirEditor(aba, row, preset) {
       novo[c.k] = v;
     }
     if (novo.valor === null || novo.valor === undefined) return 'Informe o valor.';
-    if ('projeto' in novo && !novo.projeto) return 'Informe a usina (Projeto).';
+    if ('projeto' in novo && !novo.projeto) return 'Informe a usina (Projeto Padrão).';
+    if ('cc' in novo && !novo.cc) return 'Informe o centro de custo.';
+    if ('dataFluxo' in novo && !novo.dataFluxo) return 'Informe a data do fluxo.';
     if (row) {
       const depois = {}, antes = {};
       campos.forEach((c) => {
@@ -1053,18 +882,18 @@ function abrirEditor(aba, row, preset) {
       });
       if (!Object.keys(depois).length) { fecharModal(); return; }
       return run('salvarLinha', { aba, linha: row._r, sinal: def.sinal, antes, depois }).then((r) => {
-        Object.assign(row, r); preparar(); render(); fecharModal(); toast('Salvo na planilha (linha ' + row._r + ').');
+        Object.assign(row, r); depoisDeGravar(); fecharModal(); toast('Salvo na planilha (linha ' + row._r + ').');
       });
     }
     return run('novaLinha', { aba, sinal: def.sinal, valores: novo }).then((r) => {
-      S.rows[aba].push(r); preparar(); render(); fecharModal(); toast('Incluído na linha ' + r._r + '.');
+      linhasDaAba(aba).push(r); depoisDeGravar(); fecharModal(); toast('Incluído na linha ' + r._r + '.');
     });
   });
 }
 function excluir(aba, row) {
   const def = S.d.abas[aba];
   const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
-  const resumo = COLS_LANC[aba].map((c) => {
+  const resumo = [['dataFluxo', 'Data do fluxo', 'data']].concat(COLS_LANC.proj).map((c) => {
     const v = row[c[0]];
     return v === '' || v === null || v === undefined ? '' : '<div><span style="color:var(--ink-3)">' + c[1] + ':</span> ' + esc(c[2] === 'data' ? dt(v) : c[2] === 'valor' ? brl2(v) : v) + '</div>';
   }).join('');
@@ -1072,18 +901,17 @@ function excluir(aba, row) {
     '<div class="card" style="background:var(--sirius);padding:12px 14px">' + resumo + '</div>', 'Excluir',
     () => run('excluirLinha', { aba, linha: row._r, sinal: def.sinal, antes }).then(() => { fecharModal(); toast('Excluído.'); return atualizar(true, true); }), true);
 }
-function novoPreset(aba, ck) {
-  const p = {};
+function novoPreset(ck) {
+  const p = { dataFluxo: S.f.atu || '' };
   if (S.f.us.size === 1) p.projeto = S.uNome[Array.from(S.f.us)[0]];
   if (ck && S.ccNome[ck] && S.ccNome[ck][0] !== '(') p.cc = S.ccNome[ck];
-  if (aba === 'fluxo') { p.situacao = 'Em Aberto'; p.dataFluxo = S.f.snap || ''; }
   return p;
 }
 
 /* =================================================================== */
 /* Eventos                                                              */
 /* =================================================================== */
-function mudouUsinas() { if (S.drawer) fecharDrawer(); montarSetores(); renderUsel(); render(); }
+function mudouUsinas() { if (S.drawer) fecharDrawer(); renderUsel(); render(); }
 $('#msBtn').addEventListener('click', () => abrirUsel(!$('#ms').classList.contains('on')));
 $('#msQ').addEventListener('input', (e) => { S.qUs = e.target.value; renderUList(); });
 $('#msList').addEventListener('change', (e) => {
@@ -1094,30 +922,24 @@ $('#msList').addEventListener('change', (e) => {
 $('#msTodas').addEventListener('click', () => { usVisiveis().forEach((k) => S.f.us.add(k)); mudouUsinas(); });
 $('#msLimpar').addEventListener('click', () => { S.f.us.clear(); mudouUsinas(); });
 $('#tags').addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; S.f.us.delete(b.dataset.rm); mudouUsinas(); });
-$('#fSnap').addEventListener('change', (e) => { S.f.snap = e.target.value; render(); });
-$('#fSetor').addEventListener('change', (e) => {
-  S.f.setor = e.target.value; aplicarSetor(); podarUsinas(); montarSetores(); renderUsel();
-  S.ccSel.clear(); S.ccSelSem.clear(); if (S.drawer) fecharDrawer(); render();
-});
+$('#fAnt').addEventListener('change', (e) => { S.f.ant = e.target.value; guardarSnaps(); render(); });
+$('#fAtu').addEventListener('change', (e) => { S.f.atu = e.target.value; guardarSnaps(); render(); });
 $('#btnAtualizar').addEventListener('click', () => atualizar());
 $('#mods').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-mod]'); if (!b) return;
-  S.mod = b.dataset.mod;
+  const b = e.target.closest('button[data-setor]'); if (!b || !S.d) return;
+  S.setor = S.d.setores.find((s) => s.nome === b.dataset.setor);
   document.querySelectorAll('#mods button').forEach((x) => x.classList.toggle('on', x === b));
   if (S.drawer) fecharDrawer();
+  S.ccSel.clear();
+  prepararSetor();
   render();
 });
-$('#fSemA').addEventListener('change', (e) => { S.f.semA = e.target.value; render(); });
-$('#fSemB').addEventListener('change', (e) => { S.f.semB = e.target.value; render(); });
-$('#qSem').addEventListener('input', (e) => { S.qSem = e.target.value; renderSemanal(); });
 $('#qTree').addEventListener('input', (e) => { S.qTree = e.target.value; renderTabela(); });
 document.addEventListener('click', (e) => {
   const t = e.target;
   if (!e.composedPath().includes($('#ms'))) abrirUsel(false);
   const th = t.closest('#tree th[data-sort]');
   if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTabela(); return; }
-  const ths = t.closest('#treeSem th[data-ssort]');
-  if (ths) { const k = ths.dataset.ssort; S.sortSem = { k, dir: S.sortSem.k === k ? -S.sortSem.dir : (k === 'nome' ? 1 : -1) }; renderSemanal(); return; }
   const lb = t.closest('[data-linha]');
   if (lb) { const k = lb.dataset.linha; if (S.linhasOff.has(k)) S.linhasOff.delete(k); else S.linhasOff.add(k); renderCurvas(); return; }
   const ed = t.closest('[data-ed]');
@@ -1125,14 +947,9 @@ document.addEventListener('click', (e) => {
   const del = t.closest('[data-del]');
   if (del) { const [aba, l] = del.dataset.del.split('|'); const r = acharLinha(aba, l); if (r) excluir(aba, r); return; }
   const nv = t.closest('[data-novo]');
-  if (nv) { e.preventDefault(); abrirEditor(nv.dataset.novo, null, novoPreset(nv.dataset.novo, S.drawer && S.drawer.ck)); return; }
+  if (nv) { e.preventDefault(); abrirEditor(nv.dataset.novo, null, novoPreset(S.drawer && S.drawer.ck)); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
-  const dets = t.closest('[data-dets]');
-  if (dets) { abrirCC(dets.dataset.dets, true); return; }
-  if (t.closest('#ccLimparSem')) { S.ccSelSem.clear(); renderSemanal(); return; }
-  const cs = t.closest('#treeSem tr.c[data-cs]');
-  if (cs) { const k = cs.dataset.cs; if (S.ccSelSem.has(k)) S.ccSelSem.delete(k); else S.ccSelSem.add(k); renderSemanal(); return; }
   if (t.closest('#ccLimpar')) { S.ccSel.clear(); renderTabela(); renderCurvas(); return; }
   const cc = t.closest('#tree tr.c[data-cc]');
   if (cc) {

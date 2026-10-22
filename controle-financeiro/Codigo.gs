@@ -1,29 +1,28 @@
 /**
- * PAINEL FINANCEIRO — Orçado × Projetado × Realizado, por Usina e Centro de Custo
+ * CONTROLE FINANCEIRO — Orçado × Projeções × Realizado, por Setor, Usina e Centro de Custo
  *
- * Lê três abas da planilha de Controle Financeiro:
- *   - Orçamento                 → ORÇADO
- *   - Fluxo de Caixa            → PROJETADO (por padrão, o fluxo mais recente enviado)
- *   - Realizado Controladoria   → REALIZADO
+ * Cada setor tem uma aba no topo do painel (Supply, Projetos, EP e GA).
+ * Fontes de dados:
+ *   - Orçamento                    → ORÇADO     (cabeçalho na linha 1)
+ *   - Projeções - <Setor>          → PROJEÇÃO ANTERIOR e PROJEÇÃO ATUAL (por "Data do Fluxo")
+ *   - Pagamentos / Adiantamentos   → REALIZADO  (cabeçalho na linha 2; só o que está "Sim" em Pago)
  *
  * As colunas são encontradas pelo NOME do cabeçalho (a posição não importa).
- * O painel pode editar, incluir e excluir linhas nas abas marcadas como
- * editáveis em CONFIG.EDITAVEL. Antes de gravar, ele confere se a linha não foi
- * alterada por outra pessoa desde que o painel foi aberto.
+ * Só as abas de Projeções podem ser alteradas pelo painel; Orçamento e Pagamentos
+ * são imutáveis. Toda alteração fica registrada na aba "Auditoria".
  *
- * Controle de acesso por setor (opcional): quando a aba "Acessos" existir, cada
- * pessoa só recebe os centros de custo dos setores liberados para o e-mail dela.
- *   - Aba "Setores":  Setor | Centro de Custo   (um centro de custo por linha)
- *   - Aba "Acessos":  E-mail | Setor            (uma pessoa pode ter várias linhas)
- *   - Setor "TODOS" libera tudo. O dono do script sempre vê tudo.
+ * Controle de acesso (quando a aba "Acessos" existir):
+ *   - Aba "Setores":  Setor | Centro de Custo   → quais centros de custo são de cada setor
+ *                                                  (usado no Orçado e no Realizado)
+ *   - Aba "Acessos":  E-mail | Setor | Edita     → quais abas de setor cada pessoa vê
+ *   - Setor "TODOS" libera tudo. O dono do script sempre vê e edita tudo.
  * O filtro é feito aqui no servidor: o que a pessoa não pode ver nem chega ao navegador.
- * Para funcionar, publique como App da Web com "Executar como: Eu" e NÃO compartilhe
- * a planilha com quem só pode ver o próprio setor.
+ * Publique como App da Web com "Executar como: Eu" e NÃO compartilhe a planilha com
+ * quem só pode ver o próprio setor.
  */
 
 const CONFIG = {
   // Deixe '' para usar a planilha onde o script foi instalado (recomendado).
-  // Para ler outra planilha, cole aqui o ID dela (o trecho da URL entre /d/ e /edit).
   PLANILHA_ID: '',
 
   // Nome do arquivo HTML dentro do projeto do Apps Script.
@@ -31,33 +30,27 @@ const CONFIG = {
 
   EMPRESA: 'SolarGrid',
 
-  // Semáforo do consumo do orçamento: (Realizado + Projetado em aberto) ÷ Orçado.
-  // Acima de ATENCAO fica amarelo; acima de ESTOURO fica vermelho.
-  ATENCAO: 0.90,
-  ESTOURO: 1.00,
+  // Abas de setor do painel, na ordem em que aparecem no topo.
+  // "projecoes" = nome da aba de projeções daquele setor ('' = ainda em construção).
+  SETORES: [
+    { nome: 'Supply', projecoes: 'Projeções - Supply' },
+    { nome: 'Projetos', projecoes: '' },
+    { nome: 'EP', projecoes: '' },
+    { nome: 'GA', projecoes: '' }
+  ],
 
-  // Quais abas podem ser alteradas pelo "Detalhar" do painel: só o Fluxo de Caixa.
-  // Orçamento e Realizado Controladoria são imutáveis pelo painel.
-  // Quem pode editar: o dono do script e quem tiver "Sim" na coluna C da aba Acessos.
-  EDITAVEL: { orc: false, fluxo: true, real: false },
+  ABA_ORCAMENTO: 'Orçamento',
+  ABA_REALIZADO: 'Pagamentos / Adiantamentos',
 
   // Toda alteração feita pelo painel é registrada nesta aba (criada se não existir).
   ABA_AUDITORIA: 'Auditoria',
-
-  // Na coluna "Real / Acumulado": true = "REAL S" (última semana) é SOMADO ao
-  // "Real Acumulado". Use false se o "Real Acumulado" já incluir a última semana.
-  REALIZADO_SOMA_SEMANA: true,
-
-  // PROJETADO = só o que está "Em Aberto" no fluxo escolhido (o que já foi pago
-  // já aparece no Realizado e não pode contar duas vezes). Use false para somar tudo.
-  PROJETADO_SO_EM_ABERTO: true,
 
   // Saídas sempre aparecem positivas no painel. Se uma aba guardar os pagamentos
   // como número negativo, o painel percebe sozinho e inverte o sinal na tela
   // (e desinverte ao gravar).
   AJUSTAR_SINAL: true,
 
-  // Controle de acesso por setor (ver explicação no topo do arquivo).
+  // Controle de acesso (ver explicação no topo do arquivo).
   ABA_ACESSOS: 'Acessos',
   ABA_SETORES: 'Setores',
   SETOR_TOTAL: 'TODOS',
@@ -69,48 +62,34 @@ const CONFIG = {
   LINHAS_PROCURA_CABECALHO: 15
 };
 
-/* Colunas usadas de cada aba. "nome" é o cabeçalho na planilha; "alias" são
- * outros nomes aceitos. tipo: texto | data | valor. dic: texto que se repete
- * muito (vai compactado para o painel abrir mais rápido). */
-const ABAS = {
-  orc: {
-    nome: 'Orçamento',
-    campos: [
-      { k: 'setor', nome: 'SETOR', tipo: 'texto', dic: true },
-      { k: 'venc', nome: 'DATA DE VENCIMENTO', tipo: 'data', alias: ['VENCIMENTO'] },
-      { k: 'valor', nome: 'VALOR A PAGAR', tipo: 'valor', alias: ['VALOR'] },
-      { k: 'projeto', nome: 'PROJETO', tipo: 'texto', dic: true, alias: ['USINA'] },
-      { k: 'cc', nome: 'CENTRO DE CUSTO', tipo: 'texto', dic: true }
-    ]
-  },
-  real: {
-    nome: 'Realizado Controladoria',
-    campos: [
-      { k: 'favorecido', nome: 'Favorecido', tipo: 'texto', dic: true },
-      { k: 'ccCod', nome: 'C. Custo', tipo: 'texto', dic: true, alias: ['Cod. Custo', 'Cód. Centro de Custo'] },
-      { k: 'ccDesc', nome: 'Centro de Custo', tipo: 'texto', dic: true },
-      { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true, alias: ['Usina'] },
-      { k: 'doc', nome: 'Documento', tipo: 'texto' },
-      { k: 'pagto', nome: 'Pagto.', tipo: 'data', alias: ['Pagto', 'Data Pagto', 'Data de Pagamento'] },
-      { k: 'obs', nome: 'Consolidado', tipo: 'texto' },
-      { k: 'valor', nome: 'Pagamentos', tipo: 'valor' },
-      { k: 'tipo', nome: 'Real S / Acumulado', tipo: 'texto', dic: true, alias: ['Real / Acumulado', 'Real/Acumulado'] },
-      { k: 'ccFull', nome: 'Código + Centro de Custo', tipo: 'texto', dic: true, alias: ['Codigo + Centro de Custo'] }
-    ]
-  },
-  fluxo: {
-    nome: 'Fluxo de Caixa',
-    campos: [
-      { k: 'dataProg', nome: 'Data programada de pgto', tipo: 'data', alias: ['Data programada de pagamento', 'Data programada'] },
-      { k: 'fornecedor', nome: 'Fornecedor', tipo: 'texto', dic: true },
-      { k: 'valor', nome: 'Valor', tipo: 'valor' },
-      { k: 'coment', nome: 'Comentário', tipo: 'texto', alias: ['Comentarios', 'Comentários'] },
-      { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true, alias: ['Usina'] },
-      { k: 'cc', nome: 'Centro de Custo', tipo: 'texto', dic: true },
-      { k: 'situacao', nome: 'Situação', tipo: 'texto', dic: true, alias: ['Status'] },
-      { k: 'dataFluxo', nome: 'Data do Fluxo', tipo: 'data', dic: true }
-    ]
-  }
+/* Colunas usadas de cada tipo de aba. "nome" é o cabeçalho na planilha; "alias" são
+ * outros nomes aceitos. tipo: texto | data | valor. dic: texto que se repete muito
+ * (vai compactado). opcional: se não existir, o painel funciona sem ela. */
+const CAMPOS = {
+  orc: [
+    { k: 'projeto', nome: 'PROJETO', tipo: 'texto', dic: true },
+    { k: 'cc', nome: 'CENTRO DE CUSTO', tipo: 'texto', dic: true },
+    { k: 'valor', nome: 'VALOR A PAGAR', tipo: 'valor' },
+    { k: 'venc', nome: 'DATA DE VENCIMENTO', tipo: 'data', alias: ['VENCIMENTO'] }
+  ],
+  real: [
+    { k: 'pagto', nome: 'Data Prog.Pagto.', tipo: 'data', alias: ['Data Prog. Pagto.', 'Data Prog Pagto', 'Data Programada Pagto'] },
+    { k: 'pago', nome: 'Pago(Sim/Não)', tipo: 'texto', dic: true, alias: ['Pago (Sim/Não)', 'Pago'] },
+    { k: 'valor', nome: 'Valor líquido (Cont)', tipo: 'valor', alias: ['Valor líquido (Cont.)', 'Valor liquido'] },
+    { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true },
+    { k: 'cc', nome: 'Centro Custo Contab', tipo: 'texto', dic: true, alias: ['Centro Custo Contab.', 'Centro de Custo Contab'] },
+    { k: 'favorecido', nome: 'Fornecedor', tipo: 'texto', dic: true, opcional: true, alias: ['Favorecido', 'Nome Fornecedor', 'Razão Social'] },
+    { k: 'doc', nome: 'Documento', tipo: 'texto', opcional: true, alias: ['Nº Documento', 'Nota Fiscal', 'NF'] }
+  ],
+  proj: [
+    { k: 'projeto', nome: 'Projeto Padrão', tipo: 'texto', dic: true },
+    { k: 'cc', nome: 'Centro de Custo Padrão', tipo: 'texto', dic: true },
+    { k: 'valor', nome: 'Valor', tipo: 'valor' },
+    { k: 'dataProg', nome: 'Data programada de pgto', tipo: 'data', alias: ['Data programada de pagamento', 'Data programada'] },
+    { k: 'dataFluxo', nome: 'Data do Fluxo', tipo: 'data', dic: true },
+    { k: 'fornecedor', nome: 'Fornecedor', tipo: 'texto', dic: true, opcional: true },
+    { k: 'coment', nome: 'Comentário', tipo: 'texto', opcional: true, alias: ['Comentarios', 'Comentários'] }
+  ]
 };
 
 
@@ -165,11 +144,18 @@ function getSS_() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
-/** Minúsculas, sem acento e só letras/números — para comparar nomes. */
+/** Minúsculas, sem acento e só letras/números — para comparar nomes de colunas e abas. */
 function chave_(s) {
   return String(s === null || s === undefined ? '' : s)
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/** Mesma normalização do painel: minúsculas, sem acento, só letras/números separados por espaço. */
+function nk_(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 function getAba_(ss, nome, obrigatoria) {
@@ -249,17 +235,40 @@ function iguais_(a, b, tipo) {
          String(b === null || b === undefined ? '' : b).trim();
 }
 
+function letraColuna_(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+/* ------------------------------------------------------------------ */
+/* Abas lidas                                                          */
+/* ------------------------------------------------------------------ */
+
+/** Código interno da aba de projeções de um setor (ex.: "p_supply"). */
+function idProj_(setor) { return 'p_' + nk_(setor).replace(/ /g, '_'); }
+
+/** Definição de uma aba lida: nome na planilha, colunas e se pode ser editada. */
+function defAba_(id) {
+  if (id === 'orc') return { id: id, nome: CONFIG.ABA_ORCAMENTO, campos: CAMPOS.orc, editavel: false };
+  if (id === 'real') return { id: id, nome: CONFIG.ABA_REALIZADO, campos: CAMPOS.real, editavel: false };
+  const st = CONFIG.SETORES.filter(function (s) { return s.projecoes && idProj_(s.nome) === id; })[0];
+  if (!st) return null;
+  return { id: id, nome: st.projecoes, campos: CAMPOS.proj, editavel: true, setor: st.nome };
+}
+
+/** Todas as abas que o painel lê. */
+function idsAbas_() {
+  return ['orc', 'real'].concat(CONFIG.SETORES.filter(function (s) { return s.projecoes; })
+    .map(function (s) { return idProj_(s.nome); }));
+}
+
 /* ------------------------------------------------------------------ */
 /* Leitura                                                             */
 /* ------------------------------------------------------------------ */
-
-function letraColuna_(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
 
 /** Acha a linha de cabeçalho e a coluna de cada campo. */
 function mapear_(sheet, def) {
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 1 || lastCol < 1) return { linhaCab: 0, col: {}, faltando: def.campos.map(function (c) { return c.nome; }) };
+  const todos = def.campos.map(function (c) { return c.nome; });
+  if (lastRow < 1 || lastCol < 1) return { linhaCab: 0, col: {}, faltando: todos, ausentes: def.campos.map(function (c) { return c.k; }) };
 
   const nScan = Math.min(CONFIG.LINHAS_PROCURA_CABECALHO, lastRow);
   const topo = sheet.getRange(1, 1, nScan, lastCol).getDisplayValues();
@@ -279,11 +288,13 @@ function mapear_(sheet, def) {
     if (pontos > melhor.pontos) melhor = { linha: i + 1, pontos: pontos, col: col };
   });
 
+  const ok = melhor.pontos >= 2;
+  const falta = def.campos.filter(function (c) { return !(ok && melhor.col[c.k]); });
   return {
-    linhaCab: melhor.pontos >= 2 ? melhor.linha : 0,
-    col: melhor.pontos >= 2 ? melhor.col : {},
-    faltando: def.campos.filter(function (c) { return !(melhor.pontos >= 2 && melhor.col[c.k]); })
-      .map(function (c) { return c.nome; })
+    linhaCab: ok ? melhor.linha : 0,
+    col: ok ? melhor.col : {},
+    faltando: falta.filter(function (c) { return !c.opcional; }).map(function (c) { return c.nome; }),
+    ausentes: falta.map(function (c) { return c.k; })
   };
 }
 
@@ -312,22 +323,26 @@ function bloco_(sheet, def) {
   return BLOCOS_[chave];
 }
 
-function lerAba_(ss, id, tz, filtro) {
-  const def = ABAS[id];
+/** Realizado: só conta o que está "Sim" na coluna Pago (Não = aprovado e não pago; vazio = em aprovação). */
+function foiPago_(v) { return nk_(v.pago) === 'sim'; }
+
+function lerAba_(ss, id, tz) {
+  const def = defAba_(id);
+  const filtro = id === 'real' ? foiPago_ : null;
   const sheet = getAba_(ss, def.nome, false);
   const base = {
-    id: id, aba: def.nome, editavel: !!CONFIG.EDITAVEL[id], sinal: 1,
+    id: id, aba: def.nome, editavel: def.editavel, setor: def.setor || '', sinal: 1,
     campos: def.campos.map(function (c) { return { k: c.k, nome: c.nome, tipo: c.tipo }; }),
-    linhas: [], dic: {}, faltando: [], linhaCab: 0, erro: ''
+    linhas: [], dic: {}, faltando: [], ausentes: [], linhaCab: 0, erro: '', ignoradas: 0
   };
   if (!sheet) { base.erro = 'Aba "' + def.nome + '" não encontrada.'; return base; }
 
   const t0 = Date.now();
   const bl = bloco_(sheet, def);
   const mapa = bl.mapa;
-  const tMapa = t0;
   base.linhaCab = mapa.linhaCab;
   base.faltando = mapa.faltando;
+  base.ausentes = mapa.ausentes;
   base.colunas = def.campos.filter(function (c) { return mapa.col[c.k]; })
     .map(function (c) { return c.nome + ' → coluna ' + letraColuna_(mapa.col[c.k]); });
   base.aba = sheet.getName();
@@ -361,7 +376,8 @@ function lerAba_(ss, id, tz, filtro) {
       if (v !== null && v !== '') vazia = false;
       vals[c.k] = v;
     });
-    if (vazia || (filtro && !filtro(vals))) continue;
+    if (vazia) continue;
+    if (filtro && !filtro(vals)) { base.ignoradas++; continue; }
     const linha = [ini + r];
     def.campos.forEach(function (c) {
       let v = vals[c.k];
@@ -375,53 +391,47 @@ function lerAba_(ss, id, tz, filtro) {
     base.linhas.push(linha);
   }
   base.dic = dics;
-  base.tempo = { cabecalho: tMapa - t0, leitura: tLeitura - tMapa, processamento: Date.now() - tLeitura,
+  base.tempo = { leitura: tLeitura - t0, processamento: Date.now() - tLeitura,
     colunas: sheet.getLastColumn(), linhas: n };
   return base;
+}
+
+/** Lê uma linha já compactada de volta para { campo: valor }. */
+function abrirLinha_(aba, l) {
+  const v = {};
+  aba.campos.forEach(function (c, j) { let x = l[j + 1]; if (aba.dic[c.k]) x = aba.dic[c.k][x]; v[c.k] = x; });
+  return v;
+}
+
+/** Mantém só as linhas que a pessoa pode ver e refaz a compactação (nada de outro setor fica no resultado). */
+function refazAba_(aba, pode) {
+  const dics = {}, dicIdx = {};
+  Object.keys(aba.dic).forEach(function (k) { dics[k] = []; dicIdx[k] = {}; });
+  const linhas = [];
+  aba.linhas.forEach(function (l) {
+    const v = abrirLinha_(aba, l);
+    if (!pode(v)) return;
+    const nova = [l[0]];
+    aba.campos.forEach(function (c) {
+      let x = v[c.k];
+      if (dics[c.k]) {
+        const s = x === null ? '' : String(x);
+        if (!(s in dicIdx[c.k])) { dicIdx[c.k][s] = dics[c.k].length; dics[c.k].push(s); }
+        x = dicIdx[c.k][s];
+      }
+      nova.push(x);
+    });
+    linhas.push(nova);
+  });
+  const out = {};
+  Object.keys(aba).forEach(function (k) { out[k] = aba[k]; });
+  out.linhas = linhas; out.dic = dics; delete out.tempo; delete out.ignoradas;
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
 /* Controle de acesso por setor                                         */
 /* ------------------------------------------------------------------ */
-
-/** Mesma normalização do painel: minúsculas, sem acento, só letras/números separados por espaço. */
-function nk_(s) {
-  return String(s === null || s === undefined ? '' : s)
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
-
-/** Índice código/descrição/nome completo → centro de custo, a partir do Realizado (igual ao painel). */
-function indiceCC_(ss) {
-  const idx = {};
-  const def = ABAS.real;
-  const sheet = getAba_(ss, def.nome, false);
-  if (!sheet) return idx;
-  const bl = bloco_(sheet, def);
-  const n = bl.n;
-  if (!bl.mapa.linhaCab || n <= 0) return idx;
-  const cod = bl.coluna('ccCod'), desc = bl.coluna('ccDesc'), full = bl.coluna('ccFull');
-  for (let r = 0; r < n; r++) {
-    const c = cod ? String(cod[r][0]).trim() : '', d = desc ? String(desc[r][0]).trim() : '';
-    const f = (full ? String(full[r][0]).trim() : '') || [c, d].filter(String).join(' - ');
-    if (!f) continue;
-    const alvo = nk_(f);
-    [f, c, d].forEach(function (x) { const k = nk_(x); if (k && !(k in idx)) idx[k] = alvo; });
-  }
-  return idx;
-}
-
-/** Chave do centro de custo de um texto qualquer (código, nome ou "código - nome"). */
-function chaveCC_(texto, idx) {
-  const t = String(texto || '').trim();
-  if (!t) return '';
-  if (idx[nk_(t)]) return idx[nk_(t)];
-  const m = t.match(/^([0-9][0-9.\-\/]*)/);
-  if (m && idx[nk_(m[1])]) return idx[nk_(m[1])];
-  const desc = t.replace(/^[0-9][0-9.\-\/]*\s*[-–—:|]?\s*/, '');
-  if (desc && idx[nk_(desc)]) return idx[nk_(desc)];
-  return nk_(t);
-}
 
 const TABELAS_ = {};
 /** Lê as colunas A:C de uma aba simples (Setores, Acessos). null = a aba não existe. */
@@ -442,26 +452,64 @@ function lerTabela_(ss, nome) {
   return out;
 }
 
+function ehSim_(v) { const n = nk_(v); return n === 'sim' || n === 's' || n === 'x' || n === 'edita' || n === 'editar'; }
+function ehTotal_(s) { return nk_(s) === nk_(CONFIG.SETOR_TOTAL); }
+
 /**
- * O que o e-mail de quem abriu pode ver.
- * { restrito:false } quando não há aba "Acessos" ou a pessoa tem o setor TODOS.
+ * O que o e-mail de quem abriu pode ver e editar.
+ * { tudo, ver:{setor:true}, edita:{setor:true} } — setores pela chave nk_.
+ * Sem a aba "Acessos": todos veem tudo e só o dono edita.
  */
-function permissao_(ss, email, abas, tabSetores) {
-  const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
-  if (acessos === null) return { restrito: false };
-  const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
+function acesso_(ss, email) {
+  const todos = {};
+  CONFIG.SETORES.forEach(function (s) { todos[nk_(s.nome)] = true; });
   const eu = String(email || '').toLowerCase();
-  if (eu && eu === dono) return { restrito: false, setores: [CONFIG.SETOR_TOTAL] };
-  const setores = acessos.filter(function (l) { return l[0].toLowerCase() === eu; }).map(function (l) { return l[1]; });
-  if (setores.some(function (st) { return nk_(st) === nk_(CONFIG.SETOR_TOTAL); })) return { restrito: false, setores: [CONFIG.SETOR_TOTAL] };
-  const idx = indiceDosDados_(abas.real);
-  const quer = {};
-  setores.forEach(function (st) { quer[nk_(st)] = true; });
-  const ccs = {};
-  (tabSetores || []).forEach(function (l) {
-    if (quer[nk_(l[0])]) { const k = chaveCC_(l[1], idx); if (k) ccs[k] = true; }
+  const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
+  if (eu && eu === dono) return { tudo: true, ver: todos, edita: todos };
+  const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
+  if (acessos === null) return { tudo: true, ver: todos, edita: {} };
+  const minhas = eu ? acessos.filter(function (l) { return l[0].toLowerCase() === eu; }) : [];
+  const ver = {}, edita = {};
+  let tudo = false;
+  minhas.forEach(function (l) {
+    const alvos = ehTotal_(l[1]) ? Object.keys(todos) : [nk_(l[1])];
+    if (ehTotal_(l[1])) tudo = true;
+    alvos.forEach(function (k) {
+      if (!todos[k]) return;
+      ver[k] = true;
+      if (ehSim_(l[2])) edita[k] = true;
+    });
   });
-  return { restrito: true, setores: setores, ccs: ccs, idx: idx, semAcesso: !Object.keys(ccs).length };
+  return { tudo: tudo, ver: ver, edita: edita };
+}
+
+/** Centros de custo de cada setor (aba Setores), pela chave nk_. */
+function ccsDosSetores_(ss) {
+  const out = {};
+  (lerTabela_(ss, CONFIG.ABA_SETORES) || []).forEach(function (l) {
+    const s = nk_(l[0]), c = nk_(l[1]);
+    if (!s || !c) return;
+    (out[s] = out[s] || {})[c] = true;
+  });
+  return out;
+}
+
+/**
+ * Centros de custo usados no Orçado e no Realizado de cada setor: os da aba Setores.
+ * Se o setor ainda não tiver nenhum na aba Setores, usa os que aparecem na aba de projeções dele.
+ */
+function ccsPorSetor_(ss, abas) {
+  const tab = ccsDosSetores_(ss);
+  const out = {};
+  CONFIG.SETORES.forEach(function (s) {
+    const k = nk_(s.nome);
+    if (tab[k] && Object.keys(tab[k]).length) { out[k] = { ccs: tab[k], origem: 'setores' }; return; }
+    const ccs = {};
+    const p = s.projecoes ? abas[idProj_(s.nome)] : null;
+    if (p && p.linhas) p.linhas.forEach(function (l) { const c = nk_(abrirLinha_(p, l).cc); if (c) ccs[c] = true; });
+    out[k] = { ccs: ccs, origem: Object.keys(ccs).length ? 'projecoes' : 'nenhum' };
+  });
+  return out;
 }
 
 /** Cria as abas "Setores" e "Acessos" (se ainda não existirem). O dono entra com acesso TODOS. */
@@ -480,7 +528,8 @@ function prepararAcessos() {
   const a = cria(CONFIG.ABA_SETORES, ['Setor', 'Centro de Custo'], []);
   const b = cria(CONFIG.ABA_ACESSOS, ['E-mail', 'Setor', 'Edita'], dono ? [[dono, CONFIG.SETOR_TOTAL, 'Sim']] : []);
   const msg = (a || b) ? 'Abas criadas. Preencha "' + CONFIG.ABA_SETORES + '" (Setor | Centro de Custo) e "' +
-    CONFIG.ABA_ACESSOS + '" (E-mail | Setor). Use o setor TODOS para quem pode ver tudo.' : 'As abas já existiam.';
+    CONFIG.ABA_ACESSOS + '" (E-mail | Setor | Edita). Setores: ' +
+    CONFIG.SETORES.map(function (s) { return s.nome; }).join(', ') + '. Use TODOS para quem pode ver tudo.' : 'As abas já existiam.';
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
 }
 
@@ -493,103 +542,48 @@ function carregarDados(forcar) {
   // Dados completos: do que está guardado ou, se não houver (ou "Atualizar"), lidos da planilha.
   let base = forcar ? null : cacheLer_();
   if (!base) {
-    base = {
-      geradoEm: Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'),
-      abas: { orc: lerAba_(ss, 'orc', tz), real: lerAba_(ss, 'real', tz), fluxo: lerAba_(ss, 'fluxo', tz) }
-    };
+    const abas = {};
+    idsAbas_().forEach(function (id) { abas[id] = lerAba_(ss, id, tz); });
+    base = { geradoEm: Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'), abas: abas };
     cacheGravar_(base);
   }
 
-  // Cada pessoa recebe só o que pode ver.
-  const tabSetores = lerTabela_(ss, CONFIG.ABA_SETORES) || [];
-  const ac = permissao_(ss, email, base.abas, tabSetores);
-  if (ac.restrito && ac.semAcesso) return { semAcesso: true, usuario: email, geradoEm: base.geradoEm };
+  // Cada pessoa recebe só as abas de setor que pode ver.
+  const ac = acesso_(ss, email);
+  const meus = CONFIG.SETORES.filter(function (s) { return ac.ver[nk_(s.nome)]; });
+  if (!meus.length) return { semAcesso: true, usuario: email, geradoEm: base.geradoEm };
 
-  // Setores que a pessoa pode escolher no painel (todos, ou só os dela) e os centros de custo de cada um.
-  const idxSet = ac.idx || indiceDosDados_(base.abas.real);
-  const meus = ac.restrito ? ac.setores.map(nk_) : null;
-  const setores = {};
-  tabSetores.forEach(function (l) {
-    if (meus && meus.indexOf(nk_(l[0])) === -1) return;
-    const nome = Object.keys(setores).filter(function (x) { return nk_(x) === nk_(l[0]); })[0] || l[0];
-    const k = chaveCC_(l[1], idxSet);
-    if (!k) return;
-    (setores[nome] = setores[nome] || []);
-    if (setores[nome].indexOf(k) === -1) setores[nome].push(k);
-  });
-  let abas = base.abas;
-  if (ac.restrito) {
-    const ok = function (txt) { return ac.ccs[chaveCC_(txt, ac.idx)]; };
-    abas = {
-      orc: refazAba_(base.abas.orc, function (v) { return ok(v.cc); }),
-      fluxo: refazAba_(base.abas.fluxo, function (v) { return ok(v.cc); }),
-      real: refazAba_(base.abas.real, function (v) { return ok(v.ccFull || [v.ccCod, v.ccDesc].filter(String).join(' - ')); })
+  const porSetor = ccsPorSetor_(ss, base.abas);
+  const setores = meus.map(function (s) {
+    const k = nk_(s.nome);
+    return {
+      nome: s.nome, id: s.projecoes ? idProj_(s.nome) : '', pronto: !!s.projecoes,
+      ccs: Object.keys(porSetor[k].ccs), origemCC: porSetor[k].origem, edita: !!ac.edita[k]
     };
+  });
+
+  const abas = {};
+  setores.forEach(function (s) { if (s.id && base.abas[s.id]) abas[s.id] = base.abas[s.id]; });
+  if (ac.tudo) {
+    abas.orc = base.abas.orc;
+    abas.real = base.abas.real;
+  } else {
+    // Orçado e Realizado: só os centros de custo dos setores liberados.
+    const ok = {};
+    setores.forEach(function (s) { s.ccs.forEach(function (c) { ok[c] = true; }); });
+    const pode = function (v) { return ok[nk_(v.cc)]; };
+    abas.orc = refazAba_(base.abas.orc, pode);
+    abas.real = refazAba_(base.abas.real, pode);
   }
   return {
     geradoEm: base.geradoEm,
     usuario: email,
-    acesso: { restrito: ac.restrito, setores: ac.setores || [] },
+    acesso: { tudo: ac.tudo, setores: setores.map(function (s) { return s.nome; }) },
     setores: setores,
-    podeEditar: editor_(ss, email, function () { return idxSet; }).ok,
     planilha: ss.getName(),
-    urlPlanilha: ac.restrito ? '' : ss.getUrl(),
-    cfg: {
-      ATENCAO: CONFIG.ATENCAO, ESTOURO: CONFIG.ESTOURO,
-      REALIZADO_SOMA_SEMANA: CONFIG.REALIZADO_SOMA_SEMANA, EMPRESA: CONFIG.EMPRESA,
-      PROJETADO_SO_EM_ABERTO: CONFIG.PROJETADO_SO_EM_ABERTO
-    },
+    urlPlanilha: ac.tudo ? ss.getUrl() : '',
     abas: abas
   };
-}
-
-/** Lê uma linha já compactada de volta para { campo: valor }. */
-function abrirLinha_(aba, def, l) {
-  const v = {};
-  def.campos.forEach(function (c, j) { let x = l[j + 1]; if (aba.dic[c.k]) x = aba.dic[c.k][x]; v[c.k] = x; });
-  return v;
-}
-
-/** Mantém só as linhas que a pessoa pode ver e refaz a compactação (nada de outro setor fica no resultado). */
-function refazAba_(aba, pode) {
-  const def = ABAS[aba.id];
-  const dics = {}, dicIdx = {};
-  def.campos.forEach(function (c) { if (c.dic) { dics[c.k] = []; dicIdx[c.k] = {}; } });
-  const linhas = [];
-  aba.linhas.forEach(function (l) {
-    const v = abrirLinha_(aba, def, l);
-    if (!pode(v)) return;
-    const nova = [l[0]];
-    def.campos.forEach(function (c) {
-      let x = v[c.k];
-      if (c.dic) {
-        const s = x === null ? '' : String(x);
-        if (!(s in dicIdx[c.k])) { dicIdx[c.k][s] = dics[c.k].length; dics[c.k].push(s); }
-        x = dicIdx[c.k][s];
-      }
-      nova.push(x);
-    });
-    linhas.push(nova);
-  });
-  const out = {};
-  Object.keys(aba).forEach(function (k) { out[k] = aba[k]; });
-  out.linhas = linhas; out.dic = dics; delete out.tempo;
-  return out;
-}
-
-/** Mesmo índice de centros de custo do indiceCC_, montado a partir dos dados do Realizado já lidos. */
-function indiceDosDados_(real) {
-  const idx = {};
-  if (!real || !real.linhas) return idx;
-  real.linhas.forEach(function (l) {
-    const v = abrirLinha_(real, ABAS.real, l);
-    const c = String(v.ccCod || '').trim(), d = String(v.ccDesc || '').trim();
-    const f = String(v.ccFull || '').trim() || [c, d].filter(String).join(' - ');
-    if (!f) return;
-    const alvo = nk_(f);
-    [f, c, d].forEach(function (x) { const k = nk_(x); if (k && !(k in idx)) idx[k] = alvo; });
-  });
-  return idx;
 }
 
 /* ------------------------------------------------------------------ */
@@ -597,15 +591,16 @@ function indiceDosDados_(real) {
 /* ------------------------------------------------------------------ */
 
 const CACHE_TAM_ = 90000;
+const CACHE_PREFIXO_ = 'painel2_';
 
 function cacheLer_() {
   if (!CONFIG.CACHE_MINUTOS) return null;
   try {
     const c = CacheService.getScriptCache();
-    const meta = c.get('painel_meta');
+    const meta = c.get(CACHE_PREFIXO_ + 'meta');
     if (!meta) return null;
     const partes = JSON.parse(meta).partes, chaves = [];
-    for (let i = 0; i < partes; i++) chaves.push('painel_' + i);
+    for (let i = 0; i < partes; i++) chaves.push(CACHE_PREFIXO_ + i);
     const got = c.getAll(chaves);
     if (chaves.some(function (k) { return !got[k]; })) return null;
     const bytes = Utilities.base64Decode(chaves.map(function (k) { return got[k]; }).join(''));
@@ -622,73 +617,39 @@ function cacheGravar_(dados) {
     const b64 = Utilities.base64Encode(gz.getBytes());
     const mapa = {};
     const partes = Math.ceil(b64.length / CACHE_TAM_);
-    for (let i = 0; i < partes; i++) mapa['painel_' + i] = b64.substr(i * CACHE_TAM_, CACHE_TAM_);
-    mapa.painel_meta = JSON.stringify({ partes: partes });
+    for (let i = 0; i < partes; i++) mapa[CACHE_PREFIXO_ + i] = b64.substr(i * CACHE_TAM_, CACHE_TAM_);
+    mapa[CACHE_PREFIXO_ + 'meta'] = JSON.stringify({ partes: partes });
     CacheService.getScriptCache().putAll(mapa, Math.min(21600, CONFIG.CACHE_MINUTOS * 60));
   } catch (e) {
     // Dados grandes demais para guardar: o painel segue funcionando, só sem a aceleração.
   }
 }
 
+/** Depois de gravar, os dados guardados ficam velhos: descarta para a próxima abertura ler de novo. */
+function cacheLimpar_() {
+  try { CacheService.getScriptCache().remove(CACHE_PREFIXO_ + 'meta'); } catch (e) { /* sem cache */ }
+}
+
 /* ------------------------------------------------------------------ */
-/* Gravação                                                            */
+/* Gravação (só nas abas de Projeções)                                 */
 /* ------------------------------------------------------------------ */
 
 function prepararGravacao_(id) {
-  const def = ABAS[id];
+  const def = defAba_(id);
   if (!def) throw new Error('Aba inválida.');
-  if (!CONFIG.EDITAVEL[id]) throw new Error('A aba "' + def.nome + '" está travada para edição pelo painel.');
+  if (!def.editavel) throw new Error('A aba "' + def.nome + '" não pode ser alterada pelo painel.');
   const ss = getSS_();
+  const email = Session.getActiveUser().getEmail() || '';
+  if (!acesso_(ss, email).edita[nk_(def.setor)]) {
+    throw new Error('O seu e-mail não tem permissão para editar as projeções de ' + def.setor +
+      '. Peça a liberação (coluna "Edita" da aba Acessos).');
+  }
   const sheet = getAba_(ss, def.nome, true);
   const mapa = mapear_(sheet, def);
   if (!mapa.linhaCab) throw new Error('Cabeçalho não encontrado na aba "' + def.nome + '".');
-  const email = Session.getActiveUser().getEmail() || '';
-  const ed = editor_(ss, email, function () { return idxAtual_(ss); });
-  if (!ed.ok) throw new Error('O seu e-mail não tem permissão para editar. Peça a liberação (coluna "Edita" da aba Acessos).');
   const cols = def.campos.map(function (c) { return mapa.col[c.k]; }).filter(Boolean);
   const c0 = Math.min.apply(null, cols), c1 = Math.max.apply(null, cols);
-  return { ss: ss, tz: ss.getSpreadsheetTimeZone(), sheet: sheet, def: def, mapa: mapa, id: id, email: email, ed: ed, c0: c0, larg: c1 - c0 + 1 };
-}
-
-function ehSim_(v) { const n = nk_(v); return n === 'sim' || n === 's' || n === 'x' || n === 'edita' || n === 'editar'; }
-
-/**
- * Quem pode editar: o dono do script, ou quem tem "Sim" na coluna C da aba Acessos.
- * Quem não é TODOS só edita os centros de custo dos setores marcados com "Sim".
- */
-function editor_(ss, email, idxFn) {
-  const eu = String(email || '').toLowerCase();
-  const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
-  if (eu && eu === dono) return { ok: true, restrito: false };
-  const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
-  if (!acessos || !eu) return { ok: false };
-  const minhas = acessos.filter(function (l) { return l[0].toLowerCase() === eu && ehSim_(l[2]); });
-  if (!minhas.length) return { ok: false };
-  if (minhas.some(function (l) { return nk_(l[1]) === nk_(CONFIG.SETOR_TOTAL); })) return { ok: true, restrito: false };
-  const idx = idxFn();
-  const quer = {};
-  minhas.forEach(function (l) { quer[nk_(l[1])] = true; });
-  const ccs = {};
-  (lerTabela_(ss, CONFIG.ABA_SETORES) || []).forEach(function (l) {
-    if (quer[nk_(l[0])]) { const k = chaveCC_(l[1], idx); if (k) ccs[k] = true; }
-  });
-  return { ok: true, restrito: true, ccs: ccs, idx: idx };
-}
-
-/** Índice de centros de custo: dos dados guardados, se houver; senão lê o Realizado. */
-function idxAtual_(ss) {
-  const base = cacheLer_();
-  return base ? indiceDosDados_(base.abas.real) : indiceCC_(ss);
-}
-
-function ccDaLinha_(id, v) { return id === 'real' ? (v.ccFull || [v.ccCod, v.ccDesc].filter(String).join(' - ')) : v.cc; }
-
-/** Quem edita só alguns setores não pode mexer em centro de custo de outro setor. */
-function conferirSetor_(ctx, v) {
-  if (!ctx.ed.restrito) return;
-  if (!ctx.ed.ccs[chaveCC_(ccDaLinha_(ctx.id, v), ctx.ed.idx)]) {
-    throw new Error('Esse centro de custo não pertence aos setores que você pode editar.');
-  }
+  return { ss: ss, tz: ss.getSpreadsheetTimeZone(), sheet: sheet, def: def, mapa: mapa, id: id, email: email, c0: c0, larg: c1 - c0 + 1 };
 }
 
 /** Texto começando com "=" ou "+" viraria fórmula na planilha: grava como texto. */
@@ -768,11 +729,6 @@ function auditar_(ctx, linha, acao, mudancas) {
   sh.getRange(ini, 1, linhas.length, 1).setNumberFormat('dd/MM/yyyy HH:mm:ss');
 }
 
-/** Depois de gravar, os dados guardados ficam velhos: descarta para a próxima abertura ler de novo. */
-function cacheLimpar_() {
-  try { CacheService.getScriptCache().remove('painel_meta'); } catch (e) { /* sem cache */ }
-}
-
 /* ------------------------------------------------------------------ */
 /* Editar, incluir e excluir (chamados pelo "Detalhar" do painel)      */
 /* ------------------------------------------------------------------ */
@@ -785,10 +741,6 @@ function salvarLinha(p) {
     const ctx = prepararGravacao_(p.aba);
     const sinal = sinalValido_(p.sinal), linha = Number(p.linha), depois = p.depois || {};
     const atual = conferirLinha_(ctx, linha, p.antes || {}, sinal);
-    const novo = {};
-    Object.keys(atual).forEach(function (k) { novo[k] = k in depois ? depois[k] : atual[k]; });
-    conferirSetor_(ctx, atual);
-    conferirSetor_(ctx, novo);
     const mudancas = [];
     ctx.def.campos.forEach(function (c) {
       if (!(c.k in depois)) return;
@@ -817,7 +769,6 @@ function novaLinha(p) {
   try {
     const ctx = prepararGravacao_(p.aba);
     const sinal = sinalValido_(p.sinal), valores = p.valores || {};
-    conferirSetor_(ctx, valores);
     // Última linha com dado nas colunas do painel (ignora fórmulas "arrastadas" em outras colunas).
     const bl = bloco_(ctx.sheet, ctx.def);
     let ultima = ctx.mapa.linhaCab;
@@ -860,7 +811,6 @@ function excluirLinha(p) {
     const ctx = prepararGravacao_(p.aba);
     const linha = Number(p.linha);
     const atual = conferirLinha_(ctx, linha, p.antes || {}, sinalValido_(p.sinal));
-    conferirSetor_(ctx, atual);
     ctx.sheet.deleteRow(linha);
     auditar_(ctx, linha, 'Exclusão', ctx.def.campos.filter(function (c) { return ctx.mapa.col[c.k] && atual[c.k] !== '' && atual[c.k] !== null; })
       .map(function (c) { return { campo: c.nome, tipo: c.tipo, antes: atual[c.k], depois: '' }; }));
@@ -877,36 +827,48 @@ function excluirLinha(p) {
 
 function diagnosticar() {
   const t0 = Date.now();
-  const d = carregarDados(true);
-  Logger.log('Tempo total para carregar o painel: ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
-  if (d.semAcesso) { Logger.log('O e-mail ' + d.usuario + ' não tem nenhum centro de custo liberado na aba "' + CONFIG.ABA_ACESSOS + '".'); return; }
-  Logger.log('Planilha: ' + d.planilha);
-  Object.keys(d.abas).forEach(function (id) {
-    const a = d.abas[id];
+  const ss = getSS_(), tz = ss.getSpreadsheetTimeZone();
+  const abas = {};
+  idsAbas_().forEach(function (id) { abas[id] = lerAba_(ss, id, tz); });
+  Logger.log('Tempo de leitura da planilha: ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
+  Logger.log('Planilha: ' + ss.getName());
+  Object.keys(abas).forEach(function (id) {
+    const a = abas[id];
     Logger.log('— Aba "' + a.aba + '": ' + (a.erro || ('cabeçalho na linha ' + a.linhaCab + ', ' +
-      a.linhas.length + ' linhas com dados' + (a.sinal === -1 ? ', valores negativos (sinal invertido no painel)' : ''))));
+      a.linhas.length + ' linhas usadas' + (a.sinal === -1 ? ', valores negativos (sinal invertido no painel)' : ''))));
+    if (id === 'real' && !a.erro) Logger.log('   Realizado: só linhas com "Sim" em Pago. Ignoradas (Não ou em branco): ' + a.ignoradas);
     if (a.tempo) Logger.log('   Tempo: leitura ' + (a.tempo.leitura / 1000).toFixed(1) +
       ' s · processamento ' + (a.tempo.processamento / 1000).toFixed(1) + ' s (' + a.tempo.linhas + ' linhas × ' + a.tempo.colunas + ' colunas na aba)');
     if (a.colunas && a.colunas.length) Logger.log('   Lendo: ' + a.colunas.join(' · '));
     if (a.faltando.length) Logger.log('   Colunas NÃO encontradas: ' + a.faltando.join(' | '));
+    if (a.dic && a.dic.dataFluxo) {
+      const datas = a.dic.dataFluxo.filter(String).sort();
+      Logger.log('   Datas do Fluxo: ' + datas.length + (datas.length ? ' (de ' + datas[0] + ' até ' + datas[datas.length - 1] + ')' : ''));
+    }
   });
-  verificarSetores_(getSS_());
+  verificarSetores_(ss, abas);
 }
 
-/** Lista os centros de custo da aba "Setores" que não aparecem em nenhuma das três abas (grafia diferente). */
-function verificarSetores_(ss) {
-  const setores = lerTabela_(ss, CONFIG.ABA_SETORES);
+/** Mostra quantos centros de custo cada setor tem e os da aba "Setores" que não aparecem nos dados. */
+function verificarSetores_(ss, abas) {
   const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
-  if (acessos === null) { Logger.log('Controle de acesso: desligado (não existe a aba "' + CONFIG.ABA_ACESSOS + '").'); return; }
-  Logger.log('Controle de acesso: ligado. ' + acessos.length + ' liberações na aba "' + CONFIG.ABA_ACESSOS + '".');
-  const idx = indiceCC_(ss), tz = ss.getSpreadsheetTimeZone();
+  Logger.log(acessos === null
+    ? 'Controle de acesso: desligado (não existe a aba "' + CONFIG.ABA_ACESSOS + '"). Todos veem tudo.'
+    : 'Controle de acesso: ligado. ' + acessos.length + ' liberações na aba "' + CONFIG.ABA_ACESSOS + '".');
   const existe = {};
-  Object.keys(idx).forEach(function (k) { existe[idx[k]] = true; });
-  ['orc', 'fluxo'].forEach(function (id) {
-    lerAba_(ss, id, tz, function (v) { existe[chaveCC_(v.cc, idx)] = true; return false; });
+  Object.keys(abas).forEach(function (id) {
+    const a = abas[id];
+    a.linhas.forEach(function (l) { existe[nk_(abrirLinha_(a, l).cc)] = true; });
   });
-  const faltam = (setores || []).filter(function (l) { return !existe[chaveCC_(l[1], idx)]; });
-  if (faltam.length) Logger.log('Centros de custo da aba "' + CONFIG.ABA_SETORES + '" que NÃO foram encontrados nos dados: ' +
+  const porSetor = ccsPorSetor_(ss, abas);
+  CONFIG.SETORES.forEach(function (s) {
+    const p = porSetor[nk_(s.nome)];
+    const n = Object.keys(p.ccs).length;
+    Logger.log('Setor ' + s.nome + ': ' + (p.origem === 'setores' ? n + ' centros de custo na aba "' + CONFIG.ABA_SETORES + '"'
+      : p.origem === 'projecoes' ? 'nenhum centro de custo na aba "' + CONFIG.ABA_SETORES + '"; usando os ' + n + ' da aba de projeções'
+      : 'nenhum centro de custo cadastrado') + (s.projecoes ? '' : ' (aba em construção)'));
+  });
+  const faltam = (lerTabela_(ss, CONFIG.ABA_SETORES) || []).filter(function (l) { return !existe[nk_(l[1])]; });
+  if (faltam.length) Logger.log('Centros de custo da aba "' + CONFIG.ABA_SETORES + '" que NÃO aparecem em nenhuma aba de dados: ' +
     faltam.map(function (l) { return l[0] + ' → ' + l[1]; }).join(' | '));
-  else Logger.log('Todos os centros de custo da aba "' + CONFIG.ABA_SETORES + '" foram encontrados nos dados.');
 }

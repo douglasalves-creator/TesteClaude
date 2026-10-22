@@ -1,96 +1,87 @@
 # Controle Financeiro — como instalar na base oficial (10 minutos)
 
-O painel só altera a planilha pelo botão **Detalhar**, e só para quem tem permissão de edição. Toda alteração fica registrada na aba **Auditoria**.
+O painel só altera a planilha pelo botão **Detalhar**, só nas abas de **Projeções** e só para quem tem permissão.
+Toda alteração fica registrada na aba **Auditoria**.
 
 **Antes de começar, confira na base oficial:**
-- As abas se chamam **Orçamento**, **Fluxo de Caixa** e **Realizado Controladoria**.
+- As abas se chamam **Orçamento**, **Projeções - Supply** e **Pagamentos / Adiantamentos**.
 - Os cabeçalhos usados estão com estes nomes (a posição da coluna não importa):
-  - Orçamento: SETOR, DATA DE VENCIMENTO, VALOR A PAGAR, PROJETO, CENTRO DE CUSTO
-  - Fluxo de Caixa: Data programada de pgto, Fornecedor, Valor, Comentário, Projeto, Centro de Custo, Situação, Data do Fluxo
-  - Realizado Controladoria: Favorecido, C. Custo, Centro de Custo, Projeto, Documento, Pagto., Consolidado, Pagamentos,
-    Real S / Acumulado, Código + Centro de Custo
-- O nome da usina (Projeto) está escrito igual nas três abas.
+  - Orçamento (cabeçalho na linha 1): PROJETO, CENTRO DE CUSTO, VALOR A PAGAR, DATA DE VENCIMENTO
+  - Projeções - Supply (cabeçalho na linha 1): Projeto Padrão, Centro de Custo Padrão, Valor, Data programada de pgto,
+    Data do Fluxo (Fornecedor e Comentário aparecem no Detalhar, se existirem)
+  - Pagamentos / Adiantamentos (cabeçalho na linha 2): Data Prog.Pagto., Pago(Sim/Não), Valor líquido (Cont), Projeto,
+    Centro Custo Contab (Fornecedor e Documento aparecem no Detalhar, se existirem)
+- Os nomes das usinas e dos centros de custo estão escritos igual nas três abas.
 
 ## 1. Colar os arquivos
 
 1. Abra a planilha de **Controle Financeiro**.
 2. Menu **Extensões → Apps Script**.
 3. No arquivo `Código.gs`, apague tudo e cole o conteúdo do arquivo `Codigo.gs` deste pacote.
-4. Clique no **+** ao lado de "Arquivos" → **HTML** → dê o nome exato **`Painel`** e cole o conteúdo do arquivo `Painel.html`.
+4. No arquivo **`Painel`** (HTML), apague tudo e cole o conteúdo do arquivo `Painel.html`.
+   Se ainda não existir: clique no **+** ao lado de "Arquivos" → **HTML** → nome exato **`Painel`**.
 5. Salve (Ctrl+S).
 
 ## 2. Testar
 
 1. No topo do editor, escolha a função **`diagnosticar`** e clique em **Executar ▷**.
-2. Aceite a autorização (é a sua própria planilha).
-3. Vá em **Registros de execução**. Para cada aba, deve aparecer quantas linhas foram lidas.
-   Se aparecer **"Colunas NÃO encontradas"**, o nome daquela coluna na planilha está diferente.
-   Me mande o print que eu ajusto.
+2. Vá em **Registros de execução**. Para cada aba, deve aparecer quantas linhas foram lidas.
+   - Se aparecer **"Colunas NÃO encontradas"**, o nome daquela coluna na planilha está diferente. Me mande o print.
+   - Em Pagamentos / Adiantamentos aparece quantas linhas foram ignoradas por não estarem com **Sim** em Pago.
+   - Em cada setor aparece quantos centros de custo ele tem na aba **Setores**.
 
 ## 3. Abrir o painel
 
-- **Dentro da planilha:** recarregue a página. Vai aparecer o menu **Controle Financeiro → Abrir painel**.
-- **Em tela cheia (para a Diretoria):** no editor, clique em **Implantar → Nova implantação → tipo "App da Web"**.
-  Em "Executar como", escolha **Eu**. Em "Quem pode acessar", escolha **Qualquer pessoa da SolarGrid**. Depois clique em **Implantar** e copie o link.
-  Depois de qualquer alteração no código: **Implantar → Gerenciar implantações → editar (lápis) → Nova versão**.
+- **Dentro da planilha:** recarregue a página. Menu **Controle Financeiro → Abrir painel**.
+- **Link para a Diretoria:** **Implantar → Gerenciar implantações → editar (lápis) → Versão: Nova versão → Implantar**.
+  O link continua o mesmo. (Primeira vez: **Implantar → Nova implantação → App da Web**, "Executar como: **Eu**",
+  "Quem pode acessar: **Qualquer pessoa da SolarGrid**".)
 
-## Controle de acesso por setor (opcional)
+## Controle de acesso
 
-Cada pessoa vê só os centros de custo do setor dela.
+Cada pessoa vê só as abas de setor liberadas para ela. O que ela não pode ver nem chega ao navegador.
 
-1. No menu **Controle Financeiro → Criar abas de acesso**. Vão aparecer duas abas:
-   - **Setores**: uma linha por centro de custo → `Setor | Centro de Custo` (pode usar o código ou o nome).
-   - **Acessos**: uma linha por pessoa e setor → `E-mail | Setor | Edita`. O setor **TODOS** libera tudo (Diretoria).
-     Na coluna **Edita**, escreva **Sim** para quem pode editar pelo painel; em branco = só consulta.
-     Seu e-mail já entra com TODOS. O dono do script sempre pode editar.
-2. Rode **`diagnosticar`**: ele avisa se algum centro de custo da aba Setores não foi encontrado nos dados (grafia diferente).
-3. Publique como **App da Web** com **"Executar como: Eu"** e mande o link para as pessoas.
-4. **Importante:** quem só pode ver o próprio setor **não pode ter acesso à planilha**. A pessoa usa só o link do painel.
-   Quem tem a planilha compartilhada vê tudo direto nela.
+1. Menu **Controle Financeiro → Criar abas de acesso** (se ainda não existirem):
+   - **Setores**: uma linha por centro de custo → `Setor | Centro de Custo`.
+     Os setores são **Supply**, **Projetos**, **EP** e **GA**. É essa lista que define quais centros de custo do
+     **Orçamento** e de **Pagamentos / Adiantamentos** entram em cada aba do painel.
+     (Se um setor não tiver nenhum centro de custo aqui, o painel usa os que aparecem na aba de Projeções dele.)
+   - **Acessos**: uma linha por pessoa e setor → `E-mail | Setor | Edita`. O setor **TODOS** libera todas as abas.
+     Na coluna **Edita**, **Sim** = pode editar as Projeções daquele setor; em branco = só consulta.
+     O dono do script sempre vê e edita tudo.
+2. **Importante:** quem só pode ver o próprio setor **não pode ter acesso à planilha**. A pessoa usa só o link do painel.
 
-Enquanto a aba **Acessos** não existir, o painel mostra tudo para todos.
+Enquanto a aba **Acessos** não existir, todos veem todas as abas e só o dono edita.
 
 ## 4. O que o painel faz
 
-No topo há dois módulos.
+No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as três últimas ainda em construção).
 
-**Visão Geral**
-1. **Escolha as usinas** na lista suspensa. Dá para digitar o nome para procurar e marcar várias.
-   Sem nenhuma usina marcada, o painel pede para selecionar uma.
-   Em **Setor**, escolha um setor para ver só os centros de custo dele (os setores vêm da aba Setores).
-   "Todos os setores" mostra só os centros de custo que estão na aba Setores: para esconder um centro de custo
-   desativado, basta tirá-lo de lá. "Sem setor" mostra os que não estão em nenhum setor.
-   Os dois filtros funcionam em cascata: escolhendo um setor, a lista de usinas mostra só as que têm aquele setor;
-   escolhendo usinas, a lista de setores mostra só os que existem nelas.
-2. **Escolha o fluxo** em "Fluxo de". Ele já vem com o envio mais recente.
-3. A **tabela** mostra os centros de custo que têm algum valor (os totalmente zerados não aparecem), com centavos: Orçado, Projetado, Realizado,
-   **Δ (Orçado − Projetado − Realizado)** e **Δ (Orçado − Realizado)**. Com várias usinas marcadas, os valores são somados.
-4. **Clique nos centros de custo** para marcar quais aparecem no gráfico. Sem nenhum marcado, o gráfico mostra todos.
-5. O botão **Detalhar** abre ao lado os lançamentos daquele centro de custo: primeiro o **Projetado** (Fluxo de Caixa),
-   já aberto; depois **Orçado** e **Realizado**, fechados (clique no título para abrir).
-   Só o **Fluxo de Caixa** pode ser editado: quem tem permissão vê **Editar** (lápis), **Excluir** (lixeira) e **+ Novo**.
-   Orçamento e Realizado Controladoria são imutáveis pelo painel. Cada alteração vira linhas na aba **Auditoria**:
-   Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
-6. O **gráfico** mostra Orçado, Projetado e Realizado mês a mês. Embaixo dele há uma tabela com o valor de cada mês.
-   O gráfico **não depende** do "Fluxo de": o Projetado de cada mês é a última previsão feita para aquele mês no
-   Fluxo de Caixa (itens pagos e em aberto).
-
-**Análise Semanal**
-1. Escolha a **Semana anterior** e a **Semana atual** (datas de envio do Fluxo de Caixa).
-2. A tabela mostra o Projetado de cada centro de custo nas duas semanas e o **Δ (Semana atual − Semana anterior)**.
-   ▲ quer dizer que o Projetado subiu; ▼ quer dizer que caiu.
-3. O gráfico compara as duas semanas mês a mês. **Detalhar** mostra os lançamentos das duas semanas.
+**Supply**
+1. **Escolha as usinas** na lista suspensa (dá para digitar e marcar várias). Sem usina marcada, o painel pede uma.
+2. **Projeção anterior** e **Projeção atual**: datas da coluna "Data do Fluxo" de Projeções - Supply.
+   A anterior já vem com a **menor** data e a atual com a **maior**. Ao trocar, a tabela muda na hora.
+3. A **tabela** mostra cada centro de custo com algum valor:
+   Orçado · Projeção anterior · Projeção atual · Realizado ·
+   **Δ Projeções (Anterior − Atual)** · **Δ (Orçado − Projeção atual − Realizado)** · **Δ (Orçado − Realizado)**.
+4. **Clique nos centros de custo** para ver só eles no gráfico.
+5. O **gráfico** mostra Orçado, Projeção atual e Realizado mês a mês (clique no nome para esconder uma linha).
+   Embaixo, a tabela com o valor de cada mês.
+6. **Detalhar** abre os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
+   Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Pagamentos são imutáveis.
+   Cada alteração vira linhas na aba **Auditoria**: Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 
 **Regras usadas:**
-- **Projetado** = itens **Em Aberto** do fluxo escolhido. O que já foi pago está no Realizado.
-- **Realizado** = "Real Acumulado" + "REAL S" (última semana).
+- **Orçado** = VALOR A PAGAR, pelo mês da DATA DE VENCIMENTO.
+- **Projeção** = soma de "Valor" das linhas daquela Data do Fluxo, pelo mês da Data programada de pgto.
+- **Realizado** = "Valor líquido (Cont)" só das linhas com **Sim** em Pago, pelo mês da Data Prog.Pagto.
+  ("Não" = aprovado e não pago; em branco = em aprovação: não entram.)
 - Valores negativos aparecem em vermelho.
 
 ## 5. Ajustes sem programar
 
-Todos ficam no topo do `Codigo.gs`, em `CONFIG`:
+No topo do `Codigo.gs`, em `CONFIG`:
 
-- `PROJETADO_SO_EM_ABERTO`: troque para `false` se o Projetado tiver que somar também o que já está "Pago" no fluxo.
-- `REALIZADO_SOMA_SEMANA`: troque para `false` se o "Real Acumulado" já incluir a última semana.
-- `CACHE_MINUTOS`: por quantos minutos os dados lidos ficam guardados para o painel abrir rápido (padrão 10).
-  O botão **Atualizar** do painel sempre busca os dados novos na hora.
+- `SETORES`: para ligar outro setor, escreva o nome da aba de projeções dele (ex.: `projecoes: 'Projeções - EP'`).
+- `CACHE_MINUTOS`: por quantos minutos os dados ficam guardados para o painel abrir rápido (padrão 10).
+  O botão **Atualizar** sempre busca os dados novos na hora.
