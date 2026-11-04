@@ -475,6 +475,9 @@ function receber(d) {
     return;
   }
   S.d = d;
+  DESC.u = {}; DESC.cc = {};
+  DESC.u = mapaDesc(Object.values(d.usinas || {}), codUsina, RE_USINA);
+  DESC.cc = mapaDesc([].concat(...d.setores.map((s) => Object.values(s.ccNomes || {}))), codCC, RE_CC);
   S.rows = { orc: decodificar(d.abas.orc), real: decodificar(d.abas.real) };
   S.proj = {};
   d.setores.forEach((s) => { if (s.id && d.abas[s.id]) S.proj[s.id] = decodificar(d.abas[s.id]); });
@@ -494,10 +497,18 @@ function receber(d) {
 /* =================================================================== */
 /* Dados da aba de setor escolhida                                      */
 /* =================================================================== */
-/** Código da usina no começo do nome ("A0162-4  -  CEEE - SÃO PEDRO I" → "A0162-4"). Igual ao servidor. */
-function codUsina(t) { const m = String(t === null || t === undefined ? '' : t).match(/^\s*([A-Za-z]\d{3,}-\d+)/); return m ? m[1].toUpperCase() : nk(t); }
-/** Código do centro de custo no começo do nome ("801  -  BOP ENG- ATERRAMENTO" → "801"). Igual ao servidor. */
-function codCC(t) { const m = String(t === null || t === undefined ? '' : t).match(/^\s*0*(\d+)(?!\d)/); return m ? m[1] : nk(t); }
+/* Igual ao servidor: liga usinas e centros de custo pelo código, com ou sem espaço entre código, hífen e descrição.
+   Sem código, procura a descrição nas abas Usinas e Setores / CCs. */
+const DESC = { u: {}, cc: {} };
+const RE_USINA = /^\s*[A-Za-z]\d{3,}-\d+\s*[-–—]?\s*/, RE_CC = /^\s*\d+\s*[-–—]?\s*/;
+function codUsina(t) { const m = String(t === null || t === undefined ? '' : t).match(/^\s*([A-Za-z]\d{3,}-\d+)/); return m ? m[1].toUpperCase() : (DESC.u[nk(t)] || nk(t)); }
+function codCC(t) { const m = String(t === null || t === undefined ? '' : t).match(/^\s*0*(\d+)(?!\d)/); return m ? m[1] : (DESC.cc[nk(t)] || nk(t)); }
+function mapaDesc(nomes, cod, re) {
+  const out = {}, dup = {};
+  nomes.forEach((n) => { const c = cod(n), d = nk(String(n).replace(re, '')); if (!d || c === nk(n)) return; if (d in out && out[d] !== c) dup[d] = true; else out[d] = c; });
+  Object.keys(dup).forEach((d) => delete out[d]);
+  return out;
+}
 
 /**
  * Linhas de cada fonte para o setor escolhido: só os centros de custo do setor (aba Setores / CCs),

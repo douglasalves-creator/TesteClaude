@@ -330,16 +330,49 @@ function bloco_(sheet, def) {
   return BLOCOS_[chave];
 }
 
-/** Código da usina no começo do nome ("A0162-4  -  CEEE - SÃO PEDRO I" → "A0162-4"). Sem código, o próprio nome. */
+/* Descrição → código, das abas Usinas e Setores / CCs. Serve para quem escreveu só a descrição, sem o código. */
+const DESC_ = { u: {}, cc: {} };
+
+/** Texto sem o código do começo ("A0162-4 - CEEE - SÃO PEDRO I" → "ceee sao pedro i"). */
+function semCodigo_(t, re) { return nk_(String(t === null || t === undefined ? '' : t).replace(re, '')); }
+const RE_USINA_ = /^\s*[A-Za-z]\d{3,}-\d+\s*[-–—]?\s*/;
+const RE_CC_ = /^\s*\d+\s*[-–—]?\s*/;
+
+/**
+ * Código da usina ("A0162-4  -  CEEE - SÃO PEDRO I", "A0162-4-CEEE..." ou "a0162-4" → "A0162-4").
+ * Sem código: procura a descrição na aba Usinas; se não achar, usa o próprio nome.
+ */
 function codUsina_(t) {
   const m = String(t === null || t === undefined ? '' : t).match(/^\s*([A-Za-z]\d{3,}-\d+)/);
-  return m ? m[1].toUpperCase() : nk_(t);
+  return m ? m[1].toUpperCase() : (DESC_.u[nk_(t)] || nk_(t));
 }
 
-/** Código do centro de custo no começo do nome ("801  -  BOP ENG- ATERRAMENTO" → "801"). Sem código, o próprio nome. */
+/**
+ * Código do centro de custo ("801  -  BOP ENG- ATERRAMENTO", "801-BOP..." ou "801" → "801").
+ * Sem código: procura a descrição na aba Setores / CCs; se não achar, usa o próprio nome.
+ */
 function codCC_(t) {
   const m = String(t === null || t === undefined ? '' : t).match(/^\s*0*(\d+)(?!\d)/);
-  return m ? m[1] : nk_(t);
+  return m ? m[1] : (DESC_.cc[nk_(t)] || nk_(t));
+}
+
+/** Monta descrição → código. Descrição repetida em códigos diferentes é ignorada (não dá para saber qual é). */
+function mapaDesc_(nomes, cod, re) {
+  const out = {}, dup = {};
+  nomes.forEach(function (n) {
+    const c = cod(n), d = semCodigo_(n, re);
+    if (!d || c === nk_(n)) return;
+    if (d in out && out[d] !== c) dup[d] = true; else out[d] = c;
+  });
+  Object.keys(dup).forEach(function (d) { delete out[d]; });
+  return out;
+}
+
+function prepararDesc_(ss) {
+  DESC_.u = {}; DESC_.cc = {};
+  const us = lerUsinas_(ss);
+  DESC_.u = mapaDesc_(Object.keys(us).map(function (k) { return us[k]; }), codUsina_, RE_USINA_);
+  DESC_.cc = mapaDesc_((lerTabela_(ss, CONFIG.ABA_SETORES) || []).map(function (l) { return l[1]; }), codCC_, RE_CC_);
 }
 
 function lerAba_(ss, id, tz) {
@@ -566,6 +599,7 @@ function carregarDados(forcar) {
   const ss = getSS_();
   const tz = ss.getSpreadsheetTimeZone();
   const email = Session.getActiveUser().getEmail() || '';
+  prepararDesc_(ss);
 
   // Dados completos: do que está guardado ou, se não houver (ou "Atualizar"), lidos da planilha.
   let base = forcar ? null : cacheLer_();
@@ -857,6 +891,7 @@ function excluirLinha(p) {
 function diagnosticar() {
   const t0 = Date.now();
   const ss = getSS_(), tz = ss.getSpreadsheetTimeZone();
+  prepararDesc_(ss);
   const abas = {};
   idsAbas_().forEach(function (id) { abas[id] = lerAba_(ss, id, tz); });
   Logger.log('Tempo de leitura da planilha: ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
