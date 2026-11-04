@@ -5,15 +5,19 @@
  * Fontes de dados:
  *   - Orçamento                    → ORÇADO     (cabeçalho na linha 1)
  *   - Projeções - <Setor>          → PROJEÇÃO ANTERIOR e PROJEÇÃO ATUAL (por "Data do Fluxo")
- *   - Pagamentos / Adiantamentos   → REALIZADO  (cabeçalho na linha 2; só o que está "Sim" em Pago)
+ *   - Realizado Controladoria      → REALIZADO  (Projeto e C. Custo só com o código)
+ *
+ * Usinas e centros de custo são ligados pelo CÓDIGO (ex.: usina "A0162-4", centro de custo "801"),
+ * porque as descrições não são iguais em todas as abas. Os nomes mostrados vêm das abas
+ * "Usinas" e "Setores / CCs".
  *
  * As colunas são encontradas pelo NOME do cabeçalho (a posição não importa).
- * Só as abas de Projeções podem ser alteradas pelo painel; Orçamento e Pagamentos
+ * Só as abas de Projeções podem ser alteradas pelo painel; Orçamento e Realizado
  * são imutáveis. Toda alteração fica registrada na aba "Auditoria".
  *
  * Controle de acesso (quando a aba "Acessos" existir):
  *   - Aba "Setores / CCs":  Setor | Centro de Custo   → quais centros de custo são de cada setor
- *                                                  (usado no Orçado e no Realizado)
+ *                                                  (usado no Orçado, nas Projeções e no Realizado)
  *   - Aba "Acessos":  E-mail | Setor | Edita     → quais abas de setor cada pessoa vê
  *   - Setor "TODOS" libera tudo. O dono do script sempre vê e edita tudo.
  * O filtro é feito aqui no servidor: o que a pessoa não pode ver nem chega ao navegador.
@@ -40,7 +44,9 @@ const CONFIG = {
   ],
 
   ABA_ORCAMENTO: 'Orçamento',
-  ABA_REALIZADO: 'Pagamentos / Adiantamentos',
+  ABA_REALIZADO: 'Realizado Controladoria',
+  // Lista de usinas (coluna A): dá o nome padrão de cada código de usina.
+  ABA_USINAS: 'Usinas',
 
   // Toda alteração feita pelo painel é registrada nesta aba (criada se não existir).
   ABA_AUDITORIA: 'Auditoria',
@@ -73,13 +79,14 @@ const CAMPOS = {
     { k: 'venc', nome: 'DATA DE VENCIMENTO', tipo: 'data', alias: ['VENCIMENTO'] }
   ],
   real: [
-    { k: 'pagto', nome: 'Data Prog.Pagto.', tipo: 'data', alias: ['Data Prog. Pagto.', 'Data Prog Pagto', 'Data Programada Pagto'] },
-    { k: 'pago', nome: 'Pago(Sim/Não)', tipo: 'texto', dic: true, alias: ['Pago (Sim/Não)', 'Pago'] },
-    { k: 'valor', nome: 'Valor líquido (Cont)', tipo: 'valor', alias: ['Valor líquido (Cont.)', 'Valor liquido'] },
+    { k: 'pagto', nome: 'Pagto.', tipo: 'data', alias: ['Pagto', 'Data Pagto', 'Data de Pagamento'] },
+    { k: 'valor', nome: 'Pagamentos', tipo: 'valor' },
+    // Há duas colunas "Projeto": a primeira (código da usina) é a usada.
     { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true },
-    { k: 'cc', nome: 'Centro Custo Contab', tipo: 'texto', dic: true, alias: ['Centro Custo Contab.', 'Centro de Custo Contab'] },
-    { k: 'favorecido', nome: 'Fornecedor', tipo: 'texto', dic: true, opcional: true, alias: ['Favorecido', 'Nome Fornecedor', 'Razão Social'] },
-    { k: 'doc', nome: 'Documento', tipo: 'texto', opcional: true, alias: ['Doc.Fiscal', 'Doc. Fiscal', 'Nº Documento', 'Nota Fiscal', 'NF'] }
+    { k: 'cc', nome: 'C. Custo', tipo: 'texto', dic: true, alias: ['Cod. Custo', 'C.Custo'] },
+    { k: 'favorecido', nome: 'Favorecido', tipo: 'texto', dic: true, opcional: true, alias: ['Fornecedor'] },
+    { k: 'doc', nome: 'Documento', tipo: 'texto', opcional: true },
+    { k: 'obs', nome: 'Consolidado', tipo: 'texto', opcional: true }
   ],
   proj: [
     { k: 'projeto', nome: 'Projeto Padrão', tipo: 'texto', dic: true },
@@ -323,17 +330,25 @@ function bloco_(sheet, def) {
   return BLOCOS_[chave];
 }
 
-/** Realizado: só conta o que está "Sim" na coluna Pago (Não = aprovado e não pago; vazio = em aprovação). */
-function foiPago_(v) { return nk_(v.pago) === 'sim'; }
+/** Código da usina no começo do nome ("A0162-4  -  CEEE - SÃO PEDRO I" → "A0162-4"). Sem código, o próprio nome. */
+function codUsina_(t) {
+  const m = String(t === null || t === undefined ? '' : t).match(/^\s*([A-Za-z]\d{3,}-\d+)/);
+  return m ? m[1].toUpperCase() : nk_(t);
+}
+
+/** Código do centro de custo no começo do nome ("801  -  BOP ENG- ATERRAMENTO" → "801"). Sem código, o próprio nome. */
+function codCC_(t) {
+  const m = String(t === null || t === undefined ? '' : t).match(/^\s*0*(\d+)(?!\d)/);
+  return m ? m[1] : nk_(t);
+}
 
 function lerAba_(ss, id, tz) {
   const def = defAba_(id);
-  const filtro = id === 'real' ? foiPago_ : null;
   const sheet = getAba_(ss, def.nome, false);
   const base = {
     id: id, aba: def.nome, editavel: def.editavel, setor: def.setor || '', sinal: 1,
     campos: def.campos.map(function (c) { return { k: c.k, nome: c.nome, tipo: c.tipo }; }),
-    linhas: [], dic: {}, faltando: [], ausentes: [], linhaCab: 0, erro: '', ignoradas: 0
+    linhas: [], dic: {}, faltando: [], ausentes: [], linhaCab: 0, erro: ''
   };
   if (!sheet) { base.erro = 'Aba "' + def.nome + '" não encontrada.'; return base; }
 
@@ -377,7 +392,6 @@ function lerAba_(ss, id, tz) {
       vals[c.k] = v;
     });
     if (vazia) continue;
-    if (filtro && !filtro(vals)) { base.ignoradas++; continue; }
     const linha = [ini + r];
     def.campos.forEach(function (c) {
       let v = vals[c.k];
@@ -425,7 +439,7 @@ function refazAba_(aba, pode) {
   });
   const out = {};
   Object.keys(aba).forEach(function (k) { out[k] = aba[k]; });
-  out.linhas = linhas; out.dic = dics; delete out.tempo; delete out.ignoradas;
+  out.linhas = linhas; out.dic = dics; delete out.tempo;
   return out;
 }
 
@@ -484,19 +498,32 @@ function acesso_(ss, email) {
   return { tudo: tudo, ver: ver, edita: edita };
 }
 
-/** Centros de custo de cada setor (aba Setores), pela chave nk_. */
+/** Centros de custo de cada setor (aba Setores / CCs): { setor: { código: nome } }. */
 function ccsDosSetores_(ss) {
   const out = {};
   (lerTabela_(ss, CONFIG.ABA_SETORES) || []).forEach(function (l) {
-    const s = nk_(l[0]), c = nk_(l[1]);
+    const s = nk_(l[0]), c = codCC_(l[1]);
     if (!s || !c) return;
-    (out[s] = out[s] || {})[c] = true;
+    (out[s] = out[s] || {})[c] = l[1];
+  });
+  return out;
+}
+
+/** Nome padrão de cada usina (aba Usinas, coluna A): { código: nome }. */
+function lerUsinas_(ss) {
+  const sh = getAba_(ss, CONFIG.ABA_USINAS, false);
+  const out = {};
+  if (!sh || sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 1).getDisplayValues().forEach(function (l) {
+    const nome = String(l[0]).trim();
+    const c = codUsina_(nome);
+    if (nome && c && !(c in out)) out[c] = nome;
   });
   return out;
 }
 
 /**
- * Centros de custo usados no Orçado e no Realizado de cada setor: os da aba Setores.
+ * Centros de custo de cada setor (Orçado, Projeções e Realizado): os da aba Setores / CCs.
  * Se o setor ainda não tiver nenhum na aba Setores, usa os que aparecem na aba de projeções dele.
  */
 function ccsPorSetor_(ss, abas) {
@@ -507,7 +534,7 @@ function ccsPorSetor_(ss, abas) {
     if (tab[k] && Object.keys(tab[k]).length) { out[k] = { ccs: tab[k], origem: 'setores' }; return; }
     const ccs = {};
     const p = s.projecoes ? abas[idProj_(s.nome)] : null;
-    if (p && p.linhas) p.linhas.forEach(function (l) { const c = nk_(abrirLinha_(p, l).cc); if (c) ccs[c] = true; });
+    if (p && p.linhas) p.linhas.forEach(function (l) { const t = abrirLinha_(p, l).cc, c = codCC_(t); if (c && !(c in ccs)) ccs[c] = t; });
     out[k] = { ccs: ccs, origem: Object.keys(ccs).length ? 'projecoes' : 'nenhum' };
   });
   return out;
@@ -559,7 +586,7 @@ function carregarDados(forcar) {
     const k = nk_(s.nome);
     return {
       nome: s.nome, id: s.projecoes ? idProj_(s.nome) : '', pronto: !!s.projecoes,
-      ccs: Object.keys(porSetor[k].ccs), origemCC: porSetor[k].origem, edita: !!ac.edita[k]
+      ccs: Object.keys(porSetor[k].ccs), ccNomes: porSetor[k].ccs, origemCC: porSetor[k].origem, edita: !!ac.edita[k]
     };
   });
 
@@ -572,7 +599,7 @@ function carregarDados(forcar) {
     // Orçado e Realizado: só os centros de custo dos setores liberados.
     const ok = {};
     setores.forEach(function (s) { s.ccs.forEach(function (c) { ok[c] = true; }); });
-    const pode = function (v) { return ok[nk_(v.cc)]; };
+    const pode = function (v) { return ok[codCC_(v.cc)]; };
     abas.orc = refazAba_(base.abas.orc, pode);
     abas.real = refazAba_(base.abas.real, pode);
   }
@@ -583,6 +610,7 @@ function carregarDados(forcar) {
     setores: setores,
     planilha: ss.getName(),
     urlPlanilha: ac.tudo ? ss.getUrl() : '',
+    usinas: lerUsinas_(ss),
     abas: abas
   };
 }
@@ -837,7 +865,6 @@ function diagnosticar() {
     const a = abas[id];
     Logger.log('— Aba "' + a.aba + '": ' + (a.erro || ('cabeçalho na linha ' + a.linhaCab + ', ' +
       a.linhas.length + ' linhas usadas' + (a.sinal === -1 ? ', valores negativos (sinal invertido no painel)' : ''))));
-    if (id === 'real' && !a.erro) Logger.log('   Realizado: só linhas com "Sim" em Pago. Ignoradas (Não ou em branco): ' + a.ignoradas);
     if (a.tempo) Logger.log('   Tempo: leitura ' + (a.tempo.leitura / 1000).toFixed(1) +
       ' s · processamento ' + (a.tempo.processamento / 1000).toFixed(1) + ' s (' + a.tempo.linhas + ' linhas × ' + a.tempo.colunas + ' colunas na aba)');
     if (a.colunas && a.colunas.length) Logger.log('   Lendo: ' + a.colunas.join(' · '));
@@ -859,7 +886,7 @@ function verificarSetores_(ss, abas) {
   const existe = {};
   Object.keys(abas).forEach(function (id) {
     const a = abas[id];
-    a.linhas.forEach(function (l) { existe[nk_(abrirLinha_(a, l).cc)] = true; });
+    a.linhas.forEach(function (l) { existe[codCC_(abrirLinha_(a, l).cc)] = true; });
   });
   const porSetor = ccsPorSetor_(ss, abas);
   CONFIG.SETORES.forEach(function (s) {
@@ -869,7 +896,23 @@ function verificarSetores_(ss, abas) {
       : p.origem === 'projecoes' ? 'nenhum centro de custo na aba "' + CONFIG.ABA_SETORES + '"; usando os ' + n + ' da aba de projeções'
       : 'nenhum centro de custo cadastrado') + (s.projecoes ? '' : ' (aba em construção)'));
   });
-  const faltam = (lerTabela_(ss, CONFIG.ABA_SETORES) || []).filter(function (l) { return !existe[nk_(l[1])]; });
+  const faltam = (lerTabela_(ss, CONFIG.ABA_SETORES) || []).filter(function (l) { return !existe[codCC_(l[1])]; });
   if (faltam.length) Logger.log('Centros de custo da aba "' + CONFIG.ABA_SETORES + '" que NÃO aparecem em nenhuma aba de dados: ' +
     faltam.map(function (l) { return l[0] + ' → ' + l[1]; }).join(' | '));
+  // Projeções em centros de custo que não estão na lista do setor: não entram no painel.
+  CONFIG.SETORES.forEach(function (s) {
+    const p = s.projecoes ? abas[idProj_(s.nome)] : null;
+    if (!p || !p.linhas) return;
+    const lista = porSetor[nk_(s.nome)].ccs, fora = {};
+    p.linhas.forEach(function (l) { const v = abrirLinha_(p, l); if (!(codCC_(v.cc) in lista)) fora[v.cc || '(vazio)'] = (fora[v.cc || '(vazio)'] || 0) + (v.valor || 0); });
+    const ks = Object.keys(fora);
+    if (ks.length) Logger.log('Projeções de ' + s.nome + ' em centros de custo fora da lista do setor (não entram no painel): ' +
+      ks.map(function (k) { return k + ' (R$ ' + fora[k].toFixed(2) + ')'; }).join(' | '));
+  });
+  // Códigos de usina que aparecem nos dados e não estão na aba Usinas.
+  const us = lerUsinas_(ss), semNome = {};
+  Object.keys(abas).forEach(function (id) {
+    abas[id].linhas.forEach(function (l) { const c = codUsina_(abrirLinha_(abas[id], l).projeto); if (c && !(c in us)) semNome[c] = true; });
+  });
+  if (Object.keys(semNome).length) Logger.log('Códigos de usina que não estão na aba "' + CONFIG.ABA_USINAS + '": ' + Object.keys(semNome).join(', '));
 }

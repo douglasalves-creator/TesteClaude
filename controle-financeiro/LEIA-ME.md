@@ -4,14 +4,15 @@ O painel só altera a planilha pelo botão **Detalhar**, só nas abas de **Proje
 Toda alteração fica registrada na aba **Auditoria**.
 
 **Antes de começar, confira na base oficial:**
-- As abas se chamam **Orçamento**, **Projeções - Supply** e **Pagamentos / Adiantamentos**.
+- As abas se chamam **Orçamento**, **Projeções - Supply**, **Realizado Controladoria**, **Usinas** e **Setores / CCs**.
 - Os cabeçalhos usados estão com estes nomes (a posição da coluna não importa):
   - Orçamento (cabeçalho na linha 1): PROJETO, CENTRO DE CUSTO, VALOR A PAGAR, DATA DE VENCIMENTO
   - Projeções - Supply (cabeçalho na linha 1): Projeto Padrão, Centro de Custo Padrão, Valor, Data programada de pgto,
     Data do Fluxo (Fornecedor e Comentário aparecem no Detalhar, se existirem)
-  - Pagamentos / Adiantamentos (cabeçalho na linha 2): Data Prog.Pagto., Pago(Sim/Não), Valor líquido (Cont), Projeto,
-    Centro Custo Contab (Fornecedor e Documento aparecem no Detalhar, se existirem)
-- Os nomes das usinas e dos centros de custo estão escritos igual nas três abas.
+  - Realizado Controladoria (cabeçalho na linha 1): Projeto (código da usina), C. Custo (código), Pagamentos, Pagto.
+    (Favorecido, Documento e Consolidado aparecem no Detalhar)
+- Usinas e centros de custo são ligados pelo **código** (usina "A0162-4", centro de custo "801"), não pela descrição.
+  Os nomes mostrados vêm das abas **Usinas** e **Setores / CCs**.
 
 ## 1. Colar os arquivos
 
@@ -27,7 +28,7 @@ Toda alteração fica registrada na aba **Auditoria**.
 1. No topo do editor, escolha a função **`diagnosticar`** e clique em **Executar ▷**.
 2. Vá em **Registros de execução**. Para cada aba, deve aparecer quantas linhas foram lidas.
    - Se aparecer **"Colunas NÃO encontradas"**, o nome daquela coluna na planilha está diferente. Me mande o print.
-   - Em Pagamentos / Adiantamentos aparece quantas linhas foram ignoradas por não estarem com **Sim** em Pago.
+   - Aparecem as projeções em centros de custo fora da lista do setor (não entram nos números).
    - Em cada setor aparece quantos centros de custo ele tem na aba **Setores / CCs**.
 
 ## 3. Abrir o painel
@@ -44,7 +45,7 @@ Cada pessoa vê só as abas de setor liberadas para ela. O que ela não pode ver
 1. Menu **Controle Financeiro → Criar abas de acesso** (se ainda não existirem):
    - **Setores / CCs**: uma linha por centro de custo → `Setor | Centro de Custo`.
      Os setores são **Supply**, **Projetos**, **EP** e **GA**. É essa lista que define quais centros de custo do
-     **Orçamento** e de **Pagamentos / Adiantamentos** entram em cada aba do painel.
+     **Orçamento**, das **Projeções** e do **Realizado Controladoria** entram em cada aba do painel.
      (Se um setor não tiver nenhum centro de custo aqui, o painel usa os que aparecem na aba de Projeções dele.)
    - **Acessos**: uma linha por pessoa e setor → `E-mail | Setor | Edita`. O setor **TODOS** libera todas as abas.
      Na coluna **Edita**, **Sim** = pode editar as Projeções daquele setor; em branco = só consulta.
@@ -63,19 +64,21 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
    A anterior já vem com a **menor** data e a atual com a **maior**. Ao trocar, a tabela muda na hora.
 3. A **tabela** mostra cada centro de custo com algum valor:
    Orçado · Projeção anterior · Projeção atual · Realizado ·
-   **Δ Projeções (Anterior − Atual)** · **Δ (Orçado − Projeção atual − Realizado)** · **Δ (Orçado − Realizado)**.
+   **Δ Projeções (Anterior − Atual)** · **Δ (Orçado − Projeção atual − Realizado)** · **Δ (Orçado − Realizado)** ·
+   **Δ Projeções %** (atual maior que a anterior = negativo; menor = positivo).
+   Nos blocos pretos, a faixa e o selo ficam **verdes** quando o Δ é positivo e **vermelhos** quando é negativo.
 4. **Clique nos centros de custo** para ver só eles no gráfico.
 5. O **gráfico** mostra Orçado, Projeção atual e Realizado mês a mês (clique no nome para esconder uma linha).
    Embaixo, a tabela com o valor de cada mês.
 6. **Detalhar** abre os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
-   Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Pagamentos são imutáveis.
+   Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Realizado são imutáveis.
    Cada alteração vira linhas na aba **Auditoria**: Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 
 **Regras usadas:**
 - **Orçado** = VALOR A PAGAR, pelo mês da DATA DE VENCIMENTO.
 - **Projeção** = soma de "Valor" das linhas daquela Data do Fluxo, pelo mês da Data programada de pgto.
-- **Realizado** = "Valor líquido (Cont)" só das linhas com **Sim** em Pago, pelo mês da Data Prog.Pagto.
-  ("Não" = aprovado e não pago; em branco = em aprovação: não entram.)
+- **Realizado** = "Pagamentos" do Realizado Controladoria, pelo mês da coluna Pagto.
+- Só entram centros de custo da lista do setor (aba Setores / CCs). Lançamentos de Projeções fora da lista aparecem num aviso.
 - Valores negativos aparecem em vermelho.
 
 ## 5. Ajustes sem programar
