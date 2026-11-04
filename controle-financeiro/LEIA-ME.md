@@ -28,7 +28,7 @@ Toda alteração fica registrada na aba **Auditoria**.
 2. Vá em **Registros de execução**. Para cada aba, deve aparecer quantas linhas foram lidas.
    - Se aparecer **"Colunas NÃO encontradas"**, o nome daquela coluna na planilha está diferente. Me mande o print.
    - Em Pagamentos / Adiantamentos aparece quantas linhas foram ignoradas por não estarem com **Sim** em Pago.
-   - Em cada setor aparece quantos centros de custo ele tem na aba **Setores**.
+   - Em cada setor aparece quantos centros de custo ele tem na aba **Setores / CCs**.
 
 ## 3. Abrir o painel
 
@@ -42,7 +42,7 @@ Toda alteração fica registrada na aba **Auditoria**.
 Cada pessoa vê só as abas de setor liberadas para ela. O que ela não pode ver nem chega ao navegador.
 
 1. Menu **Controle Financeiro → Criar abas de acesso** (se ainda não existirem):
-   - **Setores**: uma linha por centro de custo → `Setor | Centro de Custo`.
+   - **Setores / CCs**: uma linha por centro de custo → `Setor | Centro de Custo`.
      Os setores são **Supply**, **Projetos**, **EP** e **GA**. É essa lista que define quais centros de custo do
      **Orçamento** e de **Pagamentos / Adiantamentos** entram em cada aba do painel.
      (Se um setor não tiver nenhum centro de custo aqui, o painel usa os que aparecem na aba de Projeções dele.)

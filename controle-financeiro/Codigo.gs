@@ -12,7 +12,7 @@
  * são imutáveis. Toda alteração fica registrada na aba "Auditoria".
  *
  * Controle de acesso (quando a aba "Acessos" existir):
- *   - Aba "Setores":  Setor | Centro de Custo   → quais centros de custo são de cada setor
+ *   - Aba "Setores / CCs":  Setor | Centro de Custo   → quais centros de custo são de cada setor
  *                                                  (usado no Orçado e no Realizado)
  *   - Aba "Acessos":  E-mail | Setor | Edita     → quais abas de setor cada pessoa vê
  *   - Setor "TODOS" libera tudo. O dono do script sempre vê e edita tudo.
@@ -52,7 +52,7 @@ const CONFIG = {
 
   // Controle de acesso (ver explicação no topo do arquivo).
   ABA_ACESSOS: 'Acessos',
-  ABA_SETORES: 'Setores',
+  ABA_SETORES: 'Setores / CCs',
   SETOR_TOTAL: 'TODOS',
 
   // Por quantos minutos os dados lidos ficam guardados (o painel abre bem mais rápido).
@@ -79,7 +79,7 @@ const CAMPOS = {
     { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true },
     { k: 'cc', nome: 'Centro Custo Contab', tipo: 'texto', dic: true, alias: ['Centro Custo Contab.', 'Centro de Custo Contab'] },
     { k: 'favorecido', nome: 'Fornecedor', tipo: 'texto', dic: true, opcional: true, alias: ['Favorecido', 'Nome Fornecedor', 'Razão Social'] },
-    { k: 'doc', nome: 'Documento', tipo: 'texto', opcional: true, alias: ['Nº Documento', 'Nota Fiscal', 'NF'] }
+    { k: 'doc', nome: 'Documento', tipo: 'texto', opcional: true, alias: ['Doc.Fiscal', 'Doc. Fiscal', 'Nº Documento', 'Nota Fiscal', 'NF'] }
   ],
   proj: [
     { k: 'projeto', nome: 'Projeto Padrão', tipo: 'texto', dic: true },
@@ -437,7 +437,8 @@ const TABELAS_ = {};
 /** Lê as colunas A:C de uma aba simples (Setores, Acessos). null = a aba não existe. */
 function lerTabela_(ss, nome) {
   if (nome in TABELAS_) return TABELAS_[nome];
-  const sh = getAba_(ss, nome, false);
+  // A aba de setores também é aceita com o nome antigo "Setores".
+  const sh = getAba_(ss, nome, false) || (nome === CONFIG.ABA_SETORES ? getAba_(ss, 'Setores', false) : null);
   let out = null;
   if (sh) {
     out = [];
