@@ -43,7 +43,7 @@ Toda alteração fica registrada na aba **Auditoria**.
 Cada pessoa vê só as abas de setor liberadas para ela. O que ela não pode ver nem chega ao navegador.
 
 1. Menu **Controle Financeiro → Criar abas de acesso** (se ainda não existirem):
-   - **Setores / CCs**: uma linha por centro de custo → `Setor | Centro de Custo`.
+   - **Setores / CCs**: uma linha por centro de custo → `Setor | Código | Centro de Custo`.
      Os setores são **Supply**, **Projetos**, **EP** e **GA**. É essa lista que define quais centros de custo do
      **Orçamento**, das **Projeções** e do **Realizado Controladoria** entram em cada aba do painel.
      (Se um setor não tiver nenhum centro de custo aqui, o painel usa os que aparecem na aba de Projeções dele.)

@@ -16,7 +16,7 @@
  * são imutáveis. Toda alteração fica registrada na aba "Auditoria".
  *
  * Controle de acesso (quando a aba "Acessos" existir):
- *   - Aba "Setores / CCs":  Setor | Centro de Custo   → quais centros de custo são de cada setor
+ *   - Aba "Setores / CCs":  Setor | Código | Centro de Custo   → quais centros de custo são de cada setor
  *                                                  (usado no Orçado, nas Projeções e no Realizado)
  *   - Aba "Acessos":  E-mail | Setor | Edita     → quais abas de setor cada pessoa vê
  *   - Setor "TODOS" libera tudo. O dono do script sempre vê e edita tudo.
@@ -372,7 +372,7 @@ function prepararDesc_(ss) {
   DESC_.u = {}; DESC_.cc = {};
   const us = lerUsinas_(ss);
   DESC_.u = mapaDesc_(Object.keys(us).map(function (k) { return us[k]; }), codUsina_, RE_USINA_);
-  DESC_.cc = mapaDesc_((lerTabela_(ss, CONFIG.ABA_SETORES) || []).map(function (l) { return l[1]; }), codCC_, RE_CC_);
+  DESC_.cc = mapaDesc_((lerTabela_(ss, CONFIG.ABA_SETORES) || []).map(ccDaLinhaSetor_), codCC_, RE_CC_);
 }
 
 function lerAba_(ss, id, tz) {
@@ -531,13 +531,22 @@ function acesso_(ss, email) {
   return { tudo: tudo, ver: ver, edita: edita };
 }
 
+/**
+ * Centro de custo de uma linha da aba Setores / CCs, como "801  -  BOP ENG- ATERRAMENTO".
+ * Colunas: Setor | Código | Centro de Custo (também aceita o formato antigo Setor | Centro de Custo).
+ */
+function ccDaLinhaSetor_(l) {
+  if (l[2]) return /^\d+$/.test(l[1]) ? l[1] + '  -  ' + l[2] : l[2];
+  return l[1];
+}
+
 /** Centros de custo de cada setor (aba Setores / CCs): { setor: { código: nome } }. */
 function ccsDosSetores_(ss) {
   const out = {};
   (lerTabela_(ss, CONFIG.ABA_SETORES) || []).forEach(function (l) {
-    const s = nk_(l[0]), c = codCC_(l[1]);
+    const nome = ccDaLinhaSetor_(l), s = nk_(l[0]), c = codCC_(nome);
     if (!s || !c) return;
-    (out[s] = out[s] || {})[c] = l[1];
+    (out[s] = out[s] || {})[c] = nome;
   });
   return out;
 }
@@ -586,9 +595,9 @@ function prepararAcessos() {
     return true;
   };
   const dono = Session.getEffectiveUser().getEmail() || '';
-  const a = cria(CONFIG.ABA_SETORES, ['Setor', 'Centro de Custo'], []);
+  const a = cria(CONFIG.ABA_SETORES, ['Setor', 'Código', 'Centro de Custo'], []);
   const b = cria(CONFIG.ABA_ACESSOS, ['E-mail', 'Setor', 'Edita'], dono ? [[dono, CONFIG.SETOR_TOTAL, 'Sim']] : []);
-  const msg = (a || b) ? 'Abas criadas. Preencha "' + CONFIG.ABA_SETORES + '" (Setor | Centro de Custo) e "' +
+  const msg = (a || b) ? 'Abas criadas. Preencha "' + CONFIG.ABA_SETORES + '" (Setor | Código | Centro de Custo) e "' +
     CONFIG.ABA_ACESSOS + '" (E-mail | Setor | Edita). Setores: ' +
     CONFIG.SETORES.map(function (s) { return s.nome; }).join(', ') + '. Use TODOS para quem pode ver tudo.' : 'As abas já existiam.';
   try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
@@ -931,9 +940,9 @@ function verificarSetores_(ss, abas) {
       : p.origem === 'projecoes' ? 'nenhum centro de custo na aba "' + CONFIG.ABA_SETORES + '"; usando os ' + n + ' da aba de projeções'
       : 'nenhum centro de custo cadastrado') + (s.projecoes ? '' : ' (aba em construção)'));
   });
-  const faltam = (lerTabela_(ss, CONFIG.ABA_SETORES) || []).filter(function (l) { return !existe[codCC_(l[1])]; });
+  const faltam = (lerTabela_(ss, CONFIG.ABA_SETORES) || []).filter(function (l) { return !existe[codCC_(ccDaLinhaSetor_(l))]; });
   if (faltam.length) Logger.log('Centros de custo da aba "' + CONFIG.ABA_SETORES + '" que NÃO aparecem em nenhuma aba de dados: ' +
-    faltam.map(function (l) { return l[0] + ' → ' + l[1]; }).join(' | '));
+    faltam.map(function (l) { return l[0] + ' → ' + ccDaLinhaSetor_(l); }).join(' | '));
   // Projeções em centros de custo que não estão na lista do setor: não entram no painel.
   CONFIG.SETORES.forEach(function (s) {
     const p = s.projecoes ? abas[idProj_(s.nome)] : null;

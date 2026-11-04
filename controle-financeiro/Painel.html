@@ -650,14 +650,14 @@ function kpiDelta(l, v, txt) {
 }
 function dh(sub) { return '<span class="dh">Δ<small>' + sub + '</small></span>'; }
 const DH = {
-  dP: dh('Projeções (Anterior − Atual)'),
+  dP: dh('Projeções'),
   dPp: dh('Projeções %'),
   d1: dh('(Orçado − Projeção atual − Realizado)'),
   d2: dh('(Orçado − Realizado)')
 };
 function kpisHtml(m) {
   return [kpi('Orçado', m.orc) + kpi('Projeção anterior', m.pa) + kpi('Projeção atual', m.pt) + kpi('Realizado', m.real),
-    kpiDelta(DH.dP, m.dP) + kpiDelta(DH.d1, m.d1) + kpiDelta(DH.d2, m.d2) + kpiDelta(DH.dPp, m.dPp, pct(m.dPp))];
+    kpiDelta(DH.d1, m.d1) + kpiDelta(DH.d2, m.d2) + kpiDelta(DH.dP, m.dP) + kpiDelta(DH.dPp, m.dPp, pct(m.dPp))];
 }
 function th2(t, d) { return '<span class="th2">' + t + '<small>' + (d ? dt(d) : '—') + '</small></span>'; }
 function colunas() {
