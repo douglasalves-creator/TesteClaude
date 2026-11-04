@@ -87,7 +87,11 @@
 
   main.wrap{padding-top:20px; padding-bottom:70px}
   body{overflow-x:hidden}
-  @media (max-width:900px){ #tree, #tabMeses, .drawer .card{overflow-x:auto} }
+  @media (max-width:900px){ #tree, .drawer .card{overflow-x:auto} }
+  #tabMeses{overflow-x:auto; border-radius:0 0 var(--radius) var(--radius)}
+  .meses th,.meses td{white-space:nowrap}
+  .meses th:first-child,.meses td:first-child{position:sticky; left:0; background:var(--branco); z-index:1}
+  .meses th:last-child,.meses td:last-child{position:sticky; right:0; background:#FAFAFA; z-index:1}
 
   /* Números do topo */
   .kpis{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin-bottom:18px}
@@ -552,8 +556,12 @@ function prepararSetor() {
   const ds = Array.from(new Set(S.L.proj.map((r) => r.dataFluxo).filter(Boolean))).sort();
   S.snaps = ds;
   const g = S.snapSetor[st.nome] || {};
-  S.f.ant = ds.includes(g.ant) ? g.ant : ds[0] || '';
-  S.f.atu = ds.includes(g.atu) ? g.atu : ds[ds.length - 1] || '';
+  // Padrão: atual = a data do fluxo mais recente até hoje; anterior = a imediatamente antes dela.
+  const hoje = new Date(), isoHoje = hoje.getFullYear() + '-' + ('0' + (hoje.getMonth() + 1)).slice(-2) + '-' + ('0' + hoje.getDate()).slice(-2);
+  const ate = ds.filter((d) => d <= isoHoje), base = ate.length ? ate : ds;
+  const atuPad = base[base.length - 1] || '', antPad = base.length > 1 ? base[base.length - 2] : atuPad;
+  S.f.ant = ds.includes(g.ant) ? g.ant : antPad;
+  S.f.atu = ds.includes(g.atu) ? g.atu : atuPad;
   guardarSnaps();
   const opts = (atual) => ds.length ? ds.map((d) => '<option value="' + esc(d) + '"' + (d === atual ? ' selected' : '') + '>' + dt(d) + '</option>').join('') : '<option value="">—</option>';
   $('#fAnt').innerHTML = opts(S.f.ant); $('#fAtu').innerHTML = opts(S.f.atu);
@@ -743,7 +751,13 @@ function renderCurvas() {
   const n = S.ccSel.size;
   $('#chSel').innerHTML = n === 0 ? 'Todos os centros de custo'
     : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSel)[0]]) : n + ' centros de custo selecionados') + '</b><button type="button" id="ccLimpar">Mostrar todos</button>';
-  const meses = Array.from(ms).sort();
+  const meses = [];
+  const ord = Array.from(ms).sort();
+  if (ord.length) {
+    let [y, m] = ord[0].split('-').map(Number);
+    const fim = ord[ord.length - 1];
+    for (let ym = ord[0]; ym <= fim; m === 12 ? (y++, m = 1) : m++, ym = y + '-' + ('0' + m).slice(-2)) meses.push(ym);
+  }
   const faixa = (obj) => { const k = Object.keys(obj).sort(); return [k[0] || '9999', k[k.length - 1] || '']; };
   const serie = (obj) => { const [ini, fim] = faixa(obj); return meses.map((m) => (m < ini || m > fim ? null : obj[m] || 0)); };
   const sO = serie(o), sP = serie(p), sR = serie(r);
@@ -755,11 +769,12 @@ function renderCurvas() {
   let yMin, yMax, yPasso;
   if (vis.length) {
     const lo = Math.min.apply(null, vis), hi = Math.max.apply(null, vis);
-    const folga = Math.max(hi - lo, Math.abs(hi) * 0.1, 1) * 0.8;
-    yMin = Math.max(0, lo - folga); yMax = hi + folga;
-    const bruto = (yMax - yMin) / 5, mag = Math.pow(10, Math.floor(Math.log10(bruto))), q = bruto / mag;
-    yPasso = (q <= 1 ? 1 : q <= 2 ? 2 : q <= 2.5 ? 2.5 : q <= 5 ? 5 : 10) * mag;
-    yMin = Math.floor(yMin / yPasso) * yPasso; yMax = Math.ceil(yMax / yPasso) * yPasso;
+    const folga = Math.max(hi - lo, Math.abs(hi) * 0.1, 1) * 0.12;
+    const bruto = (hi + folga - Math.min(0, lo - folga)) / 5, mag = Math.pow(10, Math.floor(Math.log10(bruto))), q = bruto / mag;
+    yPasso = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((x) => q <= x) * mag;
+    yMax = Math.ceil((hi + folga) / yPasso) * yPasso;
+    // Valores zero ficam um pouco acima da borda de baixo (a faixa abaixo de zero não tem rótulo nem grade).
+    yMin = lo >= 0 ? -yPasso * 0.3 : Math.floor((lo - folga) / yPasso) * yPasso;
   }
   if (S.chart) S.chart.destroy();
   if (window.Chart) {
@@ -783,7 +798,10 @@ function renderCurvas() {
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
-          y: { beginAtZero: false, min: yMin, max: yMax, border: { display: false }, grid: { color: COR.grid }, ticks: { color: COR.ink3, stepSize: yPasso, callback: (v) => compact(v) } }
+          y: { beginAtZero: false, min: yMin, max: yMax, border: { display: false }, grid: { color: COR.grid },
+            // Marcas em 0, 1 passo, 2 passos… (a faixa abaixo de zero fica sem marca)
+            afterBuildTicks: (ax) => { if (!yPasso) return; const t = []; for (let v = yMin < -yPasso * 0.5 ? yMin : 0; v <= yMax + yPasso / 1e6; v += yPasso) t.push({ value: Math.round(v * 100) / 100 }); ax.ticks = t; },
+            ticks: { color: COR.ink3, callback: (v) => compact(v) } }
         }
       }
     });
