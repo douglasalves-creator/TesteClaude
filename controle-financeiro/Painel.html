@@ -518,8 +518,10 @@ function linhasSetor() {
   const st = S.setor;
   const ccs = st.ccs && st.ccs.length ? new Set(st.ccs) : null;
   const doSetor = (r) => !ccs || ccs.has(codCC(r.cc));
+  // Projeção sem centro de custo preenchido (vazio ou só "-") também conta, na linha "(em branco)".
+  const emBranco = (r) => !String(r.cc || '').replace(/[\s\-–—]/g, '');
   const proj = S.proj[st.id] || [];
-  return { orc: S.rows.orc.filter(doSetor), real: S.rows.real.filter(doSetor), proj: proj.filter(doSetor), projFora: proj.filter((r) => !doSetor(r)) };
+  return { orc: S.rows.orc.filter(doSetor), real: S.rows.real.filter(doSetor), proj: proj.filter((r) => doSetor(r) || emBranco(r)), projFora: proj.filter((r) => !doSetor(r) && !emBranco(r)) };
 }
 function prepararSetor() {
   const st = S.setor;
@@ -531,7 +533,8 @@ function prepararSetor() {
   const tag = (r, d, proj) => {
     const p = String(r.projeto || '').trim(), c = String(r.cc || '').trim();
     r._u = codUsina(p) || '~'; nome(S.uNome, r._u, p || '(sem usina)', usTab[r._u] && usTab[r._u].replace(/\s+/g, ' '));
-    r._ck = codCC(c) || '~'; nome(S.ccNome, r._ck, c || '(sem centro de custo)', ccTab[r._ck] && ccTab[r._ck].replace(/\s+/g, ' '));
+    const branco = !c.replace(/[\s\-–—]/g, '');
+    r._ck = branco ? '~' : codCC(c); nome(S.ccNome, r._ck, branco ? '(em branco)' : c, ccTab[r._ck] && ccTab[r._ck].replace(/\s+/g, ' '));
     if (proj) { if (!S.uTxt[r._u]) S.uTxt[r._u] = p; if (!S.ccTxt[r._ck]) S.ccTxt[r._ck] = c; }
     r._d = d;
   };
@@ -539,8 +542,11 @@ function prepararSetor() {
   S.L.real.forEach((r) => tag(r, r.pagto));
   S.L.proj.forEach((r) => tag(r, r.dataProg, true));
   S.L.projFora.forEach((r) => { r._u = codUsina(r.projeto); r._ck = ''; });
-  S.uLista = Object.keys(S.uNome).filter((k) => k !== '~').sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
-  S.f.us.forEach((k) => { if (!(k in S.uNome)) S.f.us.delete(k); });
+  // Lista suspensa = coluna PROJETO / UFV da aba Usinas (se a aba estiver vazia, as usinas que aparecem nos dados).
+  Object.keys(usTab).forEach((k) => { S.uNome[k] = usTab[k].replace(/\s+/g, ' '); });
+  const lista = Object.keys(usTab).length ? Object.keys(usTab) : Object.keys(S.uNome).filter((k) => k !== '~');
+  S.uLista = lista.sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
+  S.f.us.forEach((k) => { if (S.uLista.indexOf(k) === -1) S.f.us.delete(k); });
 
   // Datas do Fluxo: a anterior começa na menor data e a atual na maior.
   const ds = Array.from(new Set(S.L.proj.map((r) => r.dataFluxo).filter(Boolean))).sort();
@@ -665,7 +671,7 @@ function colunas() {
     { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
     { k: 'pa', t: th2('Projeção anterior', S.f.ant), n: 1 }, { k: 'pt', t: th2('Projeção atual', S.f.atu), n: 1, c: 'pt' },
     { k: 'real', t: 'Realizado', n: 1 },
-    { k: 'dP', t: DH.dP, n: 1, dl: 'first' }, { k: 'd1', t: DH.d1, n: 1, dl: 1 }, { k: 'd2', t: DH.d2, n: 1, dl: 1 }, { k: 'dPp', t: DH.dPp, n: 1, dl: 1 }
+    { k: 'd1', t: DH.d1, n: 1, dl: 'first' }, { k: 'd2', t: DH.d2, n: 1, dl: 1 }, { k: 'dP', t: DH.dP, n: 1, dl: 1 }, { k: 'dPp', t: DH.dPp, n: 1, dl: 1 }
   ];
 }
 function cmp(a, b) {
@@ -676,7 +682,7 @@ function cmp(a, b) {
 }
 function celulas(m) {
   return '<td class="n">' + num(m.orc) + '</td><td class="n">' + num(m.pa) + '</td><td class="n pt">' + num(m.pt) + '</td><td class="n">' + num(m.real) + '</td>' +
-    '<td class="n dl first' + numCls(m.dP) + '">' + num(m.dP) + '</td><td class="n dl' + numCls(m.d1) + '">' + num(m.d1) + '</td><td class="n dl' + numCls(m.d2) + '">' + num(m.d2) + '</td>' +
+    '<td class="n dl first' + numCls(m.d1) + '">' + num(m.d1) + '</td><td class="n dl' + numCls(m.d2) + '">' + num(m.d2) + '</td><td class="n dl' + numCls(m.dP) + '">' + num(m.dP) + '</td>' +
     '<td class="n dl' + numCls(m.dPp) + '"' + (m.dPp === null ? ' title="Sem projeção anterior"' : '') + '>' + pct(m.dPp) + '</td>';
 }
 

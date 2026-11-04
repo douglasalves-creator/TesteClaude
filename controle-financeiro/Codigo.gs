@@ -948,7 +948,11 @@ function verificarSetores_(ss, abas) {
     const p = s.projecoes ? abas[idProj_(s.nome)] : null;
     if (!p || !p.linhas) return;
     const lista = porSetor[nk_(s.nome)].ccs, fora = {};
-    p.linhas.forEach(function (l) { const v = abrirLinha_(p, l); if (!(codCC_(v.cc) in lista)) fora[v.cc || '(vazio)'] = (fora[v.cc || '(vazio)'] || 0) + (v.valor || 0); });
+    p.linhas.forEach(function (l) {
+      const v = abrirLinha_(p, l);
+      if (!String(v.cc || '').replace(/[\s\-–—]/g, '')) return; // em branco: entra no painel como "(em branco)"
+      if (!(codCC_(v.cc) in lista)) fora[v.cc] = (fora[v.cc] || 0) + (v.valor || 0);
+    });
     const ks = Object.keys(fora);
     if (ks.length) Logger.log('Projeções de ' + s.nome + ' em centros de custo fora da lista do setor (não entram no painel): ' +
       ks.map(function (k) { return k + ' (R$ ' + fora[k].toFixed(2) + ')'; }).join(' | '));
