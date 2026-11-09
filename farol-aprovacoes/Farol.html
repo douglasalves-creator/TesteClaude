@@ -194,6 +194,8 @@
   .rodape{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3)}
   .rodape .acoes{display:flex; gap:8px}
 
+  .aviso{display:flex; gap:10px; align-items:flex-start; background:#FFF8E6; border:1px solid #F5DFA6; color:#6B4E00; border-radius:var(--radius); padding:10px 14px; margin-bottom:16px; font-size:12.5px}
+  .aviso b{font-weight:700}
   .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--eclipse); color:var(--branco); padding:10px 16px; border-radius:10px; font-weight:600; font-size:12.5px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:50}
   .toast.on{opacity:1; transform:translateX(-50%) translateY(0)}
 
@@ -230,71 +232,19 @@
     </div>
   </div>
   <nav class="abas" role="tablist" aria-label="Tipo de requisição">
-    <button class="aba" role="tab" id="abaPag" aria-selected="true" aria-controls="painelPag" type="button">
+    <button class="aba" role="tab" id="aba-pagamentos" data-tipo="pagamentos" aria-selected="true" aria-controls="painel-pagamentos" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
       Pagamentos
     </button>
-    <button class="aba" role="tab" id="abaAdt" aria-selected="false" aria-controls="painelAdt" type="button">
+    <button class="aba" role="tab" id="aba-adiantamentos" data-tipo="adiantamentos" aria-selected="false" aria-controls="painel-adiantamentos" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-      Adiantamentos <span class="breve">em breve</span>
+      Adiantamentos
     </button>
   </nav>
 </header>
 
-<main class="wrap" id="painelPag" role="tabpanel" aria-labelledby="abaPag">
-  <section class="kpis" id="kpis"></section>
-
-  <section class="filtros" id="filtros">
-    <div class="campo busca">
-      <label for="fBusca">Buscar</label>
-      <input id="fBusca" type="search" placeholder="Req., fornecedor, CNPJ…">
-    </div>
-    <div class="campo" data-ms="empresa" data-rotulo="Empresa"></div>
-    <div class="campo" data-ms="setor" data-rotulo="Setor"></div>
-    <div class="campo" data-ms="aprovador" data-rotulo="Aprovador atual"></div>
-    <div class="campo" data-ms="requisitante" data-rotulo="Requisitante"></div>
-    <div class="campo" data-ms="centro" data-rotulo="Centro de custo"></div>
-    <div class="campo" data-ms="prog" data-rotulo="Prog. pagto"></div>
-    <button class="btn-link" id="btnLimpar" type="button">Limpar filtros</button>
-  </section>
-
-  <section class="grid">
-    <div class="card">
-      <div class="card-h">
-        <h2>Requisições em aprovação</h2>
-        <span class="info" id="infoTabela"></span>
-      </div>
-      <div class="scroll" id="areaTabela">
-        <div class="estado"><div class="spin"></div>Lendo o relatório do MXM…</div>
-      </div>
-      <div class="rodape">
-        <span>Clique numa linha para ver o fluxo de aprovação. O nº da requisição pode ser selecionado e copiado.</span>
-        <div class="acoes">
-          <button class="btn" id="btnCopiarReqs" type="button">Copiar nº das requisições</button>
-          <button class="btn" id="btnExcel" type="button">Exportar Excel</button>
-        </div>
-      </div>
-    </div>
-
-    <aside class="card">
-      <div class="card-h">
-        <h2>Com quem está</h2>
-        <span class="info">qtd. · valor · baixar</span>
-      </div>
-      <ul class="rank" id="rank"></ul>
-    </aside>
-  </section>
-</main>
-
-<main class="wrap" id="painelAdt" role="tabpanel" aria-labelledby="abaAdt" hidden>
-  <div class="card">
-    <div class="estado">
-      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
-      <h3>Adiantamentos em breve</h3>
-      O farol de adiantamentos vai aparecer aqui.
-    </div>
-  </div>
-</main>
+<main class="wrap" id="painel-pagamentos" role="tabpanel" aria-labelledby="aba-pagamentos"></main>
+<main class="wrap" id="painel-adiantamentos" role="tabpanel" aria-labelledby="aba-adiantamentos" hidden></main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -310,10 +260,6 @@
   var ICO_BAIXAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
   var ICO_COPIAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 
-  var D = null;
-  var REQS = [];
-  var estado = { faixa: '', ordem: 'dias', dir: 1, aberta: '' };
-  var busca = document.getElementById('fBusca');
 
   /* ---------- utilitários ---------- */
   function esc(s) {
@@ -359,337 +305,6 @@
     else reserva();
   }
 
-  /* ---------- filtros (seleção múltipla em cascata) ---------- */
-  var FILTROS = {
-    empresa: { valores: function (r) { return [r.empresa]; } },
-    setor: { valores: function (r) { return [r._setor]; } },
-    aprovador: { valores: function (r) { return [r.aprovadorAtual]; } },
-    requisitante: { valores: function (r) { return [r.requisitante]; } },
-    centro: { valores: function (r) { return r._centros; } },
-    prog: { valores: function (r) { return [r.progPagto]; }, rotulo: data, cronologico: true }
-  };
-  var SEL = {};
-  Object.keys(FILTROS).forEach(function (k) { SEL[k] = new Set(); });
-  var abertoMs = null;
-
-  function passa(r, exceto, ignorarFaixa) {
-    if (!ignorarFaixa && estado.faixa && r.faixa !== estado.faixa) return false;
-    var q = semAcento(busca.value.trim());
-    if (q && r._busca.indexOf(q) === -1) return false;
-    for (var k in FILTROS) {
-      if (k === exceto || !SEL[k].size) continue;
-      var vs = FILTROS[k].valores(r), achou = false;
-      for (var i = 0; i < vs.length; i++) if (SEL[k].has(vs[i])) { achou = true; break; }
-      if (!achou) return false;
-    }
-    return true;
-  }
-  function filtradas(ignorarFaixa) { return REQS.filter(function (r) { return passa(r, null, ignorarFaixa); }); }
-
-  function opcoesDe(k) {
-    var cont = {};
-    REQS.forEach(function (r) {
-      if (!passa(r, k, false)) return;
-      FILTROS[k].valores(r).forEach(function (v) { if (v) cont[v] = (cont[v] || 0) + 1; });
-    });
-    SEL[k].forEach(function (v) { if (!(v in cont)) cont[v] = 0; }); // selecionado continua visível para desmarcar
-    var lista = Object.keys(cont);
-    lista.sort(FILTROS[k].cronologico ? undefined : function (a, b) { return a.localeCompare(b, 'pt-BR'); });
-    return lista.map(function (v) { return { v: v, n: cont[v] }; });
-  }
-
-  function montarFiltros() {
-    document.querySelectorAll('[data-ms]').forEach(function (campo) {
-      var k = campo.getAttribute('data-ms');
-      campo.innerHTML =
-        '<span class="lbl" id="lbl-' + k + '">' + esc(campo.getAttribute('data-rotulo')) + '</span>' +
-        '<button type="button" class="ms-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="lbl-' + k + ' btn-' + k + '" id="btn-' + k + '">Todos</button>' +
-        '<div class="ms-pop" hidden>' +
-          '<input type="search" placeholder="Filtrar opções…" aria-label="Filtrar opções">' +
-          '<div class="ms-acoes"><button type="button" data-a="todos">Marcar visíveis</button><button type="button" data-a="limpar">Limpar</button></div>' +
-          '<ul class="ms-lista" role="listbox" aria-multiselectable="true"></ul>' +
-        '</div>';
-      var btn = campo.querySelector('.ms-btn'), pop = campo.querySelector('.ms-pop'), inp = pop.querySelector('input');
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (abertoMs === k) fecharMs(); else abrirMs(k);
-      });
-      pop.addEventListener('click', function (e) { e.stopPropagation(); });
-      inp.addEventListener('input', function () { listarMs(k); });
-      pop.querySelector('[data-a="todos"]').addEventListener('click', function () {
-        pop.querySelectorAll('.ms-lista input').forEach(function (c) { SEL[k].add(c.value); });
-        listarMs(k); render();
-      });
-      pop.querySelector('[data-a="limpar"]').addEventListener('click', function () {
-        SEL[k].clear(); listarMs(k); render();
-      });
-      pop.querySelector('.ms-lista').addEventListener('change', function (e) {
-        var c = e.target;
-        if (c.checked) SEL[k].add(c.value); else SEL[k].delete(c.value);
-        render();
-      });
-    });
-    document.addEventListener('click', fecharMs);
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fecharMs(); });
-  }
-
-  function abrirMs(k) {
-    fecharMs();
-    abertoMs = k;
-    var campo = document.querySelector('[data-ms="' + k + '"]');
-    var pop = campo.querySelector('.ms-pop');
-    campo.querySelector('.ms-btn').setAttribute('aria-expanded', 'true');
-    pop.querySelector('input').value = '';
-    pop.hidden = false;
-    pop.classList.toggle('dir', campo.getBoundingClientRect().left + 300 > window.innerWidth);
-    listarMs(k);
-    pop.querySelector('input').focus();
-  }
-  function fecharMs() {
-    if (!abertoMs) return;
-    var campo = document.querySelector('[data-ms="' + abertoMs + '"]');
-    campo.querySelector('.ms-pop').hidden = true;
-    campo.querySelector('.ms-btn').setAttribute('aria-expanded', 'false');
-    abertoMs = null;
-  }
-  function listarMs(k) {
-    var pop = document.querySelector('[data-ms="' + k + '"] .ms-pop');
-    var q = semAcento(pop.querySelector('input').value.trim());
-    var rot = FILTROS[k].rotulo || function (v) { return v; };
-    var ops = opcoesDe(k).filter(function (o) { return !q || semAcento(rot(o.v)).indexOf(q) !== -1; });
-    pop.querySelector('.ms-lista').innerHTML = ops.length ? ops.map(function (o) {
-      return '<li class="' + (o.n ? '' : 'zero') + '"><label><input type="checkbox" value="' + esc(o.v) + '"' + (SEL[k].has(o.v) ? ' checked' : '') + '>' +
-        '<span class="t">' + esc(rot(o.v)) + '</span><span class="n">' + o.n + '</span></label></li>';
-    }).join('') : '<li class="ms-vazio">Nenhuma opção</li>';
-  }
-  function rotularBotoes() {
-    Object.keys(FILTROS).forEach(function (k) {
-      var btn = document.getElementById('btn-' + k);
-      var rot = FILTROS[k].rotulo || function (v) { return v; };
-      var n = SEL[k].size;
-      btn.textContent = !n ? 'Todos' : (n === 1 ? rot(Array.from(SEL[k])[0]) : n + ' selecionados');
-      btn.title = n ? Array.from(SEL[k]).map(rot).join('\n') : '';
-      btn.classList.toggle('on', n > 0);
-    });
-  }
-
-  /* ---------- carga ---------- */
-  function carregar(forcar) {
-    document.getElementById('areaTabela').innerHTML = '<div class="estado"><div class="spin"></div>Lendo o relatório do MXM…</div>';
-    google.script.run
-      .withSuccessHandler(receber)
-      .withFailureHandler(function (e) {
-        document.getElementById('areaTabela').innerHTML = '<div class="estado"><h3>Não consegui ler o relatório</h3>' + esc(e && e.message ? e.message : e) + '</div>';
-      })
-      .getFarol(!!forcar);
-  }
-
-  function receber(d) {
-    D = d;
-    REQS = d.requisicoes.map(function (r) {
-      var f = separaDoc(r.fornecedor);
-      r._fornNome = f.nome; r._fornDoc = f.doc;
-      r._setor = limpa(r.setor);
-      r._centros = r.centros.map(limpa);
-      r._busca = semAcento([r.id, r.fornecedor, r.aprovadorAtual, r.requisitante, r.empresa, r._centros.join(' '), r.projetos.join(' ')].join(' '));
-      return r;
-    });
-    document.getElementById('meta').innerHTML =
-      'Relatório MXM: <b>' + esc(d.atualizacao || 'sem data') + '</b><br>Prazos contados a partir de <b>' + data(d.hoje) + '</b>';
-    render();
-  }
-
-  /* ---------- render ---------- */
-  function render() {
-    rotularBotoes();
-    var base = filtradas(true);
-    renderKpis(base);
-    var lista = estado.faixa ? base.filter(function (r) { return r.faixa === estado.faixa; }) : base;
-    renderRank(lista);
-    renderTabela(lista);
-  }
-
-  function renderKpis(base) {
-    var html = '<button type="button" class="kpi kpi-total" data-faixa="">' +
-      '<div class="kpi-lbl">Em aprovação</div>' +
-      '<div class="kpi-val num">' + base.length.toLocaleString('pt-BR') + '</div>' +
-      '<div class="kpi-sub">requisições · <b>' + brl(soma(base)) + '</b></div></button>';
-    D.faixas.forEach(function (f) {
-      var it = base.filter(function (r) { return r.faixa === f.id; });
-      var venc = f.id === 'critico' ? it.filter(function (r) { return r.dias < 0; }).length : 0;
-      html += '<button type="button" class="kpi' + (estado.faixa === f.id ? ' ativo' : '') + '" data-faixa="' + f.id + '" aria-pressed="' + (estado.faixa === f.id) + '">' +
-        '<div class="kpi-lbl"><span class="dot ' + FAIXA_COR[f.id] + '"></span>' + esc(FAIXA_ROT[f.id] || f.rotulo) + '</div>' +
-        '<div class="kpi-val num">' + it.length + (venc ? '<span class="tag-venc">' + venc + ' vencidas</span>' : '') + '</div>' +
-        '<div class="kpi-sub num">' + brl(soma(it)) + '</div>' +
-        '<span class="bar ' + FAIXA_COR[f.id] + '"></span></button>';
-    });
-    var el = document.getElementById('kpis');
-    el.innerHTML = html;
-    el.querySelectorAll('button').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var f = b.getAttribute('data-faixa');
-        estado.faixa = (f === '' || estado.faixa === f) ? '' : f;
-        render();
-      });
-    });
-  }
-
-  function renderRank(lista) {
-    var g = {};
-    lista.forEach(function (r) {
-      var k = r.aprovadorAtual || '—';
-      g[k] = g[k] || { nome: k, qtd: 0, valor: 0, crit: 0, grupo: r.atualSemNome };
-      g[k].qtd++; g[k].valor += r.valor; if (r.faixa === 'critico') g[k].crit++;
-    });
-    var arr = Object.keys(g).map(function (k) { return g[k]; }).sort(function (a, b) { return b.qtd - a.qtd || b.valor - a.valor; });
-    var max = arr.length ? arr[0].qtd : 1;
-    var el = document.getElementById('rank');
-    if (!arr.length) { el.innerHTML = '<li class="estado" style="padding:30px 16px">Nada pendente.</li>'; return; }
-    el.innerHTML = arr.map(function (a) {
-      var nome = a.grupo ? titulo(a.nome) : a.nome;
-      return '<li class="' + (SEL.aprovador.has(a.nome) ? 'ativo' : '') + '">' +
-        '<button type="button" class="rk-filtro" data-nome="' + esc(a.nome) + '" title="Filtrar: ' + esc(nome) + '">' +
-          '<div class="rk-top"><span class="rk-nome">' + esc(nome) + (a.grupo ? '<span class="grupo">grupo</span>' : '') + '</span><span class="rk-qtd num">' + a.qtd + '</span></div>' +
-          '<div class="rk-trilho"><div class="rk-barra" style="width:' + Math.max(3, a.qtd / max * 100) + '%"></div></div>' +
-          '<div class="rk-sub num"><span>' + brl(a.valor) + '</span>' + (a.crit ? '<span class="rk-crit">' + a.crit + ' até 3 d.u.</span>' : '') + '</div>' +
-        '</button>' +
-        '<button type="button" class="rk-baixar" data-nome="' + esc(a.nome) + '" title="Baixar Excel com as ' + a.qtd + ' requisições de ' + esc(nome) + '" aria-label="Baixar Excel de ' + esc(nome) + '">' + ICO_BAIXAR + '</button>' +
-        '</li>';
-    }).join('');
-    el.querySelectorAll('.rk-filtro').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var n = b.getAttribute('data-nome');
-        if (SEL.aprovador.has(n)) SEL.aprovador.delete(n); else SEL.aprovador.add(n);
-        render();
-      });
-    });
-    el.querySelectorAll('.rk-baixar').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var n = b.getAttribute('data-nome');
-        baixarDoAprovador(n, lista.filter(function (r) { return (r.aprovadorAtual || '—') === n; }));
-      });
-    });
-  }
-
-  var COLS = [
-    { k: 'dias', t: 'Farol' },
-    { k: 'id', t: 'Req.' },
-    { k: '_fornNome', t: 'Fornecedor' },
-    { k: '_setor', t: 'Setor' },
-    { k: 'aprovadorAtual', t: 'Com quem está' },
-    { k: 'faltam', t: 'Etapa' },
-    { k: 'valor', t: 'Valor', r: true },
-    { k: 'progPagto', t: 'Prog. pagto' }
-  ];
-
-  function ordenar(lista) {
-    var k = estado.ordem, d = estado.dir;
-    return lista.slice().sort(function (a, b) {
-      var x = a[k], y = b[k];
-      if (x == null) x = d > 0 ? Infinity : -Infinity;
-      if (y == null) y = d > 0 ? Infinity : -Infinity;
-      if (typeof x === 'number' && typeof y === 'number') return (x - y) * d || b.valor - a.valor;
-      return String(x).localeCompare(String(y), 'pt-BR', { numeric: true }) * d;
-    });
-  }
-
-  function celFarol(r) {
-    if (r.dias == null) return '<span class="dias-lbl">sem prog.</span>';
-    var txt = r.dias < 0 ? '<span class="venc">' + r.dias + '</span>' : r.dias;
-    var lbl = r.dias < 0 ? 'vencida' : 'd.u.';
-    return '<div class="farol-cell" title="' + esc(r.dias + ' dias úteis até a Prog. pagto · ' + FAIXA_ROT[r.faixa]) + '"><span class="dot ' + FAIXA_COR[r.faixa] + '"></span>' +
-      '<span class="num">' + txt + '</span><span class="dias-lbl">' + lbl + '</span></div>';
-  }
-
-  function celAprovador(r) {
-    if (!r.aprovadorAtual) return '<span class="sub">Todas as etapas aprovadas</span>';
-    if (r.atualSemNome) {
-      return '<div class="aprov">' + esc(titulo(r.cargoAtual || r.aprovadorAtual)) + '<span class="grupo">grupo</span></div>' +
-        (r.usualAtual ? '<div class="sub">Costuma aprovar: ' + esc(r.usualAtual) + '</div>' : '');
-    }
-    return '<div class="aprov">' + esc(r.aprovadorAtual) + '</div><div class="sub">' + esc(titulo(r.cargoAtual)) + '</div>';
-  }
-
-  function celEtapa(r) {
-    var p = r.etapas.map(function (e) { return '<span class="passo ' + e.situacao + '"></span>'; }).join('');
-    return '<div class="passos" aria-hidden="true">' + p + '</div><div class="falta">Falta' + (r.faltam === 1 ? '' : 'm') + ' ' + r.faltam + ' de ' + r.totalNiveis + '</div>';
-  }
-
-  function detalhe(r) {
-    var fluxo = r.etapas.map(function (e, i) {
-      var nome = e.aprovador || titulo(e.cargo);
-      var st = e.situacao === 'aprovado' ? 'Aprovado ' + dataHora(e.data) : (e.situacao === 'atual' ? 'Aguardando' : 'Próximo');
-      var cargo = e.aprovador ? titulo(e.cargo) : 'Aprovação por grupo' + (e.usual ? ' · costuma aprovar: ' + e.usual : '');
-      return '<li class="' + e.situacao + '"><span class="marca">' + (e.situacao === 'aprovado' ? '✓' : (i + 1)) + '</span>' +
-        '<div><div class="fl-nome">' + esc(nome) + '</div><div class="fl-cargo">' + esc(cargo) + ' · nível ' + esc(e.nivel) + '</div></div>' +
-        '<div class="fl-st">' + esc(st) + '</div></li>';
-    }).join('');
-    var obs = r.dias != null && r.dias < 0
-      ? '<div class="obs">Prog. pagto vencida há ' + Math.abs(r.dias) + (r.dias === -1 ? ' dia útil' : ' dias úteis') + '. O pagamento vai para a grade posterior.</div>' : '';
-    var lin = function (k, v) { return v ? '<dt>' + k + '</dt><dd>' + v + '</dd>' : ''; };
-    return '<div class="det-in">' +
-      '<div class="bloco"><h3>Fluxo de aprovação</h3><ol class="fluxo">' + fluxo + '</ol>' + obs + '</div>' +
-      '<div class="bloco"><h3>Dados da requisição</h3><dl class="dl">' +
-        lin('Empresa', esc(r.empresa)) +
-        lin('Fornecedor', esc(r._fornNome) + (r._fornDoc ? '<div class="sub">' + esc(r._fornDoc) + '</div>' : '')) +
-        lin('Tipo', esc(r.tipo)) +
-        lin('Requisição', data(r.dataRequisicao)) +
-        lin('Requisitante', esc(r.requisitante)) +
-        lin('Centro de custo', r._centros.map(esc).join('<br>')) +
-        lin('Projeto', r.projetos.map(function (p) { return esc(limpa(p)); }).join('<br>')) +
-        lin('Título', esc(r.titulos.join(', '))) +
-        lin('Vencimento', data(r.vencimento)) +
-      '</dl></div></div>';
-  }
-
-  function renderTabela(lista) {
-    document.getElementById('infoTabela').innerHTML = '<b>' + lista.length + '</b> de ' + REQS.length + ' · <b>' + brl(soma(lista)) + '</b>';
-    var area = document.getElementById('areaTabela');
-    if (!lista.length) {
-      area.innerHTML = '<div class="estado"><h3>Nenhuma requisição encontrada</h3>Ajuste ou limpe os filtros.</div>';
-      return;
-    }
-    var head = '<tr>' + COLS.map(function (c) {
-      var seta = estado.ordem === c.k ? (estado.dir > 0 ? '▲' : '▼') : '';
-      return '<th class="sort' + (c.r ? ' r' : '') + '" data-k="' + c.k + '" aria-sort="' + (seta ? (estado.dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + c.t + ' <span class="seta">' + seta + '</span></th>';
-    }).join('') + '</tr>';
-    var body = ordenar(lista).map(function (r) {
-      var aberta = estado.aberta === r.id;
-      return '<tr class="linha' + (aberta ? ' aberta' : '') + '" data-id="' + esc(r.id) + '" tabindex="0" aria-expanded="' + aberta + '">' +
-        '<td>' + celFarol(r) + '</td>' +
-        '<td class="c-req"><div class="req"><span>' + esc(r.id) + '</span><button type="button" class="copiar" data-copiar="' + esc(r.id) + '" title="Copiar nº da requisição" aria-label="Copiar ' + esc(r.id) + '">' + ICO_COPIAR + '</button></div><div class="sub">' + esc(r.empresa) + '</div></td>' +
-        '<td><div class="forn">' + esc(r._fornNome) + '</div><div class="sub">' + esc(r._fornDoc) + '</div></td>' +
-        '<td>' + esc(titulo(semCodigo(r._setor))) + '</td>' +
-        '<td>' + celAprovador(r) + '</td>' +
-        '<td>' + celEtapa(r) + '</td>' +
-        '<td class="r num" style="font-weight:600;white-space:nowrap">' + brl(r.valor) + '</td>' +
-        '<td class="num">' + data(r.progPagto) + '</td>' +
-        '</tr>' + (aberta ? '<tr class="det"><td colspan="' + COLS.length + '">' + detalhe(r) + '</td></tr>' : '');
-    }).join('');
-    area.innerHTML = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
-
-    area.querySelectorAll('th.sort').forEach(function (th) {
-      th.addEventListener('click', function () {
-        var k = th.getAttribute('data-k');
-        if (estado.ordem === k) estado.dir *= -1; else { estado.ordem = k; estado.dir = k === 'valor' ? -1 : 1; }
-        render();
-      });
-    });
-    area.querySelectorAll('.copiar').forEach(function (b) {
-      b.addEventListener('click', function (e) { e.stopPropagation(); copiar(b.getAttribute('data-copiar'), 'Requisição ' + b.getAttribute('data-copiar') + ' copiada'); });
-    });
-    area.querySelectorAll('tr.linha').forEach(function (tr) {
-      var abre = function () { var id = tr.getAttribute('data-id'); estado.aberta = estado.aberta === id ? '' : id; render(); };
-      tr.addEventListener('click', function (e) {
-        // Não abre/fecha ao selecionar texto nem ao clicar no nº da requisição.
-        if (e.target.closest('.c-req')) return;
-        if (String(window.getSelection ? window.getSelection() : '').length) return;
-        abre();
-      });
-      tr.addEventListener('keydown', function (e) { if (e.target === tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abre(); } });
-    });
-  }
-
   /* ---------- Excel ---------- */
   var xlsxPromessa = null;
   function carregarXlsx() {
@@ -731,66 +346,482 @@
   var COLS_APROVADOR = ['Cd.Empresa', 'St.Requisição', 'Centro de Custo', 'Número do Título', 'Req.Pagto', 'Valor líquido - Apr',
     'Projeto', 'Setor', 'Data Vencimento', 'Fora do Prazo', 'Aprovador alocado', 'Fornecedor'];
 
-  function baixarDoAprovador(nome, reqs) {
-    var linhas = [];
-    ordenar(reqs).forEach(function (r) {
-      (r.linhasAtual || []).forEach(function (l) {
-        var x = l.slice();
-        x[3] = numSeDer(x[3]); x[4] = numSeDer(x[4]); x[8] = isoParaData(x[8]);
-        linhas.push(x);
+  /* ================= Painel (um por aba) ================= */
+  function criarPainel(tipo, rotulo, root) {
+    var pre = tipo + '-';
+    var D = null, REQS = [], meta = '&nbsp;', carregado = false;
+    var estado = { faixa: '', ordem: 'dias', dir: 1, aberta: '' };
+    root.innerHTML = '  <div class="aviso" data-r="aviso" hidden><span>⚠</span><span><b>Ordem de aprovação provisória.</b> Nesta aba, "com quem está" segue a ordem das linhas do relatório, até definirmos a regra de aprovação própria.</span></div>' +
+      '  <section class="kpis" data-r="kpis"></section>' +
+      '' +
+      '  <section class="filtros">' +
+      '    <div class="campo busca">' +
+      '      <label for="' + pre + 'busca">Buscar</label>' +
+      '      <input id="' + pre + 'busca" data-r="busca" type="search" placeholder="Req., fornecedor, CNPJ…">' +
+      '    </div>' +
+      '    <div class="campo" data-ms="empresa" data-rotulo="Empresa"></div>' +
+      '    <div class="campo" data-ms="setor" data-rotulo="Setor"></div>' +
+      '    <div class="campo" data-ms="aprovador" data-rotulo="Aprovador atual"></div>' +
+      '    <div class="campo" data-ms="requisitante" data-rotulo="Requisitante"></div>' +
+      '    <div class="campo" data-ms="centro" data-rotulo="Centro de custo"></div>' +
+      '    <div class="campo" data-ms="prog" data-rotulo="Prog. pagto"></div>' +
+      '    <button class="btn-link" data-r="limpar" type="button">Limpar filtros</button>' +
+      '  </section>' +
+      '' +
+      '  <section class="grid">' +
+      '    <div class="card">' +
+      '      <div class="card-h">' +
+      '        <h2>Requisições em aprovação</h2>' +
+      '        <span class="info" data-r="infoTabela"></span>' +
+      '      </div>' +
+      '      <div class="scroll" data-r="areaTabela">' +
+      '        <div class="estado"><div class="spin"></div>Lendo o relatório do MXM…</div>' +
+      '      </div>' +
+      '      <div class="rodape">' +
+      '        <span>Clique numa linha para ver o fluxo de aprovação. O nº da requisição pode ser selecionado e copiado.</span>' +
+      '        <div class="acoes">' +
+      '          <button class="btn" data-r="copiarReqs" type="button">Copiar nº das requisições</button>' +
+      '          <button class="btn" data-r="excel" type="button">Exportar Excel</button>' +
+      '        </div>' +
+      '      </div>' +
+      '    </div>' +
+      '' +
+      '    <aside class="card">' +
+      '      <div class="card-h">' +
+      '        <h2>Com quem está</h2>' +
+      '        <span class="info">qtd. · valor · baixar</span>' +
+      '      </div>' +
+      '      <ul class="rank" data-r="rank"></ul>' +
+      '    </aside>' +
+      '  </section>';
+    function $(r) { return root.querySelector('[data-r="' + r + '"]'); }
+    var busca = $('busca');
+    function atualizarMeta() { if (!root.hidden) document.getElementById('meta').innerHTML = meta; }
+
+    /* ---------- filtros (seleção múltipla em cascata) ---------- */
+    var FILTROS = {
+      empresa: { valores: function (r) { return [r.empresa]; } },
+      setor: { valores: function (r) { return [r._setor]; } },
+      aprovador: { valores: function (r) { return [r.aprovadorAtual]; } },
+      requisitante: { valores: function (r) { return [r.requisitante]; } },
+      centro: { valores: function (r) { return r._centros; } },
+      prog: { valores: function (r) { return [r.progPagto]; }, rotulo: data, cronologico: true }
+    };
+    var SEL = {};
+    Object.keys(FILTROS).forEach(function (k) { SEL[k] = new Set(); });
+    var abertoMs = null;
+
+    function passa(r, exceto, ignorarFaixa) {
+      if (!ignorarFaixa && estado.faixa && r.faixa !== estado.faixa) return false;
+      var q = semAcento(busca.value.trim());
+      if (q && r._busca.indexOf(q) === -1) return false;
+      for (var k in FILTROS) {
+        if (k === exceto || !SEL[k].size) continue;
+        var vs = FILTROS[k].valores(r), achou = false;
+        for (var i = 0; i < vs.length; i++) if (SEL[k].has(vs[i])) { achou = true; break; }
+        if (!achou) return false;
+      }
+      return true;
+    }
+    function filtradas(ignorarFaixa) { return REQS.filter(function (r) { return passa(r, null, ignorarFaixa); }); }
+
+    function opcoesDe(k) {
+      var cont = {};
+      REQS.forEach(function (r) {
+        if (!passa(r, k, false)) return;
+        FILTROS[k].valores(r).forEach(function (v) { if (v) cont[v] = (cont[v] || 0) + 1; });
       });
+      SEL[k].forEach(function (v) { if (!(v in cont)) cont[v] = 0; }); // selecionado continua visível para desmarcar
+      var lista = Object.keys(cont);
+      lista.sort(FILTROS[k].cronologico ? undefined : function (a, b) { return a.localeCompare(b, 'pt-BR'); });
+      return lista.map(function (v) { return { v: v, n: cont[v] }; });
+    }
+
+    function montarFiltros() {
+      root.querySelectorAll('[data-ms]').forEach(function (campo) {
+        var k = campo.getAttribute('data-ms');
+        campo.innerHTML =
+          '<span class="lbl" id="' + pre + 'lbl-' + k + '">' + esc(campo.getAttribute('data-rotulo')) + '</span>' +
+          '<button type="button" class="ms-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="' + pre + 'lbl-' + k + ' ' + pre + 'btn-' + k + '" id="' + pre + 'btn-' + k + '">Todos</button>' +
+          '<div class="ms-pop" hidden>' +
+            '<input type="search" placeholder="Filtrar opções…" aria-label="Filtrar opções">' +
+            '<div class="ms-acoes"><button type="button" data-a="todos">Marcar visíveis</button><button type="button" data-a="limpar">Limpar</button></div>' +
+            '<ul class="ms-lista" role="listbox" aria-multiselectable="true"></ul>' +
+          '</div>';
+        var btn = campo.querySelector('.ms-btn'), pop = campo.querySelector('.ms-pop'), inp = pop.querySelector('input');
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (abertoMs === k) fecharMs(); else abrirMs(k);
+        });
+        pop.addEventListener('click', function (e) { e.stopPropagation(); });
+        inp.addEventListener('input', function () { listarMs(k); });
+        pop.querySelector('[data-a="todos"]').addEventListener('click', function () {
+          pop.querySelectorAll('.ms-lista input').forEach(function (c) { SEL[k].add(c.value); });
+          listarMs(k); render();
+        });
+        pop.querySelector('[data-a="limpar"]').addEventListener('click', function () {
+          SEL[k].clear(); listarMs(k); render();
+        });
+        pop.querySelector('.ms-lista').addEventListener('change', function (e) {
+          var c = e.target;
+          if (c.checked) SEL[k].add(c.value); else SEL[k].delete(c.value);
+          render();
+        });
+      });
+      document.addEventListener('click', fecharMs);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fecharMs(); });
+    }
+
+    function abrirMs(k) {
+      fecharMs();
+      abertoMs = k;
+      var campo = root.querySelector('[data-ms="' + k + '"]');
+      var pop = campo.querySelector('.ms-pop');
+      campo.querySelector('.ms-btn').setAttribute('aria-expanded', 'true');
+      pop.querySelector('input').value = '';
+      pop.hidden = false;
+      pop.classList.toggle('dir', campo.getBoundingClientRect().left + 300 > window.innerWidth);
+      listarMs(k);
+      pop.querySelector('input').focus();
+    }
+    function fecharMs() {
+      if (!abertoMs) return;
+      var campo = root.querySelector('[data-ms="' + abertoMs + '"]');
+      campo.querySelector('.ms-pop').hidden = true;
+      campo.querySelector('.ms-btn').setAttribute('aria-expanded', 'false');
+      abertoMs = null;
+    }
+    function listarMs(k) {
+      var pop = root.querySelector('[data-ms="' + k + '"] .ms-pop');
+      var q = semAcento(pop.querySelector('input').value.trim());
+      var rot = FILTROS[k].rotulo || function (v) { return v; };
+      var ops = opcoesDe(k).filter(function (o) { return !q || semAcento(rot(o.v)).indexOf(q) !== -1; });
+      pop.querySelector('.ms-lista').innerHTML = ops.length ? ops.map(function (o) {
+        return '<li class="' + (o.n ? '' : 'zero') + '"><label><input type="checkbox" value="' + esc(o.v) + '"' + (SEL[k].has(o.v) ? ' checked' : '') + '>' +
+          '<span class="t">' + esc(rot(o.v)) + '</span><span class="n">' + o.n + '</span></label></li>';
+      }).join('') : '<li class="ms-vazio">Nenhuma opção</li>';
+    }
+    function rotularBotoes() {
+      Object.keys(FILTROS).forEach(function (k) {
+        var btn = root.querySelector('[data-ms="' + k + '"] .ms-btn');
+        var rot = FILTROS[k].rotulo || function (v) { return v; };
+        var n = SEL[k].size;
+        btn.textContent = !n ? 'Todos' : (n === 1 ? rot(Array.from(SEL[k])[0]) : n + ' selecionados');
+        btn.title = n ? Array.from(SEL[k]).map(rot).join('\n') : '';
+        btn.classList.toggle('on', n > 0);
+      });
+    }
+
+    /* ---------- carga ---------- */
+    function carregar(forcar) {
+      carregado = true;
+      $('areaTabela').innerHTML = '<div class="estado"><div class="spin"></div>Lendo o relatório do MXM…</div>';
+      google.script.run
+        .withSuccessHandler(receber)
+        .withFailureHandler(function (e) {
+          $('areaTabela').innerHTML = '<div class="estado"><h3>Não consegui ler o relatório</h3>' + esc(e && e.message ? e.message : e) + '</div>';
+        })
+        .getFarol(tipo, !!forcar);
+    }
+
+    function receber(d) {
+      carregado = true;
+      if (d.vazio) {
+        D = null; REQS = [];
+        meta = 'Aba <b>' + esc(d.aba) + '</b> vazia';
+        atualizarMeta();
+        $('kpis').innerHTML = ''; $('rank').innerHTML = ''; $('infoTabela').innerHTML = '';
+        $('areaTabela').innerHTML = '<div class="estado"><h3>Nenhum relatório colado ainda</h3>Cole o relatório do MXM na aba <b>' + esc(d.aba) + '</b> e clique em Atualizar.</div>';
+        return;
+      }
+      D = d;
+      $('aviso').hidden = d.ordem !== 'relatorio';
+      REQS = d.requisicoes.map(function (r) {
+        var f = separaDoc(r.fornecedor);
+        r._fornNome = f.nome; r._fornDoc = f.doc;
+        r._setor = limpa(r.setor);
+        r._centros = r.centros.map(limpa);
+        r._busca = semAcento([r.id, r.fornecedor, r.aprovadorAtual, r.requisitante, r.empresa, r._centros.join(' '), r.projetos.join(' ')].join(' '));
+        return r;
+      });
+      meta = 'Relatório MXM: <b>' + esc(d.atualizacao || 'sem data') + '</b><br>Prazos contados a partir de <b>' + data(d.hoje) + '</b>';
+      atualizarMeta();
+      render();
+    }
+
+    /* ---------- render ---------- */
+    function render() {
+      rotularBotoes();
+      if (!D) return;
+      var base = filtradas(true);
+      renderKpis(base);
+      var lista = estado.faixa ? base.filter(function (r) { return r.faixa === estado.faixa; }) : base;
+      renderRank(lista);
+      renderTabela(lista);
+    }
+
+    function renderKpis(base) {
+      var html = '<button type="button" class="kpi kpi-total" data-faixa="">' +
+        '<div class="kpi-lbl">Em aprovação</div>' +
+        '<div class="kpi-val num">' + base.length.toLocaleString('pt-BR') + '</div>' +
+        '<div class="kpi-sub">requisições · <b>' + brl(soma(base)) + '</b></div></button>';
+      D.faixas.forEach(function (f) {
+        var it = base.filter(function (r) { return r.faixa === f.id; });
+        var venc = f.id === 'critico' ? it.filter(function (r) { return r.dias < 0; }).length : 0;
+        html += '<button type="button" class="kpi' + (estado.faixa === f.id ? ' ativo' : '') + '" data-faixa="' + f.id + '" aria-pressed="' + (estado.faixa === f.id) + '">' +
+          '<div class="kpi-lbl"><span class="dot ' + FAIXA_COR[f.id] + '"></span>' + esc(FAIXA_ROT[f.id] || f.rotulo) + '</div>' +
+          '<div class="kpi-val num">' + it.length + (venc ? '<span class="tag-venc">' + venc + ' vencidas</span>' : '') + '</div>' +
+          '<div class="kpi-sub num">' + brl(soma(it)) + '</div>' +
+          '<span class="bar ' + FAIXA_COR[f.id] + '"></span></button>';
+      });
+      var el = $('kpis');
+      el.innerHTML = html;
+      el.querySelectorAll('button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var f = b.getAttribute('data-faixa');
+          estado.faixa = (f === '' || estado.faixa === f) ? '' : f;
+          render();
+        });
+      });
+    }
+
+    function renderRank(lista) {
+      var g = {};
+      lista.forEach(function (r) {
+        var k = r.aprovadorAtual || '—';
+        g[k] = g[k] || { nome: k, qtd: 0, valor: 0, crit: 0, grupo: r.atualSemNome };
+        g[k].qtd++; g[k].valor += r.valor; if (r.faixa === 'critico') g[k].crit++;
+      });
+      var arr = Object.keys(g).map(function (k) { return g[k]; }).sort(function (a, b) { return b.qtd - a.qtd || b.valor - a.valor; });
+      var max = arr.length ? arr[0].qtd : 1;
+      var el = $('rank');
+      if (!arr.length) { el.innerHTML = '<li class="estado" style="padding:30px 16px">Nada pendente.</li>'; return; }
+      el.innerHTML = arr.map(function (a) {
+        var nome = a.grupo ? titulo(a.nome) : a.nome;
+        return '<li class="' + (SEL.aprovador.has(a.nome) ? 'ativo' : '') + '">' +
+          '<button type="button" class="rk-filtro" data-nome="' + esc(a.nome) + '" title="Filtrar: ' + esc(nome) + '">' +
+            '<div class="rk-top"><span class="rk-nome">' + esc(nome) + (a.grupo ? '<span class="grupo">grupo</span>' : '') + '</span><span class="rk-qtd num">' + a.qtd + '</span></div>' +
+            '<div class="rk-trilho"><div class="rk-barra" style="width:' + Math.max(3, a.qtd / max * 100) + '%"></div></div>' +
+            '<div class="rk-sub num"><span>' + brl(a.valor) + '</span>' + (a.crit ? '<span class="rk-crit">' + a.crit + ' até 3 d.u.</span>' : '') + '</div>' +
+          '</button>' +
+          '<button type="button" class="rk-baixar" data-nome="' + esc(a.nome) + '" title="Baixar Excel com as ' + a.qtd + ' requisições de ' + esc(nome) + '" aria-label="Baixar Excel de ' + esc(nome) + '">' + ICO_BAIXAR + '</button>' +
+          '</li>';
+      }).join('');
+      el.querySelectorAll('.rk-filtro').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var n = b.getAttribute('data-nome');
+          if (SEL.aprovador.has(n)) SEL.aprovador.delete(n); else SEL.aprovador.add(n);
+          render();
+        });
+      });
+      el.querySelectorAll('.rk-baixar').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var n = b.getAttribute('data-nome');
+          baixarDoAprovador(n, lista.filter(function (r) { return (r.aprovadorAtual || '—') === n; }));
+        });
+      });
+    }
+
+    var COLS = [
+      { k: 'dias', t: 'Farol' },
+      { k: 'id', t: 'Req.' },
+      { k: '_fornNome', t: 'Fornecedor' },
+      { k: '_setor', t: 'Setor' },
+      { k: 'aprovadorAtual', t: 'Com quem está' },
+      { k: 'faltam', t: 'Etapa' },
+      { k: 'valor', t: 'Valor', r: true },
+      { k: 'progPagto', t: 'Prog. pagto' }
+    ];
+
+    function ordenar(lista) {
+      var k = estado.ordem, d = estado.dir;
+      return lista.slice().sort(function (a, b) {
+        var x = a[k], y = b[k];
+        if (x == null) x = d > 0 ? Infinity : -Infinity;
+        if (y == null) y = d > 0 ? Infinity : -Infinity;
+        if (typeof x === 'number' && typeof y === 'number') return (x - y) * d || b.valor - a.valor;
+        return String(x).localeCompare(String(y), 'pt-BR', { numeric: true }) * d;
+      });
+    }
+
+    function celFarol(r) {
+      if (r.dias == null) return '<span class="dias-lbl">sem prog.</span>';
+      var txt = r.dias < 0 ? '<span class="venc">' + r.dias + '</span>' : r.dias;
+      var lbl = r.dias < 0 ? 'vencida' : 'd.u.';
+      return '<div class="farol-cell" title="' + esc(r.dias + ' dias úteis até a Prog. pagto · ' + FAIXA_ROT[r.faixa]) + '"><span class="dot ' + FAIXA_COR[r.faixa] + '"></span>' +
+        '<span class="num">' + txt + '</span><span class="dias-lbl">' + lbl + '</span></div>';
+    }
+
+    function celAprovador(r) {
+      if (!r.aprovadorAtual) return '<span class="sub">Todas as etapas aprovadas</span>';
+      if (r.atualSemNome) {
+        return '<div class="aprov">' + esc(titulo(r.cargoAtual || r.aprovadorAtual)) + '<span class="grupo">grupo</span></div>' +
+          (r.usualAtual ? '<div class="sub">Costuma aprovar: ' + esc(r.usualAtual) + '</div>' : '');
+      }
+      return '<div class="aprov">' + esc(r.aprovadorAtual) + '</div><div class="sub">' + esc(titulo(r.cargoAtual)) + '</div>';
+    }
+
+    function celEtapa(r) {
+      var p = r.etapas.map(function (e) { return '<span class="passo ' + e.situacao + '"></span>'; }).join('');
+      return '<div class="passos" aria-hidden="true">' + p + '</div><div class="falta">Falta' + (r.faltam === 1 ? '' : 'm') + ' ' + r.faltam + ' de ' + r.totalNiveis + '</div>';
+    }
+
+    function detalhe(r) {
+      var fluxo = r.etapas.map(function (e, i) {
+        var nome = e.aprovador || titulo(e.cargo);
+        var st = e.situacao === 'aprovado' ? 'Aprovado ' + dataHora(e.data) : (e.situacao === 'atual' ? 'Aguardando' : 'Próximo');
+        var cargo = e.aprovador ? titulo(e.cargo) : 'Aprovação por grupo' + (e.usual ? ' · costuma aprovar: ' + e.usual : '');
+        return '<li class="' + e.situacao + '"><span class="marca">' + (e.situacao === 'aprovado' ? '✓' : (i + 1)) + '</span>' +
+          '<div><div class="fl-nome">' + esc(nome) + '</div><div class="fl-cargo">' + esc(cargo) + ' · nível ' + esc(e.nivel) + '</div></div>' +
+          '<div class="fl-st">' + esc(st) + '</div></li>';
+      }).join('');
+      var obs = r.dias != null && r.dias < 0
+        ? '<div class="obs">Prog. pagto vencida há ' + Math.abs(r.dias) + (r.dias === -1 ? ' dia útil' : ' dias úteis') + '. O pagamento vai para a grade posterior.</div>' : '';
+      var lin = function (k, v) { return v ? '<dt>' + k + '</dt><dd>' + v + '</dd>' : ''; };
+      return '<div class="det-in">' +
+        '<div class="bloco"><h3>Fluxo de aprovação</h3><ol class="fluxo">' + fluxo + '</ol>' + obs + '</div>' +
+        '<div class="bloco"><h3>Dados da requisição</h3><dl class="dl">' +
+          lin('Empresa', esc(r.empresa)) +
+          lin('Fornecedor', esc(r._fornNome) + (r._fornDoc ? '<div class="sub">' + esc(r._fornDoc) + '</div>' : '')) +
+          lin('Tipo', esc(r.tipo)) +
+          lin('Requisição', data(r.dataRequisicao)) +
+          lin('Requisitante', esc(r.requisitante)) +
+          lin('Centro de custo', r._centros.map(esc).join('<br>')) +
+          lin('Projeto', r.projetos.map(function (p) { return esc(limpa(p)); }).join('<br>')) +
+          lin('Título', esc(r.titulos.join(', '))) +
+          lin('Vencimento', data(r.vencimento)) +
+        '</dl></div></div>';
+    }
+
+    function renderTabela(lista) {
+      $('infoTabela').innerHTML = '<b>' + lista.length + '</b> de ' + REQS.length + ' · <b>' + brl(soma(lista)) + '</b>';
+      var area = $('areaTabela');
+      if (!lista.length) {
+        area.innerHTML = '<div class="estado"><h3>Nenhuma requisição encontrada</h3>Ajuste ou limpe os filtros.</div>';
+        return;
+      }
+      var head = '<tr>' + COLS.map(function (c) {
+        var seta = estado.ordem === c.k ? (estado.dir > 0 ? '▲' : '▼') : '';
+        return '<th class="sort' + (c.r ? ' r' : '') + '" data-k="' + c.k + '" aria-sort="' + (seta ? (estado.dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + c.t + ' <span class="seta">' + seta + '</span></th>';
+      }).join('') + '</tr>';
+      var body = ordenar(lista).map(function (r) {
+        var aberta = estado.aberta === r.id;
+        return '<tr class="linha' + (aberta ? ' aberta' : '') + '" data-id="' + esc(r.id) + '" tabindex="0" aria-expanded="' + aberta + '">' +
+          '<td>' + celFarol(r) + '</td>' +
+          '<td class="c-req"><div class="req"><span>' + esc(r.id) + '</span><button type="button" class="copiar" data-copiar="' + esc(r.id) + '" title="Copiar nº da requisição" aria-label="Copiar ' + esc(r.id) + '">' + ICO_COPIAR + '</button></div><div class="sub">' + esc(r.empresa) + '</div></td>' +
+          '<td><div class="forn">' + esc(r._fornNome) + '</div><div class="sub">' + esc(r._fornDoc) + '</div></td>' +
+          '<td>' + esc(titulo(semCodigo(r._setor))) + '</td>' +
+          '<td>' + celAprovador(r) + '</td>' +
+          '<td>' + celEtapa(r) + '</td>' +
+          '<td class="r num" style="font-weight:600;white-space:nowrap">' + brl(r.valor) + '</td>' +
+          '<td class="num">' + data(r.progPagto) + '</td>' +
+          '</tr>' + (aberta ? '<tr class="det"><td colspan="' + COLS.length + '">' + detalhe(r) + '</td></tr>' : '');
+      }).join('');
+      area.innerHTML = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+
+      area.querySelectorAll('th.sort').forEach(function (th) {
+        th.addEventListener('click', function () {
+          var k = th.getAttribute('data-k');
+          if (estado.ordem === k) estado.dir *= -1; else { estado.ordem = k; estado.dir = k === 'valor' ? -1 : 1; }
+          render();
+        });
+      });
+      area.querySelectorAll('.copiar').forEach(function (b) {
+        b.addEventListener('click', function (e) { e.stopPropagation(); copiar(b.getAttribute('data-copiar'), 'Requisição ' + b.getAttribute('data-copiar') + ' copiada'); });
+      });
+      area.querySelectorAll('tr.linha').forEach(function (tr) {
+        var abre = function () { var id = tr.getAttribute('data-id'); estado.aberta = estado.aberta === id ? '' : id; render(); };
+        tr.addEventListener('click', function (e) {
+          // Não abre/fecha ao selecionar texto nem ao clicar no nº da requisição.
+          if (e.target.closest('.c-req')) return;
+          if (String(window.getSelection ? window.getSelection() : '').length) return;
+          abre();
+        });
+        tr.addEventListener('keydown', function (e) { if (e.target === tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abre(); } });
+      });
+    }
+
+    function baixarDoAprovador(nome, reqs) {
+      var linhas = [];
+      ordenar(reqs).forEach(function (r) {
+        (r.linhasAtual || []).forEach(function (l) {
+          var x = l.slice();
+          x[3] = numSeDer(x[3]); x[4] = numSeDer(x[4]); x[8] = isoParaData(x[8]);
+          linhas.push(x);
+        });
+      });
+      gerarXlsx('Pendencias_' + rotulo + '_' + nomeArquivo(nome) + '_' + (D ? D.hoje : '') + '.xlsx', COLS_APROVADOR, linhas,
+        [11, 14, 34, 16, 11, 18, 40, 30, 16, 13, 26, 50], { 5: '#,##0.00', 8: 'dd/mm/yyyy' });
+    }
+
+    function exportarLista() {
+      var lista = ordenar(filtradas(false));
+      var cab = ['Req.Pagto', 'Cd.Empresa', 'Fornecedor', 'CNPJ/CPF', 'Setor', 'Centro de Custo', 'Com quem está', 'Cargo', 'Faltam aprovar',
+        'Valor', 'Requisição', 'Prog.Pagto.', 'Dias úteis', 'Farol', 'Requisitante'];
+      var linhas = lista.map(function (r) {
+        return [numSeDer(r.id), r.empresa, r._fornNome, r._fornDoc, r._setor, r._centros.join(' | '), r.aprovadorAtual, r.cargoAtual, r.faltam,
+          r.valor, isoParaData(r.dataRequisicao), isoParaData(r.progPagto), r.dias, FAIXA_ROT[r.faixa] || '', r.requisitante];
+      });
+      gerarXlsx('Farol_' + rotulo + '_' + (D ? D.hoje : '') + '.xlsx', cab, linhas,
+        [11, 11, 44, 18, 30, 40, 26, 30, 14, 16, 12, 12, 11, 20, 26], { 9: '#,##0.00', 10: 'dd/mm/yyyy', 11: 'dd/mm/yyyy' });
+    }
+
+    /* ---------- eventos do painel ---------- */
+    var t;
+    busca.addEventListener('input', function () { clearTimeout(t); t = setTimeout(render, 150); });
+    $('limpar').addEventListener('click', function () {
+      busca.value = '';
+      Object.keys(SEL).forEach(function (k) { SEL[k].clear(); });
+      estado.faixa = '';
+      fecharMs();
+      render();
     });
-    gerarXlsx('Pendencias_' + nomeArquivo(nome) + '_' + (D ? D.hoje : '') + '.xlsx', COLS_APROVADOR, linhas,
-      [11, 14, 34, 16, 11, 18, 40, 30, 16, 13, 26, 50], { 5: '#,##0.00', 8: 'dd/mm/yyyy' });
-  }
-
-  function exportarLista() {
-    var lista = ordenar(filtradas(false));
-    var cab = ['Req.Pagto', 'Cd.Empresa', 'Fornecedor', 'CNPJ/CPF', 'Setor', 'Centro de Custo', 'Com quem está', 'Cargo', 'Faltam aprovar',
-      'Valor', 'Requisição', 'Prog.Pagto.', 'Dias úteis', 'Farol', 'Requisitante'];
-    var linhas = lista.map(function (r) {
-      return [numSeDer(r.id), r.empresa, r._fornNome, r._fornDoc, r._setor, r._centros.join(' | '), r.aprovadorAtual, r.cargoAtual, r.faltam,
-        r.valor, isoParaData(r.dataRequisicao), isoParaData(r.progPagto), r.dias, FAIXA_ROT[r.faixa] || '', r.requisitante];
+    $('excel').addEventListener('click', exportarLista);
+    $('copiarReqs').addEventListener('click', function () {
+      var ids = ordenar(filtradas(false)).map(function (r) { return r.id; });
+      copiar(ids.join('\n'), ids.length + ' requisições copiadas');
     });
-    gerarXlsx('Farol_Aprovacoes_' + (D ? D.hoje : '') + '.xlsx', cab, linhas,
-      [11, 11, 44, 18, 30, 40, 26, 30, 14, 16, 12, 12, 11, 20, 26], { 9: '#,##0.00', 10: 'dd/mm/yyyy', 11: 'dd/mm/yyyy' });
+    montarFiltros();
+
+    return {
+      root: root,
+      carregar: carregar,
+      receber: receber,
+      mostrar: function () { atualizarMeta(); if (!carregado) carregar(false); }
+    };
   }
 
-  /* ---------- abas ---------- */
-  function trocarAba(qual) {
-    var pag = qual === 'pag';
-    document.getElementById('abaPag').setAttribute('aria-selected', String(pag));
-    document.getElementById('abaAdt').setAttribute('aria-selected', String(!pag));
-    document.getElementById('painelPag').hidden = !pag;
-    document.getElementById('painelAdt').hidden = pag;
+  /* ================= Abas ================= */
+  var PAINEIS = {
+    pagamentos: criarPainel('pagamentos', 'Pagamentos', document.getElementById('painel-pagamentos')),
+    adiantamentos: criarPainel('adiantamentos', 'Adiantamentos', document.getElementById('painel-adiantamentos'))
+  };
+  var ativo = 'pagamentos';
+
+  function trocarAba(tipo) {
+    ativo = tipo;
+    Object.keys(PAINEIS).forEach(function (k) {
+      document.getElementById('aba-' + k).setAttribute('aria-selected', String(k === tipo));
+      PAINEIS[k].root.hidden = k !== tipo;
+    });
+    PAINEIS[tipo].mostrar();
   }
 
-  /* ---------- eventos ---------- */
-  var t;
-  busca.addEventListener('input', function () { clearTimeout(t); t = setTimeout(render, 150); });
-  document.getElementById('btnLimpar').addEventListener('click', function () {
-    busca.value = '';
-    Object.keys(SEL).forEach(function (k) { SEL[k].clear(); });
-    estado.faixa = '';
-    fecharMs();
-    render();
+  document.querySelectorAll('.aba').forEach(function (b) {
+    b.addEventListener('click', function () { trocarAba(b.getAttribute('data-tipo')); });
   });
-  document.getElementById('btnAtualizar').addEventListener('click', function () { carregar(true); });
-  document.getElementById('btnExcel').addEventListener('click', exportarLista);
-  document.getElementById('btnCopiarReqs').addEventListener('click', function () {
-    var ids = ordenar(filtradas(false)).map(function (r) { return r.id; });
-    copiar(ids.join('\n'), ids.length + ' requisições copiadas');
-  });
-  document.getElementById('abaPag').addEventListener('click', function () { trocarAba('pag'); });
-  document.getElementById('abaAdt').addEventListener('click', function () { trocarAba('adt'); });
+  document.getElementById('btnAtualizar').addEventListener('click', function () { PAINEIS[ativo].carregar(true); });
 
   var logo = document.getElementById('logo');
   logo.innerHTML = LOGO_URL && LOGO_URL.charAt(0) !== '<'
     ? '<img src="' + esc(LOGO_URL) + '" alt="SolarGrid">'
     : '<span class="logo-txt">SolarGrid</span>';
 
-  montarFiltros();
-  if (DADOS_INICIAIS) receber(DADOS_INICIAIS); else carregar(false);
+  // O que veio do cache aparece na hora; o resto carrega quando a aba é aberta.
+  Object.keys(PAINEIS).forEach(function (k) {
+    if (DADOS_INICIAIS && DADOS_INICIAIS[k]) PAINEIS[k].receber(DADOS_INICIAIS[k]);
+  });
+  trocarAba('pagamentos');
 })();
 </script>
 </body>

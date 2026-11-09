@@ -1,8 +1,8 @@
 /**
- * FAROL DE APROVAÇÕES — requisições de pagamento (MXM)
+ * FAROL DE APROVAÇÕES — requisições do MXM (Pagamentos e Adiantamentos)
  *
- * Fonte: aba "Relatório de Aprovações", com o export do MXM colado como veio
- * (linha 1 com "Data: dd/mm/aaaa Hora: hh:mm:ss", cabeçalho logo abaixo).
+ * Fontes (uma aba por tipo, ver CONFIG.RELATORIOS), com o export do MXM colado
+ * como veio (linha 1 com "Data: dd/mm/aaaa Hora: hh:mm:ss", cabeçalho logo abaixo).
  *
  * Como o painel decide "com quem está":
  *   - Cada requisição tem uma linha por nível de aprovação (e por rateio).
@@ -18,7 +18,14 @@
  */
 
 const CONFIG = {
-  SHEET_NAME: 'Relatório de Aprovações',
+  // Uma aba por tipo de requisição. "ordem" define como achar com quem está:
+  //   'historico' = ordem aprendida das aprovações já feitas no próprio relatório;
+  //   'relatorio' = ordem das linhas do relatório (provisório para Adiantamentos,
+  //                 até definirmos a regra própria).
+  RELATORIOS: {
+    pagamentos: { aba: 'Relatório de Aprovações - Pagamentos', ordem: 'historico' },
+    adiantamentos: { aba: 'Relatório de Aprovações - Adiantamentos', ordem: 'relatorio' }
+  },
   FERIADOS_SHEET: 'Feriados',
   HTML_FILE: 'Farol',
 
@@ -70,30 +77,39 @@ function doGet() {
 function buildTemplate_() {
   const t = HtmlService.createTemplateFromFile(CONFIG.HTML_FILE);
   t.logoUrl = CONFIG.LOGO_URL;
-  // Se o resultado já estiver em cache, vai junto com a página (abre sem esperar).
-  let json = 'null';
+  // O que já estiver em cache vai junto com a página (abre sem esperar).
+  const iniciais = [];
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = getSheet_(ss, CONFIG.SHEET_NAME);
-    if (sheet) json = lerCache_(chaveCache_(sheet)) || 'null';
-  } catch (e) { json = 'null'; }
-  t.dadosJson = json.replace(/</g, '\\u003c');
+    Object.keys(CONFIG.RELATORIOS).forEach(function (tipo) {
+      const sheet = getSheet_(ss, CONFIG.RELATORIOS[tipo].aba);
+      const json = sheet ? lerCache_(chaveCache_(sheet, tipo)) : null;
+      if (json) iniciais.push(JSON.stringify(tipo) + ':' + json);
+    });
+  } catch (e) { iniciais.length = 0; }
+  t.dadosJson = ('{' + iniciais.join(',') + '}').replace(/</g, '\\u003c');
   return t;
 }
 
 /** Chamado pelo HTML. Usa o cache quando o relatório não mudou. */
-function getFarol(forcar) {
-  return JSON.parse(getFarolJson_(forcar));
+function getFarol(tipo, forcar) {
+  if (typeof tipo === 'boolean' || tipo === undefined) { forcar = tipo; tipo = 'pagamentos'; }
+  return JSON.parse(getFarolJson_(tipo, forcar));
 }
 
-function getFarolJson_(forcar) {
+function getFarolJson_(tipo, forcar) {
+  const rel = CONFIG.RELATORIOS[tipo];
+  if (!rel) throw new Error('Tipo de relatório desconhecido: ' + tipo);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = getSheet_(ss, CONFIG.SHEET_NAME);
+  const sheet = getSheet_(ss, rel.aba);
   if (!sheet) {
-    throw new Error('Não encontrei a aba "' + CONFIG.SHEET_NAME + '". Abas disponíveis: ' +
+    throw new Error('Não encontrei a aba "' + rel.aba + '". Abas disponíveis: ' +
       ss.getSheets().map(function (s) { return s.getName(); }).join(' | '));
   }
-  const chave = chaveCache_(sheet);
+  if (sheet.getLastRow() < 2) {
+    return JSON.stringify({ vazio: true, aba: rel.aba, hoje: hojeSP_() });
+  }
+  const chave = chaveCache_(sheet, tipo);
   if (!forcar) {
     const emCache = lerCache_(chave);
     if (emCache) return emCache;
@@ -101,9 +117,14 @@ function getFarolJson_(forcar) {
   FUSO_PLANILHA_ = ss.getSpreadsheetTimeZone();
   const data = sheet.getDataRange().getValues();
   const feriados = lerFeriadosExtras_(ss);
-  const json = JSON.stringify(processarRelatorio_(data, hojeSP_(), feriados));
+  const json = JSON.stringify(processarRelatorio_(data, hojeSP_(), feriados, { ordem: rel.ordem, aba: rel.aba }));
   gravarCache_(chave, json);
   return json;
+}
+
+function tipoDaAba_(nome) {
+  const alvo = norm_(nome);
+  return Object.keys(CONFIG.RELATORIOS).filter(function (t) { return norm_(CONFIG.RELATORIOS[t].aba) === alvo; })[0] || null;
 }
 
 /**
@@ -112,8 +133,9 @@ function getFarolJson_(forcar) {
  */
 function onEdit(e) {
   try {
-    if (!e || !e.range || norm_(e.range.getSheet().getName()) !== norm_(CONFIG.SHEET_NAME)) return;
-    getFarolJson_(true);
+    if (!e || !e.range) return;
+    const tipo = tipoDaAba_(e.range.getSheet().getName());
+    if (tipo) getFarolJson_(tipo, true);
   } catch (err) { /* o farol processa ao abrir */ }
 }
 
@@ -121,7 +143,7 @@ function onEdit(e) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const CACHE_VERSAO = 'v3';
+const CACHE_VERSAO = 'v4';
 
 // Fuso da planilha; definido antes de processar (vazio nos testes fora do Apps Script).
 let FUSO_PLANILHA_ = '';
@@ -129,9 +151,9 @@ const CACHE_TTL = 21600;       // 6 h (máximo do CacheService)
 const CACHE_PEDACO = 30000;    // caracteres por chave (limite de 100 KB por valor)
 
 /** Muda quando o relatório muda (linha 1 do MXM, tamanho da aba) ou o dia vira. */
-function chaveCache_(sheet) {
+function chaveCache_(sheet, tipo) {
   const a1 = txt_(sheet.getRange(1, 1).getDisplayValue());
-  const assinatura = [CACHE_VERSAO, hojeSP_(), sheet.getLastRow(), sheet.getLastColumn(), a1].join('|');
+  const assinatura = [CACHE_VERSAO, tipo, CONFIG.RELATORIOS[tipo].ordem, hojeSP_(), sheet.getLastRow(), sheet.getLastColumn(), a1].join('|');
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, assinatura, Utilities.Charset.UTF_8);
   return 'farol_' + bytes.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
 }
@@ -163,7 +185,15 @@ function gravarCache_(chave, json) {
 
 /** Rode pelo editor (Executar) para conferir a leitura em Ver > Registros de execução. */
 function diagnosticar() {
-  const r = getFarol(true);
+  Object.keys(CONFIG.RELATORIOS).forEach(function (tipo) {
+    Logger.log('===== ' + CONFIG.RELATORIOS[tipo].aba + ' =====');
+    try { diagnosticarTipo_(tipo); } catch (e) { Logger.log('ERRO: ' + e.message); }
+  });
+}
+
+function diagnosticarTipo_(tipo) {
+  const r = getFarol(tipo, true);
+  if (r.vazio) { Logger.log('Aba vazia.'); return; }
   Logger.log('Atualização do relatório: ' + (r.atualizacao || '(não encontrada na linha 1)'));
   Logger.log('Linhas lidas: ' + r.diag.linhas + ' | requisições: ' + r.diag.requisicoes);
   Logger.log('Status encontrados: ' + JSON.stringify(r.diag.status));
@@ -385,11 +415,13 @@ function lerAtualizacao_(data, headerRow) {
  * Função pura (sem SpreadsheetApp): recebe a matriz da aba, a data de hoje
  * ("aaaa-mm-dd") e feriados extras; devolve o que o HTML precisa.
  */
-function processarRelatorio_(data, hojeIso, feriadosExtras) {
+function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
+  opcoes = opcoes || {};
+  const ordemHistorico = (opcoes.ordem || 'historico') === 'historico';
   const headerRow = detectHeaderRow_(data);
   if (headerRow === -1) {
     throw new Error('Não encontrei o cabeçalho do relatório (colunas "Req.Pagto" e "St.Requisição") nas primeiras ' +
-      CONFIG.HEADER_SCAN_ROWS + ' linhas da aba "' + CONFIG.SHEET_NAME + '".');
+      CONFIG.HEADER_SCAN_ROWS + ' linhas da aba "' + (opcoes.aba || '') + '".');
   }
   const mapa = mapColunas_(data[headerRow]);
   const col = mapa.col;
@@ -516,7 +548,7 @@ function processarRelatorio_(data, hojeIso, feriadosExtras) {
     const feitos = q.ordem.filter(function (k) { return aprovado(q.niveis[k]); })
       .sort(function (a, b) { return q.niveis[a].data - q.niveis[b].data; });
     const pendentesRelatorio = q.ordem.filter(function (k) { return !aprovado(q.niveis[k]); });
-    const pendentes = ordenar(pendentesRelatorio);
+    const pendentes = ordemHistorico ? ordenar(pendentesRelatorio) : pendentesRelatorio;
     if (pendentes.length && pendentes[0] !== pendentesRelatorio[0]) ordemCorrigida.push(id);
 
     const etapas = feitos.concat(pendentes).map(function (k, i) {
@@ -580,6 +612,7 @@ function processarRelatorio_(data, hojeIso, feriadosExtras) {
 
   return {
     atualizacao: lerAtualizacao_(data, headerRow),
+    ordem: ordemHistorico ? 'historico' : 'relatorio',
     hoje: hojeIso,
     faixas: CONFIG.FAIXAS.map(function (f) { return { id: f.id, rotulo: f.rotulo, ate: f.ate === Infinity ? null : f.ate }; }),
     requisicoes: saida,

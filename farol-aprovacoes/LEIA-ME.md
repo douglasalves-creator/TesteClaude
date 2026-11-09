@@ -1,7 +1,13 @@
 # Farol de Aprovações: como instalar
 
-O painel lê a aba **"Relatório de Aprovações"** e mostra as requisições com
-status **"Em Aprovação"**: com quem está cada uma, quantos níveis faltam e o
+O painel tem duas abas, cada uma lendo uma aba da planilha:
+
+| Aba do farol | Aba da planilha |
+|---|---|
+| Pagamentos | **Relatório de Aprovações - Pagamentos** |
+| Adiantamentos | **Relatório de Aprovações - Adiantamentos** |
+
+Em cada uma, mostra as requisições com status **"Em Aprovação"**: com quem está cada uma, quantos níveis faltam e o
 farol de prazo até a Prog. Pagto.
 
 ## 1. Instalar o script na planilha
@@ -32,7 +38,8 @@ farol de prazo até a Prog. Pagto.
 ## 4. Atualizar os dados (rotina)
 
 1. Baixe o relatório "Requisições Pagamento Status" no MXM.
-2. Na aba **Relatório de Aprovações**, apague tudo e cole o relatório inteiro,
+2. Na aba correspondente (**Relatório de Aprovações - Pagamentos** ou
+   **- Adiantamentos**), apague tudo e cole o relatório inteiro,
    como veio (inclusive a linha 1 com "Data: ... Hora: ...").
 3. Pronto. Ao colar, o script já processa o relatório em segundo plano e
    guarda o resultado em cache. Nas próximas aberturas o farol carrega na hora.
@@ -59,7 +66,9 @@ Se a rede da empresa bloquear esse endereço, o download não funciona.
 
 ## 5. Regras usadas
 
-- **Com quem está:** o primeiro nível ainda sem data em "Aprovação". A ordem
+- **Com quem está (Adiantamentos, provisório):** o primeiro nível sem data em
+  "Aprovação", na ordem das linhas do relatório. A regra própria ainda será definida.
+- **Com quem está (Pagamentos):** o primeiro nível ainda sem data em "Aprovação". A ordem
   dos níveis é aprendida das requisições já aprovadas no próprio relatório
   (quem costuma aprovar antes de quem). Se dois níveis nunca apareceram
   juntos, vale a ordem das linhas do relatório.
