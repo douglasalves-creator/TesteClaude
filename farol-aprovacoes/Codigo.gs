@@ -143,7 +143,7 @@ function onEdit(e) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const CACHE_VERSAO = 'v4';
+const CACHE_VERSAO = 'v5';
 
 // Fuso da planilha; definido antes de processar (vazio nos testes fora do Apps Script).
 let FUSO_PLANILHA_ = '';
@@ -347,11 +347,22 @@ function criarContadorDiasUteis_(feriadosExtras) {
 /* Leitura do relatório                                                */
 /* ------------------------------------------------------------------ */
 
+// Nomes aceitos para a coluna do número da requisição (o MXM já usou os dois).
+const NOMES_COLUNA_REQ = ['Número Req. Pagto', 'Req.Pagto'];
+
+function acharColuna_(cabecalhoNorm, nomes) {
+  for (let i = 0; i < nomes.length; i++) {
+    const idx = cabecalhoNorm.indexOf(norm_(nomes[i]));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
 function detectHeaderRow_(data) {
   const limite = Math.min(data.length, CONFIG.HEADER_SCAN_ROWS);
   for (let r = 0; r < limite; r++) {
     const cels = data[r].map(norm_);
-    if (cels.indexOf('reqpagto') !== -1 && cels.indexOf('strequisicao') !== -1) return r;
+    if (acharColuna_(cels, NOMES_COLUNA_REQ) !== -1 && cels.indexOf('strequisicao') !== -1) return r;
   }
   return -1;
 }
@@ -360,8 +371,9 @@ function mapColunas_(headerRow) {
   const h = headerRow.map(norm_);
   const faltando = [];
   const find = function (nome, obrigatoria) {
-    const idx = h.indexOf(norm_(nome));
-    if (idx === -1 && obrigatoria) faltando.push(nome);
+    const nomes = Array.isArray(nome) ? nome : [nome];
+    const idx = acharColuna_(h, nomes);
+    if (idx === -1 && obrigatoria) faltando.push(nomes.join(' ou '));
     return idx;
   };
   const col = {
@@ -373,7 +385,7 @@ function mapColunas_(headerRow) {
     cdCat: find('Cd.Cat.Func.', true),
     progPagto: find('Prog.Pagto.', true),
     cdEst: find('Cd.Est.Func.', true),
-    req: find('Req.Pagto', true),
+    req: find(NOMES_COLUNA_REQ, true),
     requisitante: find('Requisitante'),
     projeto: find('Projeto'),
     dataRequisicao: find('Requisição'),
@@ -395,7 +407,7 @@ function mapColunas_(headerRow) {
     if (h[i] === 'aprovacao' && (col.aprovadorAlocado === -1 || i > col.aprovadorAlocado)) { col.dataAprovacao = i; break; }
   }
   if (col.dataAprovacao === -1) faltando.push('Aprovação (data)');
-  return { col: col, faltando: faltando };
+  return { col: col, faltando: faltando, nomeReq: col.req === -1 ? NOMES_COLUNA_REQ[0] : txt_(headerRow[col.req]) };
 }
 
 function lerAtualizacao_(data, headerRow) {
@@ -420,7 +432,7 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
   const ordemHistorico = (opcoes.ordem || 'historico') === 'historico';
   const headerRow = detectHeaderRow_(data);
   if (headerRow === -1) {
-    throw new Error('Não encontrei o cabeçalho do relatório (colunas "Req.Pagto" e "St.Requisição") nas primeiras ' +
+    throw new Error('Não encontrei o cabeçalho do relatório (colunas "' + NOMES_COLUNA_REQ.join('" ou "') + '" e "St.Requisição") nas primeiras ' +
       CONFIG.HEADER_SCAN_ROWS + ' linhas da aba "' + (opcoes.aba || '') + '".');
   }
   const mapa = mapColunas_(data[headerRow]);
@@ -613,6 +625,7 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
   return {
     atualizacao: lerAtualizacao_(data, headerRow),
     ordem: ordemHistorico ? 'historico' : 'relatorio',
+    nomeColunaReq: mapa.nomeReq,
     hoje: hojeIso,
     faixas: CONFIG.FAIXAS.map(function (f) { return { id: f.id, rotulo: f.rotulo, ate: f.ate === Infinity ? null : f.ate }; }),
     requisicoes: saida,

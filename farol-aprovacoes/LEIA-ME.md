@@ -55,7 +55,7 @@ vira. Quando isso acontece, a primeira abertura leva alguns segundos.
 - **Com quem está → ícone de download** ao lado de cada aprovador: baixa um
   Excel com as requisições pendentes com ele (respeitando os filtros ativos),
   uma linha por rateio, com as colunas Cd.Empresa, St.Requisição, Centro de
-  Custo, Número do Título, Req.Pagto, Valor líquido - Apr, Projeto, Setor,
+  Custo, Número do Título, Número Req. Pagto, Valor líquido - Apr, Projeto, Setor,
   Data Vencimento, Fora do Prazo, Aprovador alocado e Fornecedor.
 - **Exportar Excel**: a lista que está na tela.
 - **Copiar nº das requisições**: copia os números da lista (um por linha),

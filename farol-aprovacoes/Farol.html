@@ -343,7 +343,7 @@
   }
 
   // Colunas pedidas para o arquivo do aprovador (na ordem do relatório do MXM).
-  var COLS_APROVADOR = ['Cd.Empresa', 'St.Requisição', 'Centro de Custo', 'Número do Título', 'Req.Pagto', 'Valor líquido - Apr',
+  var COLS_APROVADOR = ['Cd.Empresa', 'St.Requisição', 'Centro de Custo', 'Número do Título', 'Número Req. Pagto', 'Valor líquido - Apr',
     'Projeto', 'Setor', 'Data Vencimento', 'Fora do Prazo', 'Aprovador alocado', 'Fornecedor'];
 
   /* ================= Painel (um por aba) ================= */
@@ -741,6 +741,13 @@
       });
     }
 
+    // Usa o nome da coluna do número da requisição como veio no relatório.
+    function cabecalhoAprovador() {
+      var c = COLS_APROVADOR.slice();
+      if (D && D.nomeColunaReq) c[4] = D.nomeColunaReq;
+      return c;
+    }
+
     function baixarDoAprovador(nome, reqs) {
       var linhas = [];
       ordenar(reqs).forEach(function (r) {
@@ -750,13 +757,13 @@
           linhas.push(x);
         });
       });
-      gerarXlsx('Pendencias_' + rotulo + '_' + nomeArquivo(nome) + '_' + (D ? D.hoje : '') + '.xlsx', COLS_APROVADOR, linhas,
+      gerarXlsx('Pendencias_' + rotulo + '_' + nomeArquivo(nome) + '_' + (D ? D.hoje : '') + '.xlsx', cabecalhoAprovador(), linhas,
         [11, 14, 34, 16, 11, 18, 40, 30, 16, 13, 26, 50], { 5: '#,##0.00', 8: 'dd/mm/yyyy' });
     }
 
     function exportarLista() {
       var lista = ordenar(filtradas(false));
-      var cab = ['Req.Pagto', 'Cd.Empresa', 'Fornecedor', 'CNPJ/CPF', 'Setor', 'Centro de Custo', 'Com quem está', 'Cargo', 'Faltam aprovar',
+      var cab = [(D && D.nomeColunaReq) || 'Número Req. Pagto', 'Cd.Empresa', 'Fornecedor', 'CNPJ/CPF', 'Setor', 'Centro de Custo', 'Com quem está', 'Cargo', 'Faltam aprovar',
         'Valor', 'Requisição', 'Prog.Pagto.', 'Dias úteis', 'Farol', 'Requisitante'];
       var linhas = lista.map(function (r) {
         return [numSeDer(r.id), r.empresa, r._fornNome, r._fornDoc, r._setor, r._centros.join(' | '), r.aprovadorAtual, r.cargoAtual, r.faltam,
