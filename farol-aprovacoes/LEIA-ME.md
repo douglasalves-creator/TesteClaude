@@ -66,10 +66,8 @@ Se a rede da empresa bloquear esse endereço, o download não funciona.
 
 ## 5. Regras usadas
 
-- **Com quem está (Adiantamentos, provisório):** o primeiro nível sem data em
-  "Aprovação", na ordem das linhas do relatório. A regra própria ainda será definida.
-- **Com quem está (Pagamentos):** o primeiro nível ainda sem data em "Aprovação". A ordem
-  dos níveis é aprendida das requisições já aprovadas no próprio relatório
+- **Com quem está (Pagamentos e Adiantamentos):** o primeiro nível ainda sem data de
+  aprovação. A ordem dos níveis é aprendida das requisições já aprovadas no próprio relatório
   (quem costuma aprovar antes de quem). Se dois níveis nunca apareceram
   juntos, vale a ordem das linhas do relatório.
 - **Aprovação por grupo:** níveis por categoria (ex.: Analista Contábil,
@@ -87,3 +85,22 @@ No topo do `Codigo.gs`, em `const CONFIG = { ... }`:
 - `FAIXAS`: limites do farol (3, 6, 10 dias).
 - `CONTAR_CARNAVAL_COMO_FERIADO` / `CONTAR_CORPUS_CHRISTI_COMO_FERIADO`.
 - **Feriados locais:** crie uma aba **"Feriados"** com as datas na coluna A.
+
+## 7. Adiantamentos
+
+O relatório "Requisição de Adiantamento" do MXM tem colunas diferentes do de
+Pagamentos. O mapa de cada um fica em `LAYOUTS`, no `Codigo.gs`:
+
+| Uso no farol | Pagamentos | Adiantamentos |
+|---|---|---|
+| Nº da requisição | Número Req. Pagto | Número Requisição |
+| Status | St.Requisição | Status |
+| Prog. pagto | Data Prog.Pagto. | Data Prog. Pag. |
+| Valor | Líquido - Títulos | Valor Adiantamento |
+| Data da aprovação | Aprovação (2ª coluna) | Data Aprovação |
+
+O Excel por aprovador de Adiantamentos traz: Cd.Empresa, Status, Centro de
+Custo, Código Projeto, Doc. Antecipação, Número Requisição, Vlr Grp.
+Antecipação, Valor Adiantamento, Descrição Setor, Data Prog. Pag., Aprovador
+Alocado, Fornecedor e Justificativa. Para mudar, edite `arquivo` em
+`LAYOUTS.adiantamentos`.

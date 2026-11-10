@@ -8,9 +8,12 @@
  *   - Cada requisição tem uma linha por nível de aprovação (e por rateio).
  *   - Nível já aprovado = linha com data na coluna "Aprovação".
  *   - A ordem dos níveis é aprendida do próprio relatório: nas requisições já
- *     aprovadas, a data de cada aprovação mostra quem aprova antes de quem.
- *     Quando um par de níveis nunca apareceu junto no histórico, vale a ordem
- *     das linhas do relatório.
+ *     aprovadas, a data de cada aprovação mostra quem aprova antes de quem
+ *     (também por transitividade: se A vem antes de B e B antes de C, A vem
+ *     antes de C). Sem nenhum histórico entre dois níveis, vale a ordem das
+ *     linhas do relatório.
+ *   - Cada tipo de relatório tem seu mapa de colunas (LAYOUTS), porque o MXM
+ *     usa nomes diferentes em Pagamentos e em Adiantamentos.
  *   - Aprovador atual = primeiro nível, nessa ordem, ainda sem aprovação.
  *
  * Prazo: dias úteis até a Prog. Pagto, sem fins de semana e sem feriados
@@ -20,11 +23,10 @@
 const CONFIG = {
   // Uma aba por tipo de requisição. "ordem" define como achar com quem está:
   //   'historico' = ordem aprendida das aprovações já feitas no próprio relatório;
-  //   'relatorio' = ordem das linhas do relatório (provisório para Adiantamentos,
-  //                 até definirmos a regra própria).
+  //   'relatorio' = ordem das linhas do relatório.
   RELATORIOS: {
     pagamentos: { aba: 'Relatório de Aprovações - Pagamentos', ordem: 'historico' },
-    adiantamentos: { aba: 'Relatório de Aprovações - Adiantamentos', ordem: 'relatorio' }
+    adiantamentos: { aba: 'Relatório de Aprovações - Adiantamentos', ordem: 'historico' }
   },
   FERIADOS_SHEET: 'Feriados',
   HTML_FILE: 'Farol',
@@ -117,7 +119,7 @@ function getFarolJson_(tipo, forcar) {
   FUSO_PLANILHA_ = ss.getSpreadsheetTimeZone();
   const data = sheet.getDataRange().getValues();
   const feriados = lerFeriadosExtras_(ss);
-  const json = JSON.stringify(processarRelatorio_(data, hojeSP_(), feriados, { ordem: rel.ordem, aba: rel.aba }));
+  const json = JSON.stringify(processarRelatorio_(data, hojeSP_(), feriados, { ordem: rel.ordem, aba: rel.aba, layout: tipo }));
   gravarCache_(chave, json);
   return json;
 }
@@ -143,7 +145,7 @@ function onEdit(e) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const CACHE_VERSAO = 'v6';
+const CACHE_VERSAO = 'v7';
 
 // Fuso da planilha; definido antes de processar (vazio nos testes fora do Apps Script).
 let FUSO_PLANILHA_ = '';
@@ -347,8 +349,83 @@ function criarContadorDiasUteis_(feriadosExtras) {
 /* Leitura do relatório                                                */
 /* ------------------------------------------------------------------ */
 
-// Nomes aceitos para a coluna do número da requisição (o MXM já usou os dois).
-const NOMES_COLUNA_REQ = ['Número Req. Pagto', 'Req.Pagto'];
+// Mapa de colunas de cada relatório do MXM. Cada campo aceita uma lista de
+// nomes: quando o MXM renomeia uma coluna, o nome novo vem primeiro e o antigo
+// continua aceito. A ordem das colunas no relatório não importa.
+const LAYOUTS = {
+  pagamentos: {
+    colunas: {
+      req: { nomes: ['Número Req. Pagto', 'Req.Pagto'], obrigatoria: true },
+      status: { nomes: ['St.Requisição'], obrigatoria: true },
+      empresa: { nomes: ['Cd.Empresa'] },
+      centroCusto: { nomes: ['Centro de Custo'] },
+      valorTitulo: { nomes: ['Líquido - Títulos'], obrigatoria: true },
+      numeroTitulo: { nomes: ['Número do Título'] },
+      cdCat: { nomes: ['Cd.Cat.Func.'], obrigatoria: true },
+      descCat: { nomes: ['Desc.Cat.Func.'] },
+      cdEst: { nomes: ['Cd.Est.Func.'], obrigatoria: true },
+      descEst: { nomes: ['Desc.Est.Func.'] },
+      progPagto: { nomes: ['Data Prog.Pagto.', 'Prog.Pagto.'], obrigatoria: true },
+      requisitante: { nomes: ['Requisitante'] },
+      projeto: { nomes: ['Projeto'] },
+      dataRequisicao: { nomes: ['Data Requisição', 'Requisição'] },
+      tipo: { nomes: ['Tip. Requisição'] },
+      setor: { nomes: ['Setor'] },
+      vencimento: { nomes: ['Data Vencimento'] },
+      aprovadorAlocado: { nomes: ['Aprovador alocado'], obrigatoria: true },
+      aprovador: { nomes: ['Aprovador'] },
+      fornecedor: { nomes: ['Fornecedor'] },
+      dataAprovacao: { nomes: ['Data Aprovação'] }   // se não houver, usa a 2ª "Aprovação"
+    },
+    rotuloTitulo: 'Título',
+    extras: [],
+    // Colunas do Excel por aprovador (pedido do CSC), na ordem do relatório.
+    arquivo: [
+      { campo: 'empresa' }, { campo: 'status' }, { campo: 'centroCusto' }, { campo: 'numeroTitulo', tipo: 'num' },
+      { campo: 'req', tipo: 'num' }, { nomes: ['Valor líquido - Apr'], tipo: 'valor' }, { campo: 'projeto' },
+      { campo: 'setor' }, { campo: 'vencimento', tipo: 'data' }, { nomes: ['Fora do Prazo'] },
+      { campo: 'aprovadorAlocado' }, { campo: 'fornecedor' }
+    ]
+  },
+
+  adiantamentos: {
+    colunas: {
+      req: { nomes: ['Número Requisição'], obrigatoria: true },
+      status: { nomes: ['Status'], obrigatoria: true },
+      empresa: { nomes: ['Cd.Empresa'] },
+      centroCusto: { nomes: ['Centro de Custo'] },
+      valorTitulo: { nomes: ['Valor Adiantamento'], obrigatoria: true },
+      numeroTitulo: { nomes: ['Doc. Antecipação'] },
+      cdCat: { nomes: ['Cd.Cat.Func.'], obrigatoria: true },
+      descCat: { nomes: ['Categoria Funcional'] },
+      cdEst: { nomes: ['Cd.Est.Func.'], obrigatoria: true },
+      descEst: { nomes: ['Estrutura Funcional'] },
+      progPagto: { nomes: ['Data Prog. Pag.', 'Data Prog.Pagto.'], obrigatoria: true },
+      requisitante: { nomes: ['Requisitante'] },
+      projeto: { nomes: ['Código Projeto'] },
+      dataRequisicao: { nomes: ['Data Requisição'] },
+      tipo: { nomes: ['Tip. Requisição'] },
+      cdSetor: { nomes: ['Cd.Setor', 'Cd. Setor'] },
+      setor: { nomes: ['Descrição Setor'] },
+      aprovadorAlocado: { nomes: ['Aprovador Alocado'], obrigatoria: true },
+      aprovador: { nomes: ['Aprovador'] },
+      cdFornecedor: { nomes: ['Cd. Fornecedor'] },
+      fornecedor: { nomes: ['Fornecedor'] },
+      dataAprovacao: { nomes: ['Data Aprovação'], obrigatoria: true }
+    },
+    rotuloTitulo: 'Doc. Antecipação',
+    extras: [
+      { rotulo: 'Justificativa', nomes: ['Justificativa'] },
+      { rotulo: 'Grupo de pagamento', nomes: ['Grupo de Pagamento'] }
+    ],
+    arquivo: [
+      { campo: 'empresa' }, { campo: 'status' }, { campo: 'centroCusto' }, { campo: 'projeto' },
+      { campo: 'numeroTitulo' }, { campo: 'req', tipo: 'num' }, { nomes: ['Vlr Grp. Antecipação'], tipo: 'valor' },
+      { campo: 'valorTitulo', tipo: 'valor' }, { campo: 'setor' }, { campo: 'progPagto', tipo: 'data' },
+      { campo: 'aprovadorAlocado' }, { campo: 'fornecedor' }, { nomes: ['Justificativa'] }
+    ]
+  }
+};
 
 function acharColuna_(cabecalhoNorm, nomes) {
   for (let i = 0; i < nomes.length; i++) {
@@ -358,58 +435,55 @@ function acharColuna_(cabecalhoNorm, nomes) {
   return -1;
 }
 
-function detectHeaderRow_(data) {
+function detectHeaderRow_(data, layout) {
   const limite = Math.min(data.length, CONFIG.HEADER_SCAN_ROWS);
   for (let r = 0; r < limite; r++) {
     const cels = data[r].map(norm_);
-    if (acharColuna_(cels, NOMES_COLUNA_REQ) !== -1 && cels.indexOf('strequisicao') !== -1) return r;
+    if (acharColuna_(cels, layout.colunas.req.nomes) !== -1 && acharColuna_(cels, layout.colunas.status.nomes) !== -1) return r;
   }
   return -1;
 }
 
-function mapColunas_(headerRow) {
+function mapColunas_(headerRow, layout) {
   const h = headerRow.map(norm_);
   const faltando = [];
-  const find = function (nome, obrigatoria) {
-    const nomes = Array.isArray(nome) ? nome : [nome];
-    const idx = acharColuna_(h, nomes);
-    if (idx === -1 && obrigatoria) faltando.push(nomes.join(' ou '));
-    return idx;
-  };
-  // Quando o MXM renomeia uma coluna, o nome novo vem primeiro na lista e o
-  // antigo continua aceito.
-  const col = {
-    empresa: find('Cd.Empresa'),
-    status: find('St.Requisição', true),
-    centroCusto: find('Centro de Custo'),
-    liquidoTitulos: find('Líquido - Títulos', true),
-    numeroTitulo: find('Número do Título'),
-    cdCat: find('Cd.Cat.Func.', true),
-    progPagto: find(['Data Prog.Pagto.', 'Prog.Pagto.'], true),
-    cdEst: find('Cd.Est.Func.', true),
-    req: find(NOMES_COLUNA_REQ, true),
-    requisitante: find('Requisitante'),
-    projeto: find('Projeto'),
-    dataRequisicao: find(['Data Requisição', 'Requisição']),
-    tipo: find('Tip. Requisição'),
-    setor: find('Setor'),
-    vencimento: find('Data Vencimento'),
-    valorApr: find('Valor líquido - Apr'),
-    foraPrazo: find('Fora do Prazo'),
-    aprovadorAlocado: find('Aprovador alocado', true),
-    aprovador: find('Aprovador'),
-    fornecedor: find('Fornecedor'),
-    descCat: find('Desc.Cat.Func.'),
-    descEst: find('Desc.Est.Func.')
-  };
-  // "Aprovação" aparece duas vezes no export; a que tem a data é a que vem
-  // depois de "Aprovador alocado".
-  col.dataAprovacao = -1;
-  for (let i = h.length - 1; i >= 0; i--) {
-    if (h[i] === 'aprovacao' && (col.aprovadorAlocado === -1 || i > col.aprovadorAlocado)) { col.dataAprovacao = i; break; }
+  const col = {};
+  Object.keys(layout.colunas).forEach(function (campo) {
+    const def = layout.colunas[campo];
+    col[campo] = acharColuna_(h, def.nomes);
+    if (col[campo] === -1 && def.obrigatoria) faltando.push(def.nomes.join(' ou '));
+  });
+  // Pagamentos: "Aprovação" aparece duas vezes; a que tem a data vem depois
+  // de "Aprovador alocado".
+  if (col.dataAprovacao === -1) {
+    for (let i = h.length - 1; i >= 0; i--) {
+      if (h[i] === 'aprovacao' && (col.aprovadorAlocado === -1 || i > col.aprovadorAlocado)) { col.dataAprovacao = i; break; }
+    }
+    if (col.dataAprovacao === -1) faltando.push('Aprovação (data)');
   }
-  if (col.dataAprovacao === -1) faltando.push('Aprovação (data)');
-  return { col: col, faltando: faltando, nomeReq: col.req === -1 ? NOMES_COLUNA_REQ[0] : txt_(headerRow[col.req]) };
+  const extras = layout.extras.map(function (x) { return { rotulo: x.rotulo, idx: acharColuna_(h, x.nomes) }; })
+    .filter(function (x) { return x.idx !== -1; });
+  const arquivo = layout.arquivo.map(function (a) {
+    const idx = a.campo ? col[a.campo] : acharColuna_(h, a.nomes);
+    const nome = idx !== -1 ? txt_(headerRow[idx]) : (a.campo ? layout.colunas[a.campo].nomes[0] : a.nomes[0]);
+    return { idx: idx, nome: nome, tipo: a.tipo || 'texto' };
+  });
+  return { col: col, faltando: faltando, extras: extras, arquivo: arquivo };
+}
+
+/** "código  -  nome", como o relatório de Pagamentos já traz (sem repetir o código). */
+function juntar_(codigo, nome) {
+  const c = txt_(codigo), n = txt_(nome);
+  if (!c || n.indexOf(c) === 0) return n;
+  return n ? c + '  -  ' + n : c;
+}
+
+/** Tira o código do começo da descrição ("0023 - DIRETORIA" -> "DIRETORIA"). */
+function semCodigo_(desc, codigo) {
+  const d = txt_(desc);
+  const c = txt_(codigo);
+  if (c && d.indexOf(c) === 0) return d.slice(c.length).replace(/^\s*-\s*/, '');
+  return d;
 }
 
 function lerAtualizacao_(data, headerRow) {
@@ -432,15 +506,16 @@ function lerAtualizacao_(data, headerRow) {
 function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
   opcoes = opcoes || {};
   const ordemHistorico = (opcoes.ordem || 'historico') === 'historico';
-  const headerRow = detectHeaderRow_(data);
+  const layout = LAYOUTS[opcoes.layout || 'pagamentos'];
+  const headerRow = detectHeaderRow_(data, layout);
   if (headerRow === -1) {
-    throw new Error('Não encontrei o cabeçalho do relatório (colunas "' + NOMES_COLUNA_REQ.join('" ou "') + '" e "St.Requisição") nas primeiras ' +
-      CONFIG.HEADER_SCAN_ROWS + ' linhas da aba "' + (opcoes.aba || '') + '".');
+    throw new Error('Não encontrei o cabeçalho do relatório (colunas "' + layout.colunas.req.nomes.join('" ou "') + '" e "' +
+      layout.colunas.status.nomes.join('" ou "') + '") nas primeiras ' + CONFIG.HEADER_SCAN_ROWS + ' linhas da aba "' + (opcoes.aba || '') + '".');
   }
-  const mapa = mapColunas_(data[headerRow]);
+  const mapa = mapColunas_(data[headerRow], layout);
   const col = mapa.col;
   if (mapa.faltando.length) throw new Error('Colunas não encontradas no relatório: ' + mapa.faltando.join(', '));
-  const cel = function (row, idx) { return idx === -1 ? '' : row[idx]; };
+  const cel = function (row, idx) { return idx === -1 || idx === undefined ? '' : row[idx]; };
 
   const reqs = {};
   const ordemReqs = [];
@@ -460,8 +535,10 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
       q = reqs[id] = {
         id: id, status: status, niveis: {}, ordem: [], titulos: {},
         empresa: txt_(cel(row, col.empresa)),
-        fornecedor: txt_(cel(row, col.fornecedor)),
-        setor: txt_(cel(row, col.setor)),
+        fornecedor: juntar_(cel(row, col.cdFornecedor), cel(row, col.fornecedor)),
+        setor: juntar_(cel(row, col.cdSetor), cel(row, col.setor)),
+        extras: mapa.extras.map(function (x) { return [x.rotulo, txt_(cel(row, x.idx))]; })
+          .filter(function (x) { return x[1]; }),
         requisitante: txt_(cel(row, col.requisitante)),
         tipo: txt_(cel(row, col.tipo)),
         dataRequisicao: parseData_(cel(row, col.dataRequisicao)),
@@ -478,7 +555,7 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
     const pj = txt_(cel(row, col.projeto));
     if (pj && q.projetos.indexOf(pj) === -1) q.projetos.push(pj);
     const tit = txt_(cel(row, col.numeroTitulo)) || '-';
-    if (!(tit in q.titulos)) q.titulos[tit] = num_(cel(row, col.liquidoTitulos));
+    if (!(tit in q.titulos)) q.titulos[tit] = num_(cel(row, col.valorTitulo));
 
     const cdCat = txt_(cel(row, col.cdCat));
     const cdEst = txt_(cel(row, col.cdEst));
@@ -489,7 +566,8 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
       nv = q.niveis[chave] = {
         chave: chave,
         tipo: cdCat ? 'categoria' : 'estrutura',
-        cargo: txt_(cel(row, cdCat ? col.descCat : col.descEst)) || txt_(cel(row, col.descEst)),
+        cargo: cdCat ? (semCodigo_(cel(row, col.descCat), cdCat) || semCodigo_(cel(row, col.descEst), cdEst))
+                     : semCodigo_(cel(row, col.descEst), cdEst),
         alocado: '', aprovador: '', data: null, linhas: 0, aprovadas: 0, idx: []
       };
       q.ordem.push(chave);
@@ -528,7 +606,29 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
       }
     }
   });
-  const antes = function (a, b) { return (prec[a + '>' + b] || 0) > (prec[b + '>' + a] || 0); };
+  // a vem antes de b: pela maioria das vezes em que aparecem juntos; se nunca
+  // apareceram juntos, por transitividade (a antes de x, x antes de b...).
+  const depois = {};
+  Object.keys(prec).forEach(function (k) {
+    const p = k.split('>');
+    if ((prec[k] || 0) > (prec[p[1] + '>' + p[0]] || 0)) (depois[p[0]] = depois[p[0]] || []).push(p[1]);
+  });
+  const alcancaMemo = {};
+  const alcanca = function (a, b) {
+    const k = a + '>' + b;
+    if (k in alcancaMemo) return alcancaMemo[k];
+    const visto = {}; const fila = [a]; let achou = false;
+    while (fila.length && !achou) {
+      const x = fila.shift();
+      (depois[x] || []).forEach(function (y) { if (y === b) achou = true; if (!visto[y]) { visto[y] = true; fila.push(y); } });
+    }
+    return (alcancaMemo[k] = achou);
+  };
+  const antes = function (a, b) {
+    const ab = prec[a + '>' + b] || 0, ba = prec[b + '>' + a] || 0;
+    if (ab || ba) return ab > ba;
+    return alcanca(a, b) && !alcanca(b, a);
+  };
   const ordenar = function (chaves) {
     const resto = chaves.slice();
     const out = [];
@@ -583,12 +683,12 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
     // Linhas do relatório do nível atual (uma por rateio), para o arquivo do aprovador.
     const linhasAtual = !pendentes.length ? [] : q.niveis[pendentes[0]].idx.map(function (r) {
       const row = data[r];
-      return [
-        txt_(cel(row, col.empresa)), txt_(cel(row, col.status)), txt_(cel(row, col.centroCusto)),
-        txt_(cel(row, col.numeroTitulo)), id, num_(cel(row, col.valorApr)), txt_(cel(row, col.projeto)),
-        txt_(cel(row, col.setor)), iso_(parseData_(cel(row, col.vencimento))), txt_(cel(row, col.foraPrazo)),
-        txt_(cel(row, col.aprovadorAlocado)), txt_(cel(row, col.fornecedor))
-      ];
+      return mapa.arquivo.map(function (a) {
+        const v = cel(row, a.idx);
+        if (a.tipo === 'valor') return num_(v);
+        if (a.tipo === 'data') return iso_(parseData_(v));
+        return txt_(v);
+      });
     });
 
     const valor = Object.keys(q.titulos).reduce(function (s, t) { return s + q.titulos[t]; }, 0);
@@ -604,6 +704,7 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
       setor: q.setor,
       requisitante: q.requisitante,
       tipo: q.tipo,
+      extras: q.extras,
       centros: q.centros,
       projetos: q.projetos,
       titulos: Object.keys(q.titulos).filter(function (t) { return t !== '-'; }),
@@ -627,7 +728,9 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
   return {
     atualizacao: lerAtualizacao_(data, headerRow),
     ordem: ordemHistorico ? 'historico' : 'relatorio',
-    nomeColunaReq: mapa.nomeReq,
+    nomeColunaReq: txt_(data[headerRow][col.req]),
+    rotuloTitulo: layout.rotuloTitulo,
+    arquivo: mapa.arquivo.map(function (a) { return { nome: a.nome, tipo: a.tipo }; }),
     hoje: hojeIso,
     faixas: CONFIG.FAIXAS.map(function (f) { return { id: f.id, rotulo: f.rotulo, ate: f.ate === Infinity ? null : f.ate }; }),
     requisicoes: saida,

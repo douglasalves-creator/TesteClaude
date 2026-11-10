@@ -344,8 +344,6 @@
   }
 
   // Colunas pedidas para o arquivo do aprovador (na ordem do relatório do MXM).
-  var COLS_APROVADOR = ['Cd.Empresa', 'St.Requisição', 'Centro de Custo', 'Número do Título', 'Número Req. Pagto', 'Valor líquido - Apr',
-    'Projeto', 'Setor', 'Data Vencimento', 'Fora do Prazo', 'Aprovador alocado', 'Fornecedor'];
 
   /* ================= Painel (um por aba) ================= */
   function criarPainel(tipo, rotulo, root) {
@@ -542,7 +540,8 @@
         r._fornNome = f.nome; r._fornDoc = f.doc;
         r._setor = limpa(r.setor);
         r._centros = r.centros.map(limpa);
-        r._busca = semAcento([r.id, r.fornecedor, r.aprovadorAtual, r.requisitante, r.empresa, r._centros.join(' '), r.projetos.join(' ')].join(' '));
+        r._busca = semAcento([r.id, r.fornecedor, r.aprovadorAtual, r.requisitante, r.empresa, r._centros.join(' '), r.projetos.join(' '),
+          (r.titulos || []).join(' '), (r.extras || []).map(function (x) { return x[1]; }).join(' ')].join(' '));
         return r;
       });
       meta = 'Relatório MXM: <b>' + esc(d.atualizacao || 'sem data') + '</b><br>Prazos contados a partir de <b>' + data(d.hoje) + '</b>';
@@ -689,8 +688,9 @@
           lin('Requisitante', esc(r.requisitante)) +
           lin('Centro de custo', r._centros.map(esc).join('<br>')) +
           lin('Projeto', r.projetos.map(function (p) { return esc(limpa(p)); }).join('<br>')) +
-          lin('Título', esc(r.titulos.join(', '))) +
-          lin('Vencimento', data(r.vencimento)) +
+          lin(esc((D && D.rotuloTitulo) || 'Título'), esc(r.titulos.join(', '))) +
+          (r.vencimento ? lin('Vencimento', data(r.vencimento)) : '') +
+          (r.extras || []).map(function (x) { return lin(esc(x[0]), esc(x[1]).replace(/\n/g, '<br>')); }).join('') +
         '</dl></div></div>';
     }
 
@@ -742,24 +742,28 @@
       });
     }
 
-    // Usa o nome da coluna do número da requisição como veio no relatório.
-    function cabecalhoAprovador() {
-      var c = COLS_APROVADOR.slice();
-      if (D && D.nomeColunaReq) c[4] = D.nomeColunaReq;
-      return c;
-    }
-
+    // Colunas do arquivo vêm do servidor (cada relatório tem as suas), com o
+    // nome exatamente como está no relatório do MXM.
     function baixarDoAprovador(nome, reqs) {
+      var cols = (D && D.arquivo) || [];
       var linhas = [];
       ordenar(reqs).forEach(function (r) {
         (r.linhasAtual || []).forEach(function (l) {
-          var x = l.slice();
-          x[3] = numSeDer(x[3]); x[4] = numSeDer(x[4]); x[8] = isoParaData(x[8]);
-          linhas.push(x);
+          linhas.push(l.map(function (v, i) {
+            var t = cols[i] ? cols[i].tipo : 'texto';
+            return t === 'data' ? isoParaData(v) : (t === 'num' ? numSeDer(v) : v);
+          }));
         });
       });
-      gerarXlsx('Pendencias_' + rotulo + '_' + nomeArquivo(nome) + '_' + (D ? D.hoje : '') + '.xlsx', cabecalhoAprovador(), linhas,
-        [11, 14, 34, 16, 11, 18, 40, 30, 16, 13, 26, 50], { 5: '#,##0.00', 8: 'dd/mm/yyyy' });
+      var formatos = {};
+      cols.forEach(function (c, i) { if (c.tipo === 'valor') formatos[i] = '#,##0.00'; if (c.tipo === 'data') formatos[i] = 'dd/mm/yyyy'; });
+      var larguras = cols.map(function (c, i) {
+        var max = String(c.nome).length;
+        linhas.forEach(function (l) { var v = l[i] instanceof Date ? 'dd/mm/aaaa' : String(l[i] == null ? '' : l[i]); if (v.length > max) max = v.length; });
+        return Math.min(Math.max(max + 2, 10), 60);
+      });
+      gerarXlsx('Pendencias_' + rotulo + '_' + nomeArquivo(nome) + '_' + (D ? D.hoje : '') + '.xlsx',
+        cols.map(function (c) { return c.nome; }), linhas, larguras, formatos);
     }
 
     function exportarLista() {
