@@ -143,7 +143,7 @@ function onEdit(e) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const CACHE_VERSAO = 'v5';
+const CACHE_VERSAO = 'v6';
 
 // Fuso da planilha; definido antes de processar (vazio nos testes fora do Apps Script).
 let FUSO_PLANILHA_ = '';
@@ -376,6 +376,8 @@ function mapColunas_(headerRow) {
     if (idx === -1 && obrigatoria) faltando.push(nomes.join(' ou '));
     return idx;
   };
+  // Quando o MXM renomeia uma coluna, o nome novo vem primeiro na lista e o
+  // antigo continua aceito.
   const col = {
     empresa: find('Cd.Empresa'),
     status: find('St.Requisição', true),
@@ -383,12 +385,12 @@ function mapColunas_(headerRow) {
     liquidoTitulos: find('Líquido - Títulos', true),
     numeroTitulo: find('Número do Título'),
     cdCat: find('Cd.Cat.Func.', true),
-    progPagto: find('Prog.Pagto.', true),
+    progPagto: find(['Data Prog.Pagto.', 'Prog.Pagto.'], true),
     cdEst: find('Cd.Est.Func.', true),
     req: find(NOMES_COLUNA_REQ, true),
     requisitante: find('Requisitante'),
     projeto: find('Projeto'),
-    dataRequisicao: find('Requisição'),
+    dataRequisicao: find(['Data Requisição', 'Requisição']),
     tipo: find('Tip. Requisição'),
     setor: find('Setor'),
     vencimento: find('Data Vencimento'),

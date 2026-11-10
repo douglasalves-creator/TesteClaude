@@ -321,7 +321,8 @@
     return xlsxPromessa;
   }
   function isoParaData(iso) { if (!iso) return ''; var p = iso.split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); }
-  function numSeDer(v) { return /^\d+$/.test(String(v)) ? Number(v) : v; }
+  // Só vira número se couber sem perder dígitos (até 15); títulos longos ficam como texto.
+  function numSeDer(v) { return /^\d{1,15}$/.test(String(v)) ? Number(v) : v; }
 
   function gerarXlsx(nome, cabecalho, linhas, larguras, formatos) {
     toast('Gerando arquivo…');
@@ -764,7 +765,7 @@
     function exportarLista() {
       var lista = ordenar(filtradas(false));
       var cab = [(D && D.nomeColunaReq) || 'Número Req. Pagto', 'Cd.Empresa', 'Fornecedor', 'CNPJ/CPF', 'Setor', 'Centro de Custo', 'Com quem está', 'Cargo', 'Faltam aprovar',
-        'Valor', 'Requisição', 'Prog.Pagto.', 'Dias úteis', 'Farol', 'Requisitante'];
+        'Valor', 'Data Requisição', 'Data Prog.Pagto.', 'Dias úteis', 'Farol', 'Requisitante'];
       var linhas = lista.map(function (r) {
         return [numSeDer(r.id), r.empresa, r._fornNome, r._fornDoc, r._setor, r._centros.join(' | '), r.aprovadorAtual, r.cargoAtual, r.faltam,
           r.valor, isoParaData(r.dataRequisicao), isoParaData(r.progPagto), r.dias, FAIXA_ROT[r.faixa] || '', r.requisitante];
