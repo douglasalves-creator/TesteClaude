@@ -60,7 +60,7 @@
   .wrap{max-width:1480px; margin:0 auto; padding:20px 24px 48px}
 
   /* KPIs */
-  .kpis{display:grid; grid-template-columns:1.25fr repeat(4,1fr); gap:12px; margin-bottom:16px}
+  .kpis{display:grid; grid-template-columns:1.2fr repeat(5,minmax(0,1fr)); gap:12px; margin-bottom:16px}
   .kpi{background:var(--branco); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px 13px; text-align:left; position:relative; transition:border-color .15s, box-shadow .15s}
   button.kpi:hover{border-color:var(--nevoa); box-shadow:0 2px 8px rgba(10,15,20,.06)}
   .kpi.ativo{border-color:var(--aurora); box-shadow:0 0 0 1px var(--aurora)}
@@ -76,6 +76,8 @@
   .kpi .bar{position:absolute; left:0; right:0; bottom:0; height:4px; border-radius:0 0 var(--radius) var(--radius)}
   .dot{width:10px; height:10px; border-radius:50%; flex:none; display:inline-block}
   .f-critico{background:var(--critico)} .f-alto{background:var(--alto)} .f-medio{background:var(--medio)} .f-ok{background:var(--ok)}
+  .f-reprovada{background:var(--cosmos)}
+  .tag-rep{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--branco); background:var(--cosmos); padding:1px 6px; border-radius:4px; margin-left:4px; vertical-align:1px}
   .tag-venc{display:inline-block; margin-left:6px; font-size:11px; font-weight:600; color:var(--critico); background:var(--critico-50); padding:1px 7px; border-radius:20px; vertical-align:middle}
 
   /* Filtros */
@@ -143,6 +145,8 @@
   .passo{width:9px; height:9px; border-radius:50%; background:var(--nevoa)}
   .passo.aprovado{background:var(--cosmos)}
   .passo.atual{background:var(--branco); box-shadow:inset 0 0 0 2.5px var(--aurora)}
+  .passo.ultimo{background:var(--cosmos); box-shadow:0 0 0 2px #C9D3DE}
+  .passo.naoChegou{background:var(--branco); box-shadow:inset 0 0 0 1.5px var(--nevoa)}
   .falta{font-size:11.5px; color:var(--ink-2); margin-top:4px; white-space:nowrap}
 
   /* Detalhe */
@@ -163,6 +167,10 @@
   .fl-cargo{font-size:11.5px; color:var(--ink-3)}
   .fl-st{font-size:11.5px; color:var(--ink-3); text-align:right; white-space:nowrap}
   .atual .fl-st{color:var(--aurora-700); font-weight:600}
+  .ultimo .marca{background:var(--branco); border-color:var(--cosmos); color:var(--cosmos)}
+  .ultimo .fl-nome,.ultimo .fl-st{color:var(--cosmos); font-weight:600}
+  .naoChegou .fl-nome{color:var(--ink-3)}
+  .obs.rep{color:var(--cosmos); background:#E7EDF3}
   .dl{display:grid; grid-template-columns:120px 1fr; gap:7px 12px; margin:0}
   .dl dt{font-size:11.5px; color:var(--ink-3)}
   .dl dd{margin:0; font-weight:500; word-break:break-word}
@@ -203,6 +211,7 @@
     .grid{grid-template-columns:1fr}
     .kpis{grid-template-columns:repeat(2,1fr)}
     .kpi-total{grid-column:1 / -1}
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
     .det-in{grid-template-columns:1fr}
   }
   @media (max-width:640px){
@@ -255,8 +264,8 @@
 (function () {
   var LOGO_URL = '<?= logoUrl ?>';
   var XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-  var FAIXA_COR = { critico: 'f-critico', alto: 'f-alto', medio: 'f-medio', ok: 'f-ok' };
-  var FAIXA_ROT = { critico: 'Até 3 dias úteis', alto: '4 a 6 dias úteis', medio: '7 a 10 dias úteis', ok: 'Acima de 10 dias úteis' };
+  var FAIXA_COR = { critico: 'f-critico', alto: 'f-alto', medio: 'f-medio', ok: 'f-ok', reprovada: 'f-reprovada' };
+  var FAIXA_ROT = { critico: 'Até 3 dias úteis', alto: '4 a 6 dias úteis', medio: '7 a 10 dias úteis', ok: 'Acima de 10 dias úteis', reprovada: 'Reprovadas' };
   var ICO_BAIXAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
   var ICO_COPIAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 
@@ -370,7 +379,7 @@
       '  <section class="grid">' +
       '    <div class="card">' +
       '      <div class="card-h">' +
-      '        <h2>Requisições em aprovação</h2>' +
+      '        <h2 data-r="tituloTabela">Requisições em aprovação</h2>' +
       '        <span class="info" data-r="infoTabela"></span>' +
       '      </div>' +
       '      <div class="scroll" data-r="areaTabela">' +
@@ -387,7 +396,7 @@
       '' +
       '    <aside class="card">' +
       '      <div class="card-h">' +
-      '        <h2>Com quem está</h2>' +
+      '        <h2 data-r="tituloRank">Com quem está</h2>' +
       '        <span class="info">qtd. · valor · baixar</span>' +
       '      </div>' +
       '      <ul class="rank" data-r="rank"></ul>' +
@@ -411,7 +420,10 @@
     var abertoMs = null;
 
     function passa(r, exceto, ignorarFaixa) {
-      if (!ignorarFaixa && estado.faixa && r.faixa !== estado.faixa) return false;
+      if (!ignorarFaixa) {
+        if (estado.faixa && r.faixa !== estado.faixa) return false;
+        if (!estado.faixa && r.reprovada) return false;   // reprovadas ficam só no card "Reprovadas"
+      }
       var q = semAcento(busca.value.trim());
       if (q && r._busca.indexOf(q) === -1) return false;
       for (var k in FILTROS) {
@@ -555,16 +567,19 @@
       if (!D) return;
       var base = filtradas(true);
       renderKpis(base);
-      var lista = estado.faixa ? base.filter(function (r) { return r.faixa === estado.faixa; }) : base;
+      var lista = base.filter(function (r) { return estado.faixa ? r.faixa === estado.faixa : !r.reprovada; });
+      $('tituloRank').textContent = estado.faixa === 'reprovada' ? 'Último registro' : 'Com quem está';
+      $('tituloTabela').textContent = estado.faixa === 'reprovada' ? 'Requisições reprovadas' : 'Requisições em aprovação';
       renderRank(lista);
       renderTabela(lista);
     }
 
     function renderKpis(base) {
+      var emAprov = base.filter(function (r) { return !r.reprovada; });
       var html = '<button type="button" class="kpi kpi-total" data-faixa="">' +
         '<div class="kpi-lbl">Em aprovação</div>' +
-        '<div class="kpi-val num">' + base.length.toLocaleString('pt-BR') + '</div>' +
-        '<div class="kpi-sub">requisições · <b>' + brl(soma(base)) + '</b></div></button>';
+        '<div class="kpi-val num">' + emAprov.length.toLocaleString('pt-BR') + '</div>' +
+        '<div class="kpi-sub">requisições · <b>' + brl(soma(emAprov)) + '</b></div></button>';
       D.faixas.forEach(function (f) {
         var it = base.filter(function (r) { return r.faixa === f.id; });
         var venc = f.id === 'critico' ? it.filter(function (r) { return r.dias < 0; }).length : 0;
@@ -645,6 +660,7 @@
     }
 
     function celFarol(r) {
+      if (r.reprovada) return '<div class="farol-cell" title="Reprovada no MXM"><span class="dot f-reprovada"></span><span class="dias-lbl">reprovada</span></div>';
       if (r.dias == null) return '<span class="dias-lbl">sem prog.</span>';
       var txt = r.dias < 0 ? '<span class="venc">' + r.dias + '</span>' : r.dias;
       var lbl = r.dias < 0 ? 'vencida' : 'd.u.';
@@ -653,6 +669,10 @@
     }
 
     function celAprovador(r) {
+      if (r.reprovada) {
+        return '<div class="aprov">' + esc(r.aprovadorAtual || '—') + '<span class="tag-rep">reprovada</span></div>' +
+          '<div class="sub">Último registro' + (r.dataUltimo ? ' em ' + dataHora(r.dataUltimo) : '') + '</div>';
+      }
       if (!r.aprovadorAtual) return '<span class="sub">Todas as etapas aprovadas</span>';
       if (r.atualSemNome) {
         return '<div class="aprov">' + esc(titulo(r.cargoAtual || r.aprovadorAtual)) + '<span class="grupo">grupo</span></div>' +
@@ -663,19 +683,23 @@
 
     function celEtapa(r) {
       var p = r.etapas.map(function (e) { return '<span class="passo ' + e.situacao + '"></span>'; }).join('');
+      if (r.reprovada) return '<div class="passos" aria-hidden="true">' + p + '</div><div class="falta">Reprovada</div>';
       return '<div class="passos" aria-hidden="true">' + p + '</div><div class="falta">Falta' + (r.faltam === 1 ? '' : 'm') + ' ' + r.faltam + ' de ' + r.totalNiveis + '</div>';
     }
 
     function detalhe(r) {
       var fluxo = r.etapas.map(function (e, i) {
         var nome = e.aprovador || titulo(e.cargo);
-        var st = e.situacao === 'aprovado' ? 'Aprovado ' + dataHora(e.data) : (e.situacao === 'atual' ? 'Aguardando' : 'Próximo');
+        var st = { aprovado: 'Aprovado ' + dataHora(e.data), atual: 'Aguardando', proximo: 'Próximo',
+          ultimo: 'Último registro ' + dataHora(e.data), naoChegou: 'Não chegou a aprovar' }[e.situacao];
         var cargo = e.aprovador ? titulo(e.cargo) : 'Aprovação por grupo' + (e.usual ? ' · costuma aprovar: ' + e.usual : '');
         return '<li class="' + e.situacao + '"><span class="marca">' + (e.situacao === 'aprovado' ? '✓' : (i + 1)) + '</span>' +
           '<div><div class="fl-nome">' + esc(nome) + '</div><div class="fl-cargo">' + esc(cargo) + ' · nível ' + esc(e.nivel) + '</div></div>' +
           '<div class="fl-st">' + esc(st) + '</div></li>';
       }).join('');
-      var obs = r.dias != null && r.dias < 0
+      var obs = r.reprovada
+        ? '<div class="obs rep">Requisição reprovada no MXM. O relatório não informa quem reprovou; o último registro de data é de ' + esc(r.aprovadorAtual || '—') + (r.dataUltimo ? ' em ' + dataHora(r.dataUltimo) : '') + '.</div>'
+        : r.dias != null && r.dias < 0
         ? '<div class="obs">Prog. pagto vencida há ' + Math.abs(r.dias) + (r.dias === -1 ? ' dia útil' : ' dias úteis') + '. O pagamento vai para a grade posterior.</div>' : '';
       var lin = function (k, v) { return v ? '<dt>' + k + '</dt><dd>' + v + '</dd>' : ''; };
       return '<div class="det-in">' +
@@ -695,7 +719,7 @@
     }
 
     function renderTabela(lista) {
-      $('infoTabela').innerHTML = '<b>' + lista.length + '</b> de ' + REQS.length + ' · <b>' + brl(soma(lista)) + '</b>';
+      $('infoTabela').innerHTML = '<b>' + lista.length + '</b> de ' + REQS.filter(function (r) { return estado.faixa === 'reprovada' ? r.reprovada : !r.reprovada; }).length + ' · <b>' + brl(soma(lista)) + '</b>';
       var area = $('areaTabela');
       if (!lista.length) {
         area.innerHTML = '<div class="estado"><h3>Nenhuma requisição encontrada</h3>Ajuste ou limpe os filtros.</div>';
@@ -703,7 +727,7 @@
       }
       var head = '<tr>' + COLS.map(function (c) {
         var seta = estado.ordem === c.k ? (estado.dir > 0 ? '▲' : '▼') : '';
-        return '<th class="sort' + (c.r ? ' r' : '') + '" data-k="' + c.k + '" aria-sort="' + (seta ? (estado.dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + c.t + ' <span class="seta">' + seta + '</span></th>';
+        return '<th class="sort' + (c.r ? ' r' : '') + '" data-k="' + c.k + '" aria-sort="' + (seta ? (estado.dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + (c.k === 'aprovadorAtual' && estado.faixa === 'reprovada' ? 'Último registro' : c.t) + ' <span class="seta">' + seta + '</span></th>';
       }).join('') + '</tr>';
       var body = ordenar(lista).map(function (r) {
         var aberta = estado.aberta === r.id;

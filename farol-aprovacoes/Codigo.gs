@@ -32,6 +32,8 @@ const CONFIG = {
   HTML_FILE: 'Farol',
 
   STATUS_PENDENTE: 'Em Aprovação',
+  // Reprovadas aparecem só no card "Reprovadas" (não contam como pendência).
+  STATUS_REPROVADO: 'Reprovado',
 
   // Carnaval (segunda e terça) e Corpus Christi são ponto facultativo.
   // Deixe true se a empresa não trabalha nesses dias.
@@ -145,7 +147,7 @@ function onEdit(e) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const CACHE_VERSAO = 'v7';
+const CACHE_VERSAO = 'v8';
 
 // Fuso da planilha; definido antes de processar (vazio nos testes fora do Apps Script).
 let FUSO_PLANILHA_ = '';
@@ -199,7 +201,7 @@ function diagnosticarTipo_(tipo) {
   Logger.log('Atualização do relatório: ' + (r.atualizacao || '(não encontrada na linha 1)'));
   Logger.log('Linhas lidas: ' + r.diag.linhas + ' | requisições: ' + r.diag.requisicoes);
   Logger.log('Status encontrados: ' + JSON.stringify(r.diag.status));
-  Logger.log('Em aprovação: ' + r.requisicoes.length + ' | valor: ' + r.diag.valorTotal.toFixed(2));
+  Logger.log('Em aprovação: ' + (r.requisicoes.length - r.diag.reprovadas) + ' | reprovadas: ' + r.diag.reprovadas + ' | valor em aprovação: ' + r.diag.valorTotal.toFixed(2));
   Logger.log('Pares de níveis aprendidos do histórico: ' + r.diag.paresAprendidos);
   Logger.log('Requisições em que o histórico corrigiu a ordem do relatório: ' + r.diag.ordemCorrigida.join(', '));
   if (r.diag.faltando.length) Logger.log('COLUNAS NÃO ENCONTRADAS: ' + r.diag.faltando.join(', '));
@@ -650,20 +652,23 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
 
   const contarDias = criarContadorDiasUteis_(feriadosExtras);
   const alvoStatus = norm_(CONFIG.STATUS_PENDENTE);
+  const statusReprovado = norm_(CONFIG.STATUS_REPROVADO);
   const ordemCorrigida = [];
   let valorTotal = 0;
+  let reprovadas = 0;
 
   const saida = [];
   ordemReqs.forEach(function (id) {
     const q = reqs[id];
-    if (norm_(q.status) !== alvoStatus) return;
+    const reprovada = norm_(q.status) === statusReprovado;
+    if (!reprovada && norm_(q.status) !== alvoStatus) return;
 
     const aprovado = function (n) { return n.linhas > 0 && n.aprovadas === n.linhas; };
     const feitos = q.ordem.filter(function (k) { return aprovado(q.niveis[k]); })
       .sort(function (a, b) { return q.niveis[a].data - q.niveis[b].data; });
     const pendentesRelatorio = q.ordem.filter(function (k) { return !aprovado(q.niveis[k]); });
     const pendentes = ordemHistorico ? ordenar(pendentesRelatorio) : pendentesRelatorio;
-    if (pendentes.length && pendentes[0] !== pendentesRelatorio[0]) ordemCorrigida.push(id);
+    if (!reprovada && pendentes.length && pendentes[0] !== pendentesRelatorio[0]) ordemCorrigida.push(id);
 
     const etapas = feitos.concat(pendentes).map(function (k, i) {
       const n = q.niveis[k];
@@ -678,10 +683,20 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
         situacao: feito ? 'aprovado' : (i === feitos.length ? 'atual' : 'proximo')
       };
     });
-    const atual = etapas[feitos.length] || null;
+    // Reprovada: o relatório não diz quem reprovou. Mostramos o último nível com
+    // data (no relatório de Pagamentos é a data da reprovação) e os níveis sem
+    // data como "não chegou a aprovar".
+    let idxAtual = feitos.length;
+    if (reprovada) {
+      etapas.forEach(function (e) { if (e.situacao !== 'aprovado') e.situacao = 'naoChegou'; });
+      if (feitos.length) { idxAtual = feitos.length - 1; etapas[idxAtual].situacao = 'ultimo'; }
+      reprovadas++;
+    }
+    const atual = etapas[idxAtual] || null;
+    const nivelAtual = reprovada ? feitos[feitos.length - 1] : pendentes[0];
 
     // Linhas do relatório do nível atual (uma por rateio), para o arquivo do aprovador.
-    const linhasAtual = !pendentes.length ? [] : q.niveis[pendentes[0]].idx.map(function (r) {
+    const linhasAtual = !nivelAtual ? [] : q.niveis[nivelAtual].idx.map(function (r) {
       const row = data[r];
       return mapa.arquivo.map(function (a) {
         const v = cel(row, a.idx);
@@ -692,10 +707,10 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
     });
 
     const valor = Object.keys(q.titulos).reduce(function (s, t) { return s + q.titulos[t]; }, 0);
-    valorTotal += valor;
+    if (!reprovada) valorTotal += valor;
     const progIso = iso_(q.progPagto);
     const dias = contarDias(hojeIso, progIso);
-    const faixa = dias === null ? null : CONFIG.FAIXAS.filter(function (f) { return dias <= f.ate; })[0].id;
+    const faixa = reprovada ? 'reprovada' : (dias === null ? null : CONFIG.FAIXAS.filter(function (f) { return dias <= f.ate; })[0].id);
 
     saida.push({
       id: id,
@@ -714,6 +729,8 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
       progPagto: progIso,
       dias: dias,
       faixa: faixa,
+      reprovada: reprovada,
+      dataUltimo: reprovada && atual ? atual.data : '',
       faltam: pendentes.length,
       totalNiveis: etapas.length,
       aprovadorAtual: atual ? (atual.aprovador || atual.cargo || atual.nivel) : '',
@@ -732,7 +749,8 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
     rotuloTitulo: layout.rotuloTitulo,
     arquivo: mapa.arquivo.map(function (a) { return { nome: a.nome, tipo: a.tipo }; }),
     hoje: hojeIso,
-    faixas: CONFIG.FAIXAS.map(function (f) { return { id: f.id, rotulo: f.rotulo, ate: f.ate === Infinity ? null : f.ate }; }),
+    faixas: CONFIG.FAIXAS.map(function (f) { return { id: f.id, rotulo: f.rotulo, ate: f.ate === Infinity ? null : f.ate }; })
+      .concat([{ id: 'reprovada', rotulo: 'Reprovadas', ate: null }]),
     requisicoes: saida,
     diag: {
       linhas: linhas,
@@ -741,6 +759,7 @@ function processarRelatorio_(data, hojeIso, feriadosExtras, opcoes) {
       valorTotal: valorTotal,
       paresAprendidos: paresAprendidos,
       ordemCorrigida: ordemCorrigida,
+      reprovadas: reprovadas,
       faltando: mapa.faltando
     }
   };
