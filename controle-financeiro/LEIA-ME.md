@@ -77,8 +77,15 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 **Regras usadas:**
 - **Orçado** = VALOR A PAGAR, pelo mês da DATA DE VENCIMENTO.
 - **Projeção** = soma de "Valor" das linhas daquela Data do Fluxo, pelo mês da Data programada de pgto.
-- **Realizado** = "Pagamentos" do Realizado Controladoria, pelo mês da coluna Pagto.
-- Só entram centros de custo da lista do setor (aba Setores / CCs). Lançamentos de Projeções fora da lista aparecem num aviso.
+- **Realizado acumulado** = "Pagamentos" do Realizado Controladoria (todas as linhas), pelo mês da coluna Pagto.
+- **Realizado semanal** = mesma soma, só das linhas com **Semanal** na coluna "Semanal / Acumulado".
+- **Quais centros de custo entram no Supply** (mesma regra nas três abas, ligando pelo código):
+  1. Código cadastrado na aba Setores / CCs → vale o setor de lá (Supply entra; outro setor fica de fora).
+  2. Sem cadastro: nas Projeções - Supply, entra (centro de custo vazio aparece como "(em branco)");
+     no Orçamento e no Realizado, entra se a descrição tiver BOP, CURVA A, SUPPLY, SUP ou LOG,
+     ou, no Orçamento, se a coluna SETOR tiver BOP, CURVA A ou LOGÍSTICA.
+  3. Só aparecem os que têm algum valor para as usinas escolhidas.
+- O **diagnosticar** lista o que entrou sem cadastro e o que ficou de fora por ser de outro setor.
 - Valores negativos aparecem em vermelho.
 
 ## 5. Ajustes sem programar
@@ -86,5 +93,6 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 No topo do `Codigo.gs`, em `CONFIG`:
 
 - `SETORES`: para ligar outro setor, escreva o nome da aba de projeções dele (ex.: `projecoes: 'Projeções - EP'`).
+  As palavras que puxam centros de custo sem cadastro para o setor ficam em `palavras` e `orcSetor`.
 - `CACHE_MINUTOS`: por quantos minutos os dados ficam guardados para o painel abrir rápido (padrão 10).
   O botão **Atualizar** sempre busca os dados novos na hora.

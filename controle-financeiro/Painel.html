@@ -89,6 +89,11 @@
   body{overflow-x:hidden}
   @media (max-width:900px){ #tree, .drawer .card{overflow-x:auto} }
   #tabMeses{overflow-x:auto; border-radius:0 0 var(--radius) var(--radius)}
+  /* Tabela de centros de custo: mais colunas cabem na tela; se faltar espaço, rola dentro do cartão */
+  #tree{overflow-x:auto; border-radius:0 0 var(--radius) var(--radius)}
+  .tb-c th,.tb-c td{padding-left:9px; padding-right:9px}
+  .tb-c td:first-child{min-width:240px}
+  .tb-c td.n{font-size:13px}
   .meses th,.meses td{white-space:nowrap}
   .meses th:first-child,.meses td:first-child{position:sticky; left:0; background:var(--branco); z-index:1}
   .meses th:last-child,.meses td:last-child{position:sticky; right:0; background:#FAFAFA; z-index:1}
@@ -238,6 +243,9 @@
   @media (max-width:640px){ .mods{gap:20px; padding-inline:16px} }
   .mods .soon{font-size:9.5px; font-weight:600; color:#80868C; margin-left:6px; text-transform:uppercase; letter-spacing:.06em}
   .kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr)); margin-bottom:12px}
+  .kpis.k5{grid-template-columns:repeat(5,minmax(0,1fr)); margin-bottom:12px}
+  @media (max-width:1100px){ .kpis.k5{grid-template-columns:repeat(3,minmax(0,1fr))} }
+  @media (max-width:640px){ .kpis.k5{grid-template-columns:repeat(2,minmax(0,1fr))} }
   /* Δ positivo / negativo à primeira vista: faixa no topo e selo colorido */
   .kpi.delta{position:relative; overflow:hidden; gap:2px}
   .kpi.delta::before{content:''; position:absolute; inset:0 0 auto; height:4px; background:#5C6670}
@@ -305,7 +313,7 @@
   <div class="pick" id="pick" hidden><div class="ic">↑</div><h3>Selecione uma usina</h3><p>Escolha uma ou mais usinas na lista acima para ver os centros de custo.</p></div>
 
   <div id="resumoBody" hidden>
-    <div class="kpis k4" id="kpis"></div>
+    <div class="kpis k5" id="kpis"></div>
     <div class="kpis k4" id="kpisD"></div>
     <div class="card">
       <div class="card-h">
@@ -395,9 +403,9 @@ const DEMO_API = DEMO ? (function () {
   const cod = (t) => t.split('  -  ')[0];
   const forn = ['WEG S.A.', 'Gerdau', 'Trina Solar', 'Huawei', 'Prysmian', 'Transportes Rápido'];
   const C = {
-    orc: [['projeto', 'PROJETO', 'texto'], ['cc', 'CENTRO DE CUSTO', 'texto'], ['valor', 'VALOR A PAGAR', 'valor'], ['venc', 'DATA DE VENCIMENTO', 'data']],
+    orc: [['projeto', 'PROJETO', 'texto'], ['cc', 'CENTRO DE CUSTO', 'texto'], ['valor', 'VALOR A PAGAR', 'valor'], ['venc', 'DATA DE VENCIMENTO', 'data'], ['setor', 'SETOR', 'texto']],
     real: [['pagto', 'Pagto.', 'data'], ['valor', 'Pagamentos', 'valor'], ['projeto', 'Projeto', 'texto'], ['cc', 'C. Custo', 'texto'],
-      ['favorecido', 'Favorecido', 'texto'], ['doc', 'Documento', 'texto'], ['obs', 'Consolidado', 'texto']],
+      ['ccDesc', 'Centro de Custo', 'texto'], ['tipo', 'Semanal / Acumulado', 'texto'], ['favorecido', 'Favorecido', 'texto'], ['doc', 'Documento', 'texto'], ['obs', 'Consolidado', 'texto']],
     p_supply: [['projeto', 'Projeto Padrão', 'texto'], ['cc', 'Centro de Custo Padrão', 'texto'], ['valor', 'Valor', 'valor'], ['dataProg', 'Data programada de pgto', 'data'],
       ['dataFluxo', 'Data do Fluxo', 'data'], ['fornecedor', 'Fornecedor', 'texto'], ['coment', 'Comentário', 'texto']]
   };
@@ -409,10 +417,10 @@ const DEMO_API = DEMO ? (function () {
   usinas.forEach((u, ui) => ccSupply.concat(ccOutros).forEach((c, ci) => {
     if ((ui + ci) % 4 === 3) return; // nem toda usina tem todos os centros de custo
     const base = 8000 + rnd() * 30000;
-    for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10)]);
+    for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10), ci < ccSupply.length ? 'GE - ENG - BOP' : 'GE - ENG - PROJETOS']);
     const fator = (ui + ci) % 7 === 0 ? 1.4 : 0.9;
     // No Realizado, usina e centro de custo vêm só com o código (como na aba Realizado Controladoria).
-    for (let m = 1; m < M; m++) L.real.push([n++, iso(Y, m, 5), cent(base * fator * (0.75 + rnd() * 0.5)), cod(u), cod(c), forn[ci % 6], String(30000 + n), 'Parcela ' + m]);
+    for (let m = 1; m < M; m++) L.real.push([n++, iso(Y, m, 5), cent(base * fator * (0.75 + rnd() * 0.5)), cod(u), cod(c), c.split('  -  ')[1], m === M - 1 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(30000 + n), 'Parcela ' + m]);
     if (ci >= ccSupply.length) return; // só o Supply tem aba de projeções
     snaps.forEach((s, si) => {
       const sm = +s.slice(5, 7), deriva = 1 + (si - snaps.length) * 0.012 * ((ui + ci) % 3 - 1);
@@ -432,7 +440,8 @@ const DEMO_API = DEMO ? (function () {
     carregarDados: () => ({
       geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#', acesso: { tudo: true, setores: ['Supply', 'Projetos', 'EP', 'GA'] },
       usinas: Object.fromEntries(usinas.map((u) => [cod(u), u])),
-      setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(cod), ccNomes: Object.fromEntries(ccSupply.map((c) => [cod(c), c])), origemCC: 'setores', edita: true },
+      setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(cod), ccNomes: Object.fromEntries(ccSupply.map((c) => [cod(c), c])), origemCC: 'setores', edita: true,
+        outros: ccOutros.map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
         { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: '', pronto: false, ccs: [], edita: false }, { nome: 'GA', id: '', pronto: false, ccs: [], edita: false }],
       abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', true, 'Supply') }
     }),
@@ -518,14 +527,34 @@ function mapaDesc(nomes, cod, re) {
  * Linhas de cada fonte para o setor escolhido: só os centros de custo do setor (aba Setores / CCs),
  * ligados pelo código. Projeções em centros de custo fora da lista ficam separadas para o aviso.
  */
+function ccVazio(t) { return !String(t === null || t === undefined ? '' : t).replace(/[\s\-–—|]/g, ''); }
+function temPalavra(t, palavras) { const n = ' ' + nk(t) + ' '; return (palavras || []).some((p) => n.indexOf(' ' + nk(p) + ' ') !== -1); }
+/** Texto do centro de custo do lançamento (no Realizado junta o código com a descrição). */
+function textoCC(aba, r) { return aba === 'real' && r.ccDesc ? String(r.cc || '').trim() + ' - ' + String(r.ccDesc).trim() : String(r.cc || '').trim(); }
+/**
+ * O lançamento é do setor? (mesma regra do servidor)
+ *  1. Código (ou descrição) cadastrado na aba Setores / CCs → vale o setor de lá.
+ *  2. Não cadastrado: nas Projeções do setor, entra; no Orçamento e no Realizado, entra se a descrição tiver
+ *     uma das palavras do setor (BOP, CURVA A…) ou, no Orçamento, se a coluna SETOR tiver.
+ */
+function doSetor(rg, aba, r) {
+  const t = r._cct;
+  if (ccVazio(t)) return aba === 'proj' || (aba === 'orc' && temPalavra(r.setor, rg.orcSetor));
+  const c = codCC(t);
+  if (rg.ccs.has(c)) return true;
+  if (rg.outros.has(c)) return false;
+  if (aba === 'proj') return true;
+  if (temPalavra(t.replace(RE_CC, ''), rg.palavras)) return true;
+  return aba === 'orc' && temPalavra(r.setor, rg.orcSetor);
+}
 function linhasSetor() {
   const st = S.setor;
-  const ccs = st.ccs && st.ccs.length ? new Set(st.ccs) : null;
-  const doSetor = (r) => !ccs || ccs.has(codCC(r.cc));
-  // Projeção sem centro de custo preenchido (vazio ou só "-") também conta, na linha "(em branco)".
-  const emBranco = (r) => !String(r.cc || '').replace(/[\s\-–—]/g, '');
+  const rg = { ccs: new Set(st.ccs || []), outros: new Set(st.outros || []), palavras: st.palavras || [], orcSetor: st.orcSetor || [] };
+  const semLista = !(st.ccs && st.ccs.length);
+  const filtra = (aba, rows) => rows.filter((r) => { r._cct = textoCC(aba, r); return semLista || doSetor(rg, aba, r); });
   const proj = S.proj[st.id] || [];
-  return { orc: S.rows.orc.filter(doSetor), real: S.rows.real.filter(doSetor), proj: proj.filter((r) => doSetor(r) || emBranco(r)), projFora: proj.filter((r) => !doSetor(r) && !emBranco(r)) };
+  const projOk = filtra('proj', proj), dentro = new Set(projOk);
+  return { orc: filtra('orc', S.rows.orc), real: filtra('real', S.rows.real), proj: projOk, projFora: proj.filter((r) => !dentro.has(r)) };
 }
 function prepararSetor() {
   const st = S.setor;
@@ -533,16 +562,17 @@ function prepararSetor() {
   // Nomes: da aba Usinas e da aba Setores / CCs; se faltar, o texto mais completo encontrado nos dados.
   const usTab = S.d.usinas || {}, ccTab = st.ccNomes || {};
   S.uNome = {}; S.ccNome = {}; S.uTxt = {}; S.ccTxt = {};
-  const nome = (mapa, k, txt, padrao) => { if (padrao) mapa[k] = padrao; else if (!mapa[k] || txt.length > mapa[k].length) mapa[k] = txt; };
+  const nome = (mapa, k, txt, padrao) => { txt = txt.replace(/\s+/g, ' '); if (padrao) mapa[k] = padrao; else if (!mapa[k] || txt.length > mapa[k].length) mapa[k] = txt; };
   const tag = (r, d, proj) => {
-    const p = String(r.projeto || '').trim(), c = String(r.cc || '').trim();
+    const p = String(r.projeto || '').trim(), c = String(r._cct || '').trim();
     r._u = codUsina(p) || '~'; nome(S.uNome, r._u, p || '(sem usina)', usTab[r._u] && usTab[r._u].replace(/\s+/g, ' '));
-    const branco = !c.replace(/[\s\-–—]/g, '');
+    const branco = ccVazio(c);
     r._ck = branco ? '~' : codCC(c); nome(S.ccNome, r._ck, branco ? '(em branco)' : c, ccTab[r._ck] && ccTab[r._ck].replace(/\s+/g, ' '));
     if (proj) { if (!S.uTxt[r._u]) S.uTxt[r._u] = p; if (!S.ccTxt[r._ck]) S.ccTxt[r._ck] = c; }
     r._d = d;
   };
   S.L.orc.forEach((r) => tag(r, r.venc));
+  S.L.real.forEach((r) => { r._sem = nk(r.tipo) === 'semanal'; });
   S.L.real.forEach((r) => tag(r, r.pagto));
   S.L.proj.forEach((r) => tag(r, r.dataProg, true));
   S.L.projFora.forEach((r) => { r._u = codUsina(r.projeto); r._ck = ''; });
@@ -574,10 +604,10 @@ function prepararSetor() {
   });
   if (st.pronto && !(st.ccs && st.ccs.length)) msgs.push('Nenhum centro de custo do ' + esc(st.nome) + ' na aba Setores / CCs: o painel mostra todos os centros de custo.');
   const fora = {};
-  S.L.projFora.forEach((r) => { const k = String(r.cc || '').trim() || '(vazio)'; fora[k] = (fora[k] || 0) + 1; });
+  S.L.projFora.forEach((r) => { const k = String(r.cc || '').trim(); fora[k] = (fora[k] || 0) + 1; });
   const kf = Object.keys(fora);
-  if (kf.length) msgs.push('<b>' + esc(S.d.abas[st.id].aba) + ':</b> ' + kf.reduce((a, k) => a + fora[k], 0) + ' lançamentos em centros de custo que não estão na lista do ' +
-    esc(st.nome) + ' (aba Setores / CCs) não entram nos números: ' + kf.map(esc).join(', ') + '.');
+  if (kf.length) msgs.push('<b>' + esc(S.d.abas[st.id].aba) + ':</b> ' + kf.reduce((a, k) => a + fora[k], 0) + ' lançamentos estão em centros de custo de outro setor ' +
+    '(pela aba Setores / CCs) e não entram nos números: ' + kf.map(esc).join(', ') + '.');
   $('#avisos').innerHTML = (DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '') +
     (msgs.length && st.pronto ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '');
   renderUsel();
@@ -620,11 +650,12 @@ function filtrar() {
     orc: S.L.orc.filter(passa),
     pa: S.L.proj.filter((r) => r.dataFluxo === S.f.ant && passa(r)),
     pt: S.L.proj.filter((r) => r.dataFluxo === S.f.atu && passa(r)),
-    real: S.L.real.filter(passa)
+    real: S.L.real.filter(passa),
+    rs: S.L.real.filter((r) => r._sem && passa(r))
   };
 }
-const MK = ['orc', 'pa', 'pt', 'real'];
-function novoM() { return { orc: 0, pa: 0, pt: 0, real: 0 }; }
+const MK = ['orc', 'pa', 'pt', 'real', 'rs'];
+function novoM() { return { orc: 0, pa: 0, pt: 0, real: 0, rs: 0 }; }
 function somaM(a, b) { MK.forEach((k) => { a[k] += b[k]; }); return a; }
 /** Δ Projeções = anterior − atual · Δ1 = Orçado − Projeção atual − Realizado · Δ2 = Orçado − Realizado */
 function derivar(m) {
@@ -670,7 +701,7 @@ const DH = {
   d2: dh('(Orçado − Realizado)')
 };
 function kpisHtml(m) {
-  return [kpi('Orçado', m.orc) + kpi('Projeção anterior', m.pa) + kpi('Projeção atual', m.pt) + kpi('Realizado', m.real),
+  return [kpi('Orçado', m.orc) + kpi('Projeção anterior', m.pa) + kpi('Projeção atual', m.pt) + kpi('Realizado acumulado', m.real) + kpi('Realizado semanal', m.rs),
     kpiDelta(DH.d1, m.d1) + kpiDelta(DH.d2, m.d2) + kpiDelta(DH.dP, m.dP) + kpiDelta(DH.dPp, m.dPp, pct(m.dPp))];
 }
 function th2(t, d) { return '<span class="th2">' + t + '<small>' + (d ? dt(d) : '—') + '</small></span>'; }
@@ -678,7 +709,7 @@ function colunas() {
   return [
     { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
     { k: 'pa', t: th2('Projeção anterior', S.f.ant), n: 1 }, { k: 'pt', t: th2('Projeção atual', S.f.atu), n: 1, c: 'pt' },
-    { k: 'real', t: 'Realizado', n: 1 },
+    { k: 'real', t: 'Realizado acumulado', n: 1 }, { k: 'rs', t: 'Realizado semanal', n: 1 },
     { k: 'd1', t: DH.d1, n: 1, dl: 'first' }, { k: 'd2', t: DH.d2, n: 1, dl: 1 }, { k: 'dP', t: DH.dP, n: 1, dl: 1 }, { k: 'dPp', t: DH.dPp, n: 1, dl: 1 }
   ];
 }
@@ -689,7 +720,7 @@ function cmp(a, b) {
   return (v(a) - v(b)) * S.sort.dir;
 }
 function celulas(m) {
-  return '<td class="n">' + num(m.orc) + '</td><td class="n">' + num(m.pa) + '</td><td class="n pt">' + num(m.pt) + '</td><td class="n">' + num(m.real) + '</td>' +
+  return '<td class="n">' + num(m.orc) + '</td><td class="n">' + num(m.pa) + '</td><td class="n pt">' + num(m.pt) + '</td><td class="n">' + num(m.real) + '</td><td class="n">' + num(m.rs) + '</td>' +
     '<td class="n dl first' + numCls(m.d1) + '">' + num(m.d1) + '</td><td class="n dl' + numCls(m.d2) + '">' + num(m.d2) + '</td><td class="n dl' + numCls(m.dP) + '">' + num(m.dP) + '</td>' +
     '<td class="n dl' + numCls(m.dPp) + '"' + (m.dPp === null ? ' title="Sem projeção anterior"' : '') + '>' + pct(m.dPp) + '</td>';
 }
@@ -736,12 +767,12 @@ function renderTabela() {
 const SERIES = [
   { k: 'orc', nome: 'Orçado', sw: 'background:var(--cosmos)' },
   { k: 'pt', nome: 'Projeção atual', sw: 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)' },
-  { k: 'real', nome: 'Realizado', sw: 'background:var(--aurora)' }
+  { k: 'real', nome: 'Realizado acumulado', sw: 'background:var(--aurora)' }
 ];
 /** Orçado (vencimento), Projeção atual (data programada) e Realizado (data do pagamento) mês a mês. */
 function renderCurvas() {
   $('#leg').innerHTML = SERIES.map((x) => '<button type="button" data-linha="' + x.k + '" class="' + (S.linhasOff.has(x.k) ? 'off' : '') + '" aria-pressed="' + !S.linhasOff.has(x.k) + '"><span class="sw" style="' + x.sw + '"></span>' + x.nome + '</button>').join('');
-  $('#legNota').textContent = 'Clique em Orçado, Projeção atual ou Realizado para mostrar ou esconder a linha. Projeção atual: fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + ', pela data programada de pagamento.';
+  $('#legNota').textContent = 'Clique em Orçado, Projeção atual ou Realizado acumulado para mostrar ou esconder a linha. Projeção atual: fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + ', pela data programada de pagamento.';
   const o = {}, p = {}, r = {}, ms = new Set();
   const add = (obj, d, v) => { if (!d) return; const m = d.slice(0, 7); obj[m] = (obj[m] || 0) + (v || 0); ms.add(m); };
   const usa = (x) => !S.ccSel.size || S.ccSel.has(x._ck);
@@ -786,7 +817,7 @@ function renderCurvas() {
         datasets: [
           linha('Orçado', sO, COR.cosmos, { hidden: S.linhasOff.has('orc') }),
           linha('Projeção atual', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2, hidden: S.linhasOff.has('pt') }),
-          linha('Realizado', sR, COR.aurora, { hidden: S.linhasOff.has('real') })
+          linha('Realizado acumulado', sR, COR.aurora, { hidden: S.linhasOff.has('real') })
         ]
       },
       options: {
@@ -821,7 +852,7 @@ function renderCurvas() {
 const COLS_LANC = {
   orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['valor', 'Valor', 'valor']],
   proj: [['dataProg', 'Data programada', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['coment', 'Comentário'], ['valor', 'Valor', 'valor']],
-  real: [['pagto', 'Data do pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina', 'usina'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['valor', 'Valor', 'valor']]
+  real: [['pagto', 'Data do pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina', 'usina'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['tipo', 'Semanal / Acumulado'], ['valor', 'Valor', 'valor']]
 };
 function tipoLanc(aba) { return aba === 'orc' || aba === 'real' ? aba : 'proj'; }
 function celula(r, col) {
@@ -871,13 +902,13 @@ function renderDrawer(novo) {
   $('#dwT').textContent = S.ccNome[ck] || '';
   $('#dwS').textContent = st.nome + ' · ' + selNome();
   const k = kpisHtml(m);
-  let h = '<div class="kpis k4">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
+  let h = '<div class="kpis k5">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
   const proj = S.d.abas[st.id] ? S.d.abas[st.id].aba : 'Projeções';
   const blocos = [
     ['pt', st.id, Fx.pt, 'Projeção atual', proj + ' · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
     ['pa', st.id, Fx.pa, 'Projeção anterior', proj + ' · fluxo de ' + (S.f.ant ? dt(S.f.ant) : '—'), 'background:repeating-linear-gradient(90deg,#9AA0A6 0 5px,transparent 5px 8px)'],
     ['orc', 'orc', Fx.orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'],
-    ['real', 'real', Fx.real, 'Realizado', S.d.abas.real.aba, 'background:var(--aurora)']
+    ['real', 'real', Fx.real, 'Realizado acumulado', S.d.abas.real.aba + ' · semanal: ' + brl2(m.rs), 'background:var(--aurora)']
   ];
   blocos.forEach(([blk, aba, rows, t, fonte, sw]) => {
     h += '<details class="blk" data-blk="' + blk + '"' + (S.dwAbertos.has(blk) ? ' open' : '') + '><summary>' +

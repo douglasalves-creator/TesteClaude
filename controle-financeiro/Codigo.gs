@@ -37,7 +37,9 @@ const CONFIG = {
   // Abas de setor do painel, na ordem em que aparecem no topo.
   // "projecoes" = nome da aba de projeções daquele setor ('' = ainda em construção).
   SETORES: [
-    { nome: 'Supply', projecoes: 'Projeções - Supply' },
+    // palavras: centro de custo sem código cadastrado entra no setor se a descrição tiver uma delas (palavra inteira).
+    // orcSetor: no Orçamento, também entra se a coluna SETOR tiver uma delas.
+    { nome: 'Supply', projecoes: 'Projeções - Supply', palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
     { nome: 'Projetos', projecoes: '' },
     { nome: 'EP', projecoes: '' },
     { nome: 'GA', projecoes: '' }
@@ -76,7 +78,8 @@ const CAMPOS = {
     { k: 'projeto', nome: 'PROJETO', tipo: 'texto', dic: true },
     { k: 'cc', nome: 'CENTRO DE CUSTO', tipo: 'texto', dic: true },
     { k: 'valor', nome: 'VALOR A PAGAR', tipo: 'valor' },
-    { k: 'venc', nome: 'DATA DE VENCIMENTO', tipo: 'data', alias: ['VENCIMENTO'] }
+    { k: 'venc', nome: 'DATA DE VENCIMENTO', tipo: 'data', alias: ['VENCIMENTO'] },
+    { k: 'setor', nome: 'SETOR', tipo: 'texto', dic: true, opcional: true }
   ],
   real: [
     { k: 'pagto', nome: 'Pagto.', tipo: 'data', alias: ['Pagto', 'Data Pagto', 'Data de Pagamento'] },
@@ -84,6 +87,8 @@ const CAMPOS = {
     // Há duas colunas "Projeto": a primeira (código da usina) é a usada.
     { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true },
     { k: 'cc', nome: 'C. Custo', tipo: 'texto', dic: true, alias: ['Cod. Custo', 'C.Custo'] },
+    { k: 'ccDesc', nome: 'Centro de Custo', tipo: 'texto', dic: true, opcional: true },
+    { k: 'tipo', nome: 'Semanal / Acumulado', tipo: 'texto', dic: true, opcional: true, alias: ['Semanal/Acumulado'] },
     { k: 'favorecido', nome: 'Favorecido', tipo: 'texto', dic: true, opcional: true, alias: ['Fornecedor'] },
     { k: 'doc', nome: 'Documento', tipo: 'texto', opcional: true },
     { k: 'obs', nome: 'Consolidado', tipo: 'texto', opcional: true }
@@ -571,6 +576,11 @@ function lerUsinas_(ss) {
 function ccsPorSetor_(ss, abas) {
   const tab = ccsDosSetores_(ss);
   const out = {};
+  // Códigos de setores que não têm aba no painel (Desenvolvimento, PMO…): nunca entram em outro setor.
+  const doPainel = {};
+  CONFIG.SETORES.forEach(function (s) { doPainel[nk_(s.nome)] = true; });
+  out.__outrosSetores = [];
+  Object.keys(tab).forEach(function (k) { if (!doPainel[k]) out.__outrosSetores = out.__outrosSetores.concat(Object.keys(tab[k])); });
   CONFIG.SETORES.forEach(function (s) {
     const k = nk_(s.nome);
     if (tab[k] && Object.keys(tab[k]).length) { out[k] = { ccs: tab[k], origem: 'setores' }; return; }
@@ -578,6 +588,50 @@ function ccsPorSetor_(ss, abas) {
     const p = s.projecoes ? abas[idProj_(s.nome)] : null;
     if (p && p.linhas) p.linhas.forEach(function (l) { const t = abrirLinha_(p, l).cc, c = codCC_(t); if (c && !(c in ccs)) ccs[c] = t; });
     out[k] = { ccs: ccs, origem: Object.keys(ccs).length ? 'projecoes' : 'nenhum' };
+  });
+  return out;
+}
+
+/** Centro de custo vazio (ou só "-"). */
+function ccVazio_(t) { return !String(t === null || t === undefined ? '' : t).replace(/[\s\-–—|]/g, ''); }
+
+/** Texto contém alguma das palavras (inteiras, sem acento): "SUP-VIAGENS" tem SUP; "SUPERVISÓRIO" não. */
+function temPalavra_(t, palavras) {
+  const n = ' ' + nk_(t) + ' ';
+  return (palavras || []).some(function (p) { return n.indexOf(' ' + nk_(p) + ' ') !== -1; });
+}
+
+/** Texto do centro de custo de um lançamento (no Realizado junta o código com a descrição). */
+function textoCC_(aba, v) {
+  return aba === 'real' && v.ccDesc ? String(v.cc || '').trim() + ' - ' + String(v.ccDesc).trim() : String(v.cc || '').trim();
+}
+
+/**
+ * O lançamento é do setor? Regra única para Orçamento, Projeções e Realizado:
+ *  1. Código (ou descrição) cadastrado na aba Setores / CCs → vale o setor de lá.
+ *  2. Não cadastrado: nas Projeções do próprio setor, entra; no Orçamento e no Realizado, entra se a
+ *     descrição tiver uma das palavras do setor (BOP, CURVA A…) ou, no Orçamento, se a coluna SETOR tiver.
+ * regra = { ccs: {código}, outros: {código}, palavras: [], orcSetor: [] }
+ */
+function doSetor_(regra, aba, v) {
+  const t = textoCC_(aba, v);
+  if (ccVazio_(t)) return aba === 'proj' || (aba === 'orc' && temPalavra_(v.setor, regra.orcSetor));
+  const c = codCC_(t);
+  if (c in regra.ccs) return true;
+  if (c in regra.outros) return false;
+  if (aba === 'proj') return true;
+  if (temPalavra_(t.replace(RE_CC_, ''), regra.palavras)) return true;
+  return aba === 'orc' && temPalavra_(v.setor, regra.orcSetor);
+}
+
+/** Regras de cada setor: os códigos dele, os códigos dos outros setores e as palavras-chave. */
+function regrasSetores_(porSetor) {
+  const out = {};
+  CONFIG.SETORES.forEach(function (s) {
+    const k = nk_(s.nome), outros = {};
+    Object.keys(porSetor).forEach(function (o) { if (o !== k && o.indexOf('__') !== 0) Object.keys(porSetor[o].ccs).forEach(function (c) { outros[c] = true; }); });
+    (porSetor.__outrosSetores || []).forEach(function (c) { outros[c] = true; });
+    out[k] = { ccs: porSetor[k].ccs, outros: outros, palavras: s.palavras || [], orcSetor: s.orcSetor || [] };
   });
   return out;
 }
@@ -624,12 +678,13 @@ function carregarDados(forcar) {
   const meus = CONFIG.SETORES.filter(function (s) { return ac.ver[nk_(s.nome)]; });
   if (!meus.length) return { semAcesso: true, usuario: email, geradoEm: base.geradoEm };
 
-  const porSetor = ccsPorSetor_(ss, base.abas);
+  const porSetor = ccsPorSetor_(ss, base.abas), regras = regrasSetores_(porSetor);
   const setores = meus.map(function (s) {
     const k = nk_(s.nome);
     return {
       nome: s.nome, id: s.projecoes ? idProj_(s.nome) : '', pronto: !!s.projecoes,
-      ccs: Object.keys(porSetor[k].ccs), ccNomes: porSetor[k].ccs, origemCC: porSetor[k].origem, edita: !!ac.edita[k]
+      ccs: Object.keys(porSetor[k].ccs), ccNomes: porSetor[k].ccs, origemCC: porSetor[k].origem, edita: !!ac.edita[k],
+      outros: Object.keys(regras[k].outros), palavras: regras[k].palavras, orcSetor: regras[k].orcSetor
     };
   });
 
@@ -639,12 +694,10 @@ function carregarDados(forcar) {
     abas.orc = base.abas.orc;
     abas.real = base.abas.real;
   } else {
-    // Orçado e Realizado: só os centros de custo dos setores liberados.
-    const ok = {};
-    setores.forEach(function (s) { s.ccs.forEach(function (c) { ok[c] = true; }); });
-    const pode = function (v) { return ok[codCC_(v.cc)]; };
-    abas.orc = refazAba_(base.abas.orc, pode);
-    abas.real = refazAba_(base.abas.real, pode);
+    // Orçado e Realizado: só os lançamentos dos setores liberados (mesma regra do painel).
+    const minhas = setores.map(function (s) { return regras[nk_(s.nome)]; });
+    abas.orc = refazAba_(base.abas.orc, function (v) { return minhas.some(function (r) { return doSetor_(r, 'orc', v); }); });
+    abas.real = refazAba_(base.abas.real, function (v) { return minhas.some(function (r) { return doSetor_(r, 'real', v); }); });
   }
   return {
     geradoEm: base.geradoEm,
@@ -663,7 +716,7 @@ function carregarDados(forcar) {
 /* ------------------------------------------------------------------ */
 
 const CACHE_TAM_ = 90000;
-const CACHE_PREFIXO_ = 'painel2_';
+const CACHE_PREFIXO_ = 'painel3_';
 
 function cacheLer_() {
   if (!CONFIG.CACHE_MINUTOS) return null;
@@ -943,19 +996,27 @@ function verificarSetores_(ss, abas) {
   const faltam = (lerTabela_(ss, CONFIG.ABA_SETORES) || []).filter(function (l) { return !existe[codCC_(ccDaLinhaSetor_(l))]; });
   if (faltam.length) Logger.log('Centros de custo da aba "' + CONFIG.ABA_SETORES + '" que NÃO aparecem em nenhuma aba de dados: ' +
     faltam.map(function (l) { return l[0] + ' → ' + ccDaLinhaSetor_(l); }).join(' | '));
-  // Projeções em centros de custo que não estão na lista do setor: não entram no painel.
+  // Centros de custo sem cadastro: quais entram (pela regra) e quais ficam de fora, em cada aba.
+  const regras = regrasSetores_(porSetor);
   CONFIG.SETORES.forEach(function (s) {
-    const p = s.projecoes ? abas[idProj_(s.nome)] : null;
-    if (!p || !p.linhas) return;
-    const lista = porSetor[nk_(s.nome)].ccs, fora = {};
-    p.linhas.forEach(function (l) {
-      const v = abrirLinha_(p, l);
-      if (!String(v.cc || '').replace(/[\s\-–—]/g, '')) return; // em branco: entra no painel como "(em branco)"
-      if (!(codCC_(v.cc) in lista)) fora[v.cc] = (fora[v.cc] || 0) + (v.valor || 0);
+    if (!s.projecoes) return;
+    const r = regras[nk_(s.nome)];
+    [['orc', abas.orc], ['proj', abas[idProj_(s.nome)]], ['real', abas.real]].forEach(function (par) {
+      const a = par[1];
+      if (!a || !a.linhas) return;
+      const entra = {}, outro = {};
+      a.linhas.forEach(function (l) {
+        const v = abrirLinha_(a, l), t = textoCC_(par[0], v), c = codCC_(t);
+        if (c in r.ccs) return;
+        const ok = doSetor_(r, par[0], v);
+        if (!ok && par[0] !== 'proj' && !(c in r.outros)) return; // de outro setor, sem cadastro: nada a avisar
+        const m = ok ? entra : outro, nome = ccVazio_(t) ? '(em branco)' : t;
+        m[nome] = (m[nome] || 0) + (v.valor || 0);
+      });
+      const fmt = function (m) { return Object.keys(m).map(function (k) { return k + ' (R$ ' + m[k].toFixed(2) + ')'; }).join(' | '); };
+      if (Object.keys(entra).length) Logger.log(s.nome + ' · ' + a.aba + ': entram sem cadastro na aba Setores / CCs → ' + fmt(entra));
+      if (par[0] === 'proj' && Object.keys(outro).length) Logger.log(s.nome + ' · ' + a.aba + ': centros de custo de OUTRO setor (não entram) → ' + fmt(outro));
     });
-    const ks = Object.keys(fora);
-    if (ks.length) Logger.log('Projeções de ' + s.nome + ' em centros de custo fora da lista do setor (não entram no painel): ' +
-      ks.map(function (k) { return k + ' (R$ ' + fora[k].toFixed(2) + ')'; }).join(' | '));
   });
   // Códigos de usina que aparecem nos dados e não estão na aba Usinas.
   const us = lerUsinas_(ss), semNome = {};
