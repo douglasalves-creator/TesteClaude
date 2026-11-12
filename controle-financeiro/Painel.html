@@ -25,7 +25,7 @@
   button,input,select,textarea{font-family:inherit; font-size:inherit; color:inherit}
   button{cursor:pointer}
   :focus-visible{outline:2px solid var(--aurora); outline-offset:2px}
-  .wrap{max-width:1640px; margin:0 auto; padding:0 32px}
+  .wrap{max-width:2200px; margin:0 auto; padding:0 32px}
   .tnum{font-variant-numeric:tabular-nums}
 
   /* Topo */
@@ -33,7 +33,7 @@
   .top-in{display:flex; align-items:center; gap:16px; padding:20px 28px 14px; flex-wrap:wrap}
   .top h1{margin:0; font-size:19px; font-weight:700; letter-spacing:-.01em}
   .top h1 span{color:var(--aurora)}
-  .mods{display:flex; gap:28px; max-width:1640px; margin:0 auto; padding-inline:32px}
+  .mods{display:flex; gap:28px; max-width:2200px; margin:0 auto; padding-inline:32px}
   .mods button{background:transparent; border:0; color:#9aa1a8; padding:4px 0 13px; font-weight:600; border-bottom:2px solid transparent}
   .mods button:hover{color:var(--branco)}
   .mods button.on{color:var(--branco); border-bottom-color:var(--aurora)}
@@ -91,8 +91,14 @@
   #tabMeses{overflow-x:auto; border-radius:0 0 var(--radius) var(--radius)}
   /* Tabela de centros de custo: mais colunas cabem na tela; se faltar espaço, rola dentro do cartão */
   #tree{overflow-x:auto; border-radius:0 0 var(--radius) var(--radius)}
-  .tb-c th,.tb-c td{padding-left:9px; padding-right:9px}
-  .tb-c td:first-child{min-width:240px}
+  .tb-c th,.tb-c td{padding-left:8px; padding-right:8px}
+  /* Subtítulo dos Δ no cabeçalho da tabela quebra em até duas linhas para a tabela caber na tela */
+  .tb-c th .dh small{white-space:normal; max-width:118px; text-align:center}
+  .tb-c td:first-child{white-space:nowrap}
+  .ccn{border:0; background:none; padding:0; font:inherit; color:inherit; text-align:left; cursor:pointer; border-bottom:1px dashed transparent}
+  .ccn:hover,.ccn:focus-visible{color:var(--aurora); border-bottom-color:var(--aurora)}
+  .ccn .seta{opacity:0; margin-left:6px; color:var(--aurora); transition:opacity .15s}
+  tr.c:hover .ccn .seta,.ccn:focus-visible .seta{opacity:1}
   .tb-c td.n{font-size:13px}
   .meses th,.meses td{white-space:nowrap}
   .meses th:first-child,.meses td:first-child{position:sticky; left:0; background:var(--branco); z-index:1}
@@ -272,7 +278,7 @@
 <body>
 
 <header class="top">
-  <div class="top-in" style="max-width:1640px; margin:0 auto; padding-inline:32px">
+  <div class="top-in" style="max-width:2200px; margin:0 auto; padding-inline:32px">
     <h1>Controle Financeiro</h1>
     <div class="top-r">
       <span class="stamp" id="stamp"></span>
@@ -322,7 +328,7 @@
       </div>
       <div id="tree"></div>
     </div>
-    <p class="note">Clique nos centros de custo para ver só eles no gráfico abaixo. Use <b>Detalhar</b> para ver todos os lançamentos de um centro de custo. Valores em R$.</p>
+    <p class="note">Clique no <b>nome</b> do centro de custo para ver os lançamentos. Marque a caixinha (ou clique em outra parte da linha) para ver só ele no gráfico abaixo. Valores em R$.</p>
     <div class="card mt">
       <div class="card-h"><h2>Orçado × Projeção atual × Realizado por mês</h2><span class="chsel" id="chSel"></span><div class="leg" id="leg" title="Clique para mostrar ou esconder a linha"></div></div>
       <p class="leg-nota" id="legNota"></p>
@@ -752,15 +758,15 @@ function renderTabela() {
   const cols = colunas();
   let h = '<table class="tb-c"><thead><tr>' + cols.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.c ? ' ' + c.c : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
-    (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '<th></th></tr></thead><tbody>';
-  if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nada encontrado.</td></tr>';
+    (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '</tr></thead><tbody>';
+  if (!lista.length) h += '<tr><td colspan="' + cols.length + '" class="empty">Nada encontrado.</td></tr>';
   const tot = novoM();
   lista.forEach((c) => {
     somaM(tot, c.m);
-    h += '<tr class="c' + (S.ccSel.has(c.k) ? ' sel' : '') + '" data-cc="' + esc(c.k) + '"><td><span class="ck"></span>' + esc(c.nome) + '</td>' +
-      celulas(c.m) + '<td class="acts"><button type="button" class="det" data-det="' + esc(c.k) + '">Detalhar</button></td></tr>';
+    h += '<tr class="c' + (S.ccSel.has(c.k) ? ' sel' : '') + '" data-cc="' + esc(c.k) + '"><td><span class="ck" title="Mostrar no gráfico"></span>' +
+      '<button type="button" class="ccn" data-det="' + esc(c.k) + '" title="Ver os lançamentos">' + esc(c.nome) + '<span class="seta">→</span></button></td>' + celulas(c.m) + '</tr>';
   });
-  if (lista.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '<td></td></tr>';
+  if (lista.length) h += '<tr class="tot"><td>Total</td>' + celulas(derivar(tot)) + '</tr>';
   $('#tree').innerHTML = h + '</tbody></table>';
 }
 

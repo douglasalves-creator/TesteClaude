@@ -1,6 +1,6 @@
 # Controle Financeiro — como instalar na base oficial (10 minutos)
 
-O painel só altera a planilha pelo botão **Detalhar**, só nas abas de **Projeções** e só para quem tem permissão.
+O painel só altera a planilha pelo detalhe do centro de custo (clique no nome), só nas abas de **Projeções** e só para quem tem permissão.
 Toda alteração fica registrada na aba **Auditoria**.
 
 **Antes de começar, confira na base oficial:**
@@ -70,7 +70,7 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 4. **Clique nos centros de custo** para ver só eles no gráfico.
 5. O **gráfico** mostra Orçado, Projeção atual e Realizado mês a mês (clique no nome para esconder uma linha).
    Embaixo, a tabela com o valor de cada mês.
-6. **Detalhar** abre os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
+6. **Clique no nome do centro de custo** para abrir os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
    Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Realizado são imutáveis.
    Cada alteração vira linhas na aba **Auditoria**: Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 
