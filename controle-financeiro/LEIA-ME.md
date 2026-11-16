@@ -82,7 +82,7 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 - **Quais centros de custo entram no Supply** (mesma regra nas três abas, ligando pelo código):
   1. Código cadastrado na aba Setores / CCs → vale o setor de lá (Supply entra; outro setor fica de fora).
   2. Sem cadastro: nas Projeções - Supply, entra (centro de custo vazio aparece como "(em branco)");
-     no Orçamento e no Realizado, entra se a descrição tiver BOP, CURVA A, SUPPLY, SUP ou LOG,
+     no Orçamento e no Realizado, entra se a descrição tiver BOP, CURVA A, SUPPLY, SUP, LOG, LOGÍSTICA ou COMPRAS,
      ou, no Orçamento, se a coluna SETOR tiver BOP, CURVA A ou LOGÍSTICA.
   3. Só aparecem os que têm algum valor para as usinas escolhidas.
 - O **diagnosticar** lista o que entrou sem cadastro e o que ficou de fora por ser de outro setor.

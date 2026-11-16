@@ -447,7 +447,7 @@ const DEMO_API = DEMO ? (function () {
       geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#', acesso: { tudo: true, setores: ['Supply', 'Projetos', 'EP', 'GA'] },
       usinas: Object.fromEntries(usinas.map((u) => [cod(u), u])),
       setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(cod), ccNomes: Object.fromEntries(ccSupply.map((c) => [cod(c), c])), origemCC: 'setores', edita: true,
-        outros: ccOutros.map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
+        outros: ccOutros.map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
         { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: '', pronto: false, ccs: [], edita: false }, { nome: 'GA', id: '', pronto: false, ccs: [], edita: false }],
       abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', true, 'Supply') }
     }),

@@ -39,7 +39,7 @@ const CONFIG = {
   SETORES: [
     // palavras: centro de custo sem código cadastrado entra no setor se a descrição tiver uma delas (palavra inteira).
     // orcSetor: no Orçamento, também entra se a coluna SETOR tiver uma delas.
-    { nome: 'Supply', projecoes: 'Projeções - Supply', palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
+    { nome: 'Supply', projecoes: 'Projeções - Supply', palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
     { nome: 'Projetos', projecoes: '' },
     { nome: 'EP', projecoes: '' },
     { nome: 'GA', projecoes: '' }
