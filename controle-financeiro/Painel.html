@@ -178,10 +178,10 @@
   .bg{padding:6px 4px 4px}
   /* Faixa de resumo (discreta) */
   .res{display:flex; align-items:center; gap:6px; padding:10px 18px; flex-wrap:wrap}
-  .mg{width:150px; text-align:center; margin-right:8px}
+  .mg{width:225px; text-align:center; margin-right:8px}
   .mg .vm-svg{width:100%}
   .mg-c{margin-top:-4px; display:flex; flex-direction:column; align-items:center; line-height:1.1}
-  .mg-c b{font-size:22px; font-weight:700; letter-spacing:-.02em}
+  .mg-c b{font-size:30px; font-weight:700; letter-spacing:-.02em}
   .mg-c span{font-size:10.5px; color:var(--ink-3); font-weight:600}
   .ri{display:flex; flex-direction:column; gap:2px; padding:8px 16px; border-radius:10px; border:1px solid transparent; cursor:pointer; position:relative}
   .ri + .ri::before{content:''; position:absolute; left:-4px; top:14px; bottom:14px; width:1px; background:var(--line)}
@@ -195,7 +195,16 @@
   .ri-s a{color:var(--aurora); font-weight:600; cursor:pointer}
   .ri-det{border:0; background:none; padding:0 2px; color:var(--ink-3); font-size:12px; line-height:1; cursor:pointer}
   .ri-det:hover{color:var(--aurora)}
-  .semana{display:flex; flex-direction:column; gap:2px; background:#FFF8F3; border:1px solid #F6D5C2; border-radius:12px; padding:10px 16px; cursor:pointer}
+  .semana{display:flex; flex-direction:column; gap:3px; background:#FFF8F3; border:1px solid #F6D5C2; border-radius:10px; padding:8px 12px; cursor:pointer; min-width:250px}
+  .sm-l{display:flex; justify-content:space-between; gap:14px; font-size:11.5px; color:var(--ink-2)}
+  .sm-l b{font-size:12.5px; color:var(--ink)}
+  .sm-l b.sobe{color:#1E7A45}.sm-l b.neg{color:var(--neg)}
+  .sm-l b small{font-size:10.5px; font-weight:600}
+  .sm-l.dif{border-top:1px dashed #F0C9B0; padding-top:3px}
+  .dup{display:inline-flex; flex-direction:column; align-items:flex-end; line-height:1.25}
+  .tb-c td.n .dup{align-items:center}
+  .dup small{font-size:11px; color:var(--ink-3); font-weight:500}
+  .fm-bar{padding:12px 16px 0}
   .semana:hover,.semana:focus-visible{border-color:var(--aurora); outline:none}
   .semana .ri-l{color:#A9461A}
   .sobe{color:#1E7A45}
@@ -426,12 +435,7 @@
   <div id="resumoBody" hidden>
     <div class="card res" id="resumo"></div>
     <div class="card mt">
-      <div class="card-h">
-        <h2>Centros de custo</h2>
-        <div class="segm" id="grpSel"></div>
-        <span id="fmChip"></span>
-        <div class="r"><button type="button" class="btn btn-sm" id="maisCols">+ Mais colunas</button><input class="search" id="qTree" type="search" placeholder="Buscar centro de custo"></div>
-      </div>
+      <div class="fm-bar" id="fmChip"></div>
       <div id="tree"></div>
     </div>
   </div>
@@ -460,7 +464,7 @@
 const S = {
   d: null, rows: { orc: [], real: [] }, proj: {}, setor: null, snapSetor: {},
   f: { us: new Set(), ant: '', atu: '' },
-  sort: { k: 'risco', dir: 1 }, qTree: '', qUs: '', drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set(), filtroM: null, grp: '', grpFechado: new Set(), maisCols: false
+  sort: { k: 'risco', dir: 1 }, qTree: '', qUs: '', drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set(), filtroM: null, grp: '', grpFechado: new Set()
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const $ = (s) => document.querySelector(s);
@@ -820,18 +824,20 @@ const GRUPOS = ['Curva A', 'BOP', 'Outros'];
 function grupoCC(nome) { const n = ' ' + nk(nome) + ' '; return n.indexOf(' bop ') !== -1 ? 'BOP' : n.indexOf(' curva a ') !== -1 ? 'Curva A' : 'Outros'; }
 /** Ordem de risco: realizado acima do orçado, sem orçado, estouro previsto, dentro do orçado. */
 function risco(m) { return m.orc <= 0.005 ? 1 : m.real - m.orc > 0.005 ? 0 : m.d1 < -0.005 ? 2 : 3; }
+/** Célula com o valor principal em cima e o complementar embaixo, menor e entre parênteses. */
+function duplo(cima, baixo) { return '<span class="dup">' + cima + '<small>' + baixo + '</small></span>'; }
 function colunas() {
-  const mais = S.maisCols;
+  const d = (x) => (x ? dt(x).slice(0, 5) : '—');
   return [
     { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
-    { k: 'pa', t: th2('Proj. anterior', S.f.ant), n: 1, c: 'sem' }, { k: 'pt', t: th2('Proj. atual', S.f.atu), n: 1, c: 'sem' },
-    { k: 'dP', t: 'Δ semana', n: 1, c: 'sem', f: (m) => deltaSem(m.dP) }
-  ].concat(mais ? [{ k: 'dPp', t: 'Δ semana %', n: 1, c: 'sem', f: (m) => '<span class="' + numCls(m.dPp).trim() + '">' + pct(m.dPp) + '</span>' }] : [],
-  [{ k: 'real', t: th3('Realizado', 'Acumulado'), n: 1 }],
-  mais ? [{ k: 'rs', t: th3('Realizado', 'Semanal'), n: 1 }] : [],
-  [{ k: 'd1', t: 'Saldo', n: 1, f: (m) => '<span class="' + numCls(m.d1).trim() + '">' + num(m.d1) + '</span>' }],
-  mais ? [{ k: 'd2', t: th3('Δ', 'Orçado − Realizado'), n: 1, f: (m) => '<span class="' + numCls(m.d2).trim() + '">' + num(m.d2) + '</span>' }] : [],
-  [{ k: 'cons', t: 'Consumo do orçado', f: (m) => '<span class="cons"><span class="bul-bar">' + segmentos(m) + '</span><span class="muted">' + (m.orc > 0.005 ? Math.round(((m.real + m.pt) / m.orc) * 100) + '%' : '—') + '</span></span>' }]);
+    { k: 'pt', t: th3('Projeção atual · ' + d(S.f.atu), '(anterior · ' + d(S.f.ant) + ')'), n: 1, c: 'sem',
+      f: (m) => duplo(num(m.pt), '(' + num(m.pa) + ')') },
+    { k: 'dP', t: th3('Δ semana', '(%)'), n: 1, c: 'sem',
+      f: (m) => duplo(deltaSem(m.dP), Math.abs(m.dP) < 0.005 ? '' : '<span class="' + (m.dP > 0 ? 'sobe' : 'neg') + '">(' + (m.dPp === null ? 'novo' : pct(Math.abs(m.dPp)).replace('−', '')) + ')</span>') },
+    { k: 'rs', t: th3('Realizado semanal', '(acumulado)'), n: 1, f: (m) => duplo(num(m.rs), '(' + num(m.real) + ')') },
+    { k: 'd2', t: th3('Δ', 'Orçado − Realizado'), n: 1, f: (m) => '<span class="' + numCls(m.d2).trim() + '">' + num(m.d2) + '</span>' },
+    { k: 'cons', t: 'Consumo do orçado', f: (m) => '<span class="cons"><span class="bul-bar">' + segmentos(m) + '</span><span class="muted">' + (m.orc > 0.005 ? Math.round(((m.real + m.pt) / m.orc) * 100) + '%' : '—') + '</span></span>' }
+  ];
 }
 function cmp(a, b) {
   const k = S.sort.k;
@@ -881,10 +887,8 @@ function renderTabela() {
   const fm = FILTROS_M[S.filtroM];
   const lista = S.A.ccs.filter((c) => temValor(c.m) && (!fm || fm.ok(c.m)) && (!q || nk(c.nome).indexOf(q) !== -1));
   lista.forEach((c) => { c.g = grupoCC(c.nome); });
+  $('#fmChip').hidden = !fm;
   $('#fmChip').innerHTML = fm ? '<span class="tag">Só centros de custo com ' + fm.t + ' · ' + lista.length + '<button type="button" id="fmLimpar" aria-label="Mostrar todos">×</button></span>' : '';
-  const conta = (g) => lista.filter((c) => !g || c.g === g).length;
-  $('#grpSel').innerHTML = [''].concat(GRUPOS).map((g) => '<button type="button" data-gsel="' + g + '"' + (S.grp === g ? ' class="on"' : '') + '>' + (g || 'Todos') + ' <span>' + conta(g) + '</span></button>').join('');
-  $('#maisCols').textContent = S.maisCols ? '− Menos colunas' : '+ Mais colunas';
   const cols = colunas();
   let h = '<table class="tb-c tb-g"><thead><tr>' + cols.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.c ? ' ' + c.c : '') + '" data-sort="' + c.k + '">' + c.t +
@@ -967,20 +971,23 @@ function gaugeSvg(m) {
  * Clicar no número filtra a tabela; o ícone ↗ abre o detalhe por centro de custo.
  */
 function renderResumo() {
-  const m = S.A.tot, o = m.orc, saldo = m.d1, pc = (v) => (o > 0.005 ? Math.round((v / o) * 100) + '% do orçado' : '');
+  const m = S.A.tot, o = m.orc, saldo = m.d1;
   const det = (k) => '<button type="button" class="ri-det" data-kpi="' + k + '" title="Ver o detalhe por centro de custo">↗</button>';
   const item = (fm, kpiK, rot, v, sub, cls) => '<div class="ri' + (S.filtroM === fm ? ' on' : '') + '" data-fm="' + fm + '" role="button" tabindex="0" title="Mostrar na tabela só os centros de custo com este valor">' +
-    '<span class="ri-l">' + rot + det(kpiK) + '</span><b class="ri-v tnum' + (cls || '') + '">' + brl2(v) + '</b><span class="ri-s">' + sub + '</span></div>';
-  const sem = m.dP, semCls = Math.abs(sem) < 0.005 ? '' : sem > 0 ? ' sobe' : ' neg';
-  const semTxt = Math.abs(sem) < 0.005 ? 'sem mudança' : (sem > 0 ? '▼ ' : '▲ ') + compact(Math.abs(sem)) + (m.dPp === null ? '' : ' · ' + pct(Math.abs(m.dPp)).replace('−', ''));
+    '<span class="ri-l">' + rot + det(kpiK) + '</span><b class="ri-v tnum' + (cls || '') + '">' + brl2(v) + '</b>' + (sub ? '<span class="ri-s">' + sub + '</span>' : '') + '</div>';
+  // Semana: o que foi pago na semana × quanto a projeção caiu (os dois devem ficar próximos).
+  const queda = m.dP, dif = m.rs - queda;
+  const semana = '<div class="semana" data-kpi="dP" role="button" tabindex="0" title="Ver o que mudou na projeção por centro de custo">' +
+    '<span class="ri-l">Semana · ' + (S.f.ant ? dt(S.f.ant).slice(0, 5) : '—') + ' → ' + (S.f.atu ? dt(S.f.atu).slice(0, 5) : '—') + '</span>' +
+    '<span class="sm-l"><span>Realizado na semana</span><b class="tnum">' + brl2(m.rs) + '</b></span>' +
+    '<span class="sm-l"><span>' + (queda >= 0 ? 'Queda da projeção' : 'Aumento da projeção') + '</span><b class="tnum ' + (queda >= 0 ? 'sobe' : 'neg') + '">' + brl2(Math.abs(queda)) +
+      (m.dPp === null ? '' : ' <small>(' + pct(Math.abs(m.dPp)).replace('−', '') + ')</small>') + '</b></span>' +
+    '<span class="sm-l dif"><span>Diferença</span><b class="tnum">' + brl2(dif) + '</b></span></div>';
   $('#resumo').innerHTML = '<div class="mg">' + gaugeSvg(m) + '</div>' +
     item('orc', 'orc', 'Orçado', o, '') +
-    item('real', 'real', 'Realizado acumulado', m.real, pc(m.real) + ' · <a data-kpi="rs">semanal ' + compact(m.rs) + '</a>') +
-    item('pt', 'pt', 'Projeção atual', m.pt, 'fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—')) +
-    item(saldo >= 0 ? 'saldo' : 'estouro', 'd1', saldo >= 0 ? 'Saldo' : 'Estouro previsto', Math.abs(saldo), pc(Math.abs(saldo)), saldo >= 0 ? ' ok' : ' neg') +
-    '<div class="sp"></div><div class="semana" data-kpi="dP" role="button" tabindex="0" title="Ver o que mudou por centro de custo">' +
-    '<span class="ri-l">Projeção na semana · ' + (S.f.ant ? dt(S.f.ant).slice(0, 5) : '—') + ' → ' + (S.f.atu ? dt(S.f.atu).slice(0, 5) : '—') + '</span>' +
-    '<b class="ri-v tnum' + semCls + '">' + semTxt + '</b><span class="ri-s">' + (Math.abs(sem) < 0.005 ? 'igual à semana anterior' : sem > 0 ? 'a projeção caiu' : 'a projeção subiu') + ' · ver o que mudou ↗</span></div>';
+    item('pt', 'pt', 'Projeção atual', m.pt, '') +
+    item('real', 'real', 'Realizado acumulado', m.real, '') + semana +
+    item(saldo >= 0 ? 'saldo' : 'estouro', 'd1', saldo >= 0 ? 'Saldo' : 'Estouro previsto', Math.abs(saldo), '', saldo >= 0 ? ' ok' : ' neg');
 }
 
 /* =================================================================== */
@@ -1245,7 +1252,6 @@ $('#mods').addEventListener('click', (e) => {
   prepararSetor();
   render();
 });
-$('#qTree').addEventListener('input', (e) => { S.qTree = e.target.value; renderTabela(); });
 document.addEventListener('click', (e) => {
   const t = e.target;
   if (!e.composedPath().includes($('#ms'))) abrirUsel(false);
@@ -1268,7 +1274,6 @@ document.addEventListener('click', (e) => {
   if (gs) { S.grp = gs.dataset.gsel; renderTabela(); return; }
   const gr = t.closest('tr.gh[data-grp]');
   if (gr) { const g = gr.dataset.grp; if (S.grpFechado.has(g)) S.grpFechado.delete(g); else S.grpFechado.add(g); renderTabela(); return; }
-  if (t.closest('#maisCols')) { S.maisCols = !S.maisCols; renderTabela(); return; }
 });
 $('#scrim').addEventListener('click', fecharDrawer);
 $('#dwX').addEventListener('click', fecharDrawer);

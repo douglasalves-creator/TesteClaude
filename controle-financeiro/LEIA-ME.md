@@ -62,14 +62,14 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 1. **Escolha as usinas** na lista suspensa (dá para digitar e marcar várias). Sem usina marcada, o painel pede uma.
 2. **Projeção anterior** e **Projeção atual**: datas da coluna "Data do Fluxo" de Projeções - Supply.
    A anterior já vem com a **menor** data e a atual com a **maior**. Ao trocar, a tabela muda na hora.
-3. No topo, uma **faixa de resumo**: velocímetro pequeno (% do orçado comprometido), **Orçado**, **Realizado acumulado**
-   (com o semanal), **Projeção atual**, **Saldo** (ou Estouro previsto) e a **Projeção na semana** (quanto a projeção caiu ▼
-   ou subiu ▲ entre as duas datas). Clicar num número filtra a tabela; o ↗ abre o detalhe por centro de custo.
+3. No topo, uma **faixa de resumo**: velocímetro (% do orçado comprometido), **Orçado**, **Projeção atual**, **Realizado acumulado**,
+   o quadro **Semana** (realizado na semana × queda da projeção e a diferença entre os dois, que deve ficar perto de zero)
+   e o **Saldo** (ou Estouro previsto). Clicar num número filtra a tabela; o ↗ abre o detalhe por centro de custo.
 4. A **tabela** separa os centros de custo em **Curva A**, **BOP** e **Outros** (pela descrição), com subtotal de cada grupo
-   (clique no grupo para abrir ou fechar). Os botões Todos · Curva A · BOP · Outros mostram só um grupo.
-   Colunas: Orçado, Projeção anterior, Projeção atual, **Δ semana** (▼ verde = caiu, ▲ vermelho = subiu), Realizado,
-   Saldo e Consumo do orçado. **+ Mais colunas** mostra também Δ semana %, Realizado semanal e Δ (Orçado − Realizado).
-   A tabela vem do maior risco para o menor; clique no título de uma coluna para ordenar por ela.
+   (clique no grupo para abrir ou fechar). Colunas: Orçado · **Projeção atual** (com a anterior embaixo, entre parênteses) ·
+   **Δ semana** (▼ verde = a projeção caiu, ▲ vermelho = subiu, com o % embaixo) · **Realizado semanal** (com o acumulado
+   embaixo) · **Δ (Orçado − Realizado)** · Consumo do orçado. A tabela vem do maior risco para o menor; clique no título de uma
+   coluna para ordenar por ela.
 5. Clique num centro de custo para ver os lançamentos.
 6. **Clique no nome do centro de custo** para abrir os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
    Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Realizado são imutáveis.
