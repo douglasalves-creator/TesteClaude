@@ -71,6 +71,8 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 5. O **velocímetro** mostra quanto do orçado já está comprometido (realizado + projeção atual): laranja cheio é o realizado,
    hachurado é a projeção e o que passa de 100% fica vermelho. Ao lado: Orçado, Realizado, Projeção e Saldo (ou Estouro previsto).
    Marcando centros de custo na tabela, o velocímetro mostra só eles, com uma barra para cada um embaixo.
+   Clicando num valor ao lado do velocímetro (Orçado, Realizado, Projeção, Saldo ou Estouro), a tabela mostra só os centros de custo
+   que têm aquele valor. Clique de novo (ou no × do filtro) para ver todos.
    Os **cartões** do topo são clicáveis: abrem o número quebrado por centro de custo (e os lançamentos).
 6. **Clique no nome do centro de custo** para abrir os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
    Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Realizado são imutáveis.

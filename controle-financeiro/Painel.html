@@ -188,6 +188,9 @@
   .vm-c span{font-size:12.5px; color:var(--ink-3); font-weight:600; margin-top:4px}
   .vm-d{display:flex; flex-direction:column; gap:16px}
   .vm-i{display:flex; flex-direction:column; gap:2px}
+  .vm-i.clk{cursor:pointer; padding:6px 10px; margin:-6px -10px; border-radius:10px; border:1px solid transparent; transition:background .15s, border-color .15s}
+  .vm-i.clk:hover,.vm-i.clk:focus-visible{background:#FFF6F1; outline:none}
+  .vm-i.clk.on{background:#FFF1E8; border-color:var(--aurora)}
   .vm-i .bg-v{font-size:20px}
   .sw-b.ok{background:#2FBF71}
   .bg-h{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px}
@@ -388,6 +391,7 @@
     <div class="kpis k4" id="kpisD"></div>
     <div class="card">
       <div class="card-h">
+        <span id="fmChip"></span>
         <div class="r"><input class="search" id="qTree" type="search" placeholder="Buscar centro de custo"></div>
       </div>
       <div id="tree"></div>
@@ -423,7 +427,7 @@
 const S = {
   d: null, rows: { orc: [], real: [] }, proj: {}, setor: null, snapSetor: {},
   f: { us: new Set(), ant: '', atu: '' },
-  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set()
+  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set(), filtroM: null
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const $ = (s) => document.querySelector(s);
@@ -810,11 +814,27 @@ function render() {
   if (S.drawer) renderDrawer();
 }
 
+/** Filtros da tabela pelos valores do velocímetro (Orçado, Realizado, Projeção, Saldo, Estouro). */
+const FILTROS_M = {
+  orc: { t: 'Orçado', k: 'orc', dir: -1, ok: (m) => Math.abs(m.orc) >= 0.005 },
+  real: { t: 'Realizado acumulado', k: 'real', dir: -1, ok: (m) => Math.abs(m.real) >= 0.005 },
+  pt: { t: 'Projeção atual', k: 'pt', dir: -1, ok: (m) => Math.abs(m.pt) >= 0.005 },
+  saldo: { t: 'saldo (orçado maior que realizado + projeção)', k: 'd1', dir: -1, ok: (m) => m.d1 >= 0.005 },
+  estouro: { t: 'estouro (realizado + projeção acima do orçado)', k: 'd1', dir: 1, ok: (m) => m.d1 <= -0.005 }
+};
+function filtrarPorValor(fm) {
+  if (S.filtroM === fm || !FILTROS_M[fm]) { S.filtroM = null; S.sort = { k: 'nome', dir: 1 }; }
+  else { S.filtroM = fm; S.sort = { k: FILTROS_M[fm].k, dir: FILTROS_M[fm].dir }; }
+  renderTabela(); renderBarras();
+  if (S.filtroM) $('#tree').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function renderTabela() {
   const q = nk(S.qTree);
   // Só aparecem centros de custo com algum valor (positivo ou negativo).
   const temValor = (m) => MK.some((k) => Math.abs(m[k]) >= 0.005);
-  const lista = S.A.ccs.filter((c) => temValor(c.m) && (!q || nk(c.nome).indexOf(q) !== -1)).sort(cmp);
+  const fm = FILTROS_M[S.filtroM];
+  const lista = S.A.ccs.filter((c) => temValor(c.m) && (!fm || fm.ok(c.m)) && (!q || nk(c.nome).indexOf(q) !== -1)).sort(cmp);
+  $('#fmChip').innerHTML = fm ? '<span class="tag">Só centros de custo com ' + fm.t + ' · ' + lista.length + '<button type="button" id="fmLimpar" aria-label="Mostrar todos">×</button></span>' : '';
   const cols = colunas();
   let h = '<table class="tb-c"><thead><tr>' + cols.map((c) =>
     '<th class="sort' + (c.n ? ' n' : '') + (c.c ? ' ' + c.c : '') + (c.dl ? ' dl' + (c.dl === 'first' ? ' first' : '') : '') + '" data-sort="' + c.k + '">' + c.t +
@@ -902,13 +922,14 @@ function velocimetro(titulo, m) {
     '<defs><pattern id="hachA" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#FDEBDF"/><rect width="3" height="8" fill="#EC6E2D"/></pattern>' +
     '<pattern id="hachV" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#F8D7D3"/><rect width="3" height="8" fill="#C0392B"/></pattern></defs>' + g + '</svg>';
   const saldo = o - fim, pc = (v) => (temOrc ? Math.round((v / o) * 100) + '% · ' : '');
-  const linha = (cls, l, v, cor) => '<div class="vm-i"><span class="bg-l"><i class="sw-b ' + cls + '"></i>' + l + '</span><span class="bg-v tnum"' + (cor ? ' style="color:' + cor + '"' : '') + '>' + v + '</span></div>';
+  // Cada valor é clicável: filtra a tabela para os centros de custo que têm aquele valor.
+  const linha = (cls, l, v, cor, fm) => '<div class="vm-i clk' + (S.filtroM === fm ? ' on' : '') + '" data-fm="' + fm + '" role="button" tabindex="0" title="Mostrar na tabela só os centros de custo com este valor"><span class="bg-l"><i class="sw-b ' + cls + '"></i>' + l + '</span><span class="bg-v tnum"' + (cor ? ' style="color:' + cor + '"' : '') + '>' + v + '</span></div>';
   return '<div class="vm"><div class="vm-g">' + svg + '<div class="vm-c"><b class="tnum' + (pf > 1 ? ' neg' : '') + '">' + (temOrc ? Math.round(pf * 100) + '%' : '—') + '</b><span>' + (temOrc ? 'do orçado comprometido' : 'sem orçado') + '</span></div></div>' +
     '<div class="vm-d"><div class="bg-h"><span class="bg-t">' + esc(titulo) + '</span>' + situacao(m) + '</div>' +
-    linha('alvo', 'Orçado', brl2(o)) +
-    linha('r', 'Realizado acumulado', pc(r) + brl2(m.real)) +
-    linha('p', 'Projeção atual · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), pc(m.pt) + brl2(m.pt)) +
-    linha(saldo >= 0 ? 'ok' : 'rx', saldo >= 0 ? 'Saldo' : 'Estouro previsto', pc(Math.abs(saldo)) + brl2(Math.abs(saldo)), saldo >= 0 ? '#1E7A45' : 'var(--neg)') +
+    linha('alvo', 'Orçado', brl2(o), '', 'orc') +
+    linha('r', 'Realizado acumulado', pc(r) + brl2(m.real), '', 'real') +
+    linha('p', 'Projeção atual · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), pc(m.pt) + brl2(m.pt), '', 'pt') +
+    linha(saldo >= 0 ? 'ok' : 'rx', saldo >= 0 ? 'Saldo' : 'Estouro previsto', pc(Math.abs(saldo)) + brl2(Math.abs(saldo)), saldo >= 0 ? '#1E7A45' : 'var(--neg)', saldo >= 0 ? 'saldo' : 'estouro') +
     '</div></div>';
 }
 function renderBarras() {
@@ -1191,6 +1212,9 @@ document.addEventListener('click', (e) => {
   if (!e.composedPath().includes($('#ms'))) abrirUsel(false);
   const th = t.closest('#tree th[data-sort]');
   if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTabela(); return; }
+  const fmb = t.closest('[data-fm]');
+  if (fmb) { filtrarPorValor(fmb.dataset.fm); return; }
+  if (t.closest('#fmLimpar')) { filtrarPorValor(null); return; }
   const kc = t.closest('[data-kpi]');
   if (kc) { abrirKpi(kc.dataset.kpi); return; }
   const ed = t.closest('[data-ed]');
@@ -1224,7 +1248,7 @@ $('#mdOk').addEventListener('click', () => {
   }
 });
 document.addEventListener('keydown', (e) => {
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-kpi], .bul-row[data-det]')) { e.preventDefault(); e.target.click(); return; }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-kpi], [data-fm], .bul-row[data-det]')) { e.preventDefault(); e.target.click(); return; }
   if (e.key !== 'Escape') return;
   if ($('#modal').classList.contains('on')) { fecharModal(); return; }
   if ($('#ms').classList.contains('on')) abrirUsel(false);
