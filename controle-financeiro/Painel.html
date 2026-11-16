@@ -374,12 +374,10 @@
     <div class="kpis k4" id="kpisD"></div>
     <div class="card">
       <div class="card-h">
-        <h2 id="ttlCC">Centros de custo</h2>
         <div class="r"><input class="search" id="qTree" type="search" placeholder="Buscar centro de custo"></div>
       </div>
       <div id="tree"></div>
     </div>
-    <p class="note">Clique no <b>nome</b> do centro de custo para ver os lançamentos. Marque a caixinha (ou clique em outra parte da linha) para ver só ele no gráfico abaixo. Valores em R$.</p>
     <div class="card mt">
       <div class="card-h"><h2>Orçado × Realizado × Projeção</h2><span class="chsel" id="chSel"></span><div class="bul-leg" id="leg"></div></div>
       <p class="leg-nota" id="legNota"></p>
@@ -793,7 +791,6 @@ function render() {
   S.A = agregar(S.F);
   const k = kpisHtml(S.A.tot, true);
   $('#kpis').innerHTML = k[0]; $('#kpisD').innerHTML = k[1];
-  $('#ttlCC').textContent = 'Centros de custo · ' + st.nome + ' · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
   renderTabela();
   renderBarras();
   if (S.drawer) renderDrawer();
@@ -846,7 +843,7 @@ function situacao(m) {
   if (o <= 0.005) return fim > 0.005 ? '<span class="pill neg">Sem orçado</span>' : '';
   if (r - o > 0.005) return '<span class="pill neg">Realizado acima do orçado</span>';
   if (fim - o > 0.005) return '<span class="pill alerta">Estouro previsto de ' + brl2(fim - o) + '</span>';
-  return '<span class="pill ok">Dentro do orçado · sobra ' + brl2(o - fim) + '</span>';
+  return '<span class="pill ok">Dentro do orçado · saldo ' + brl2(o - fim) + '</span>';
 }
 /** Uma barra grande com os quatro números embaixo (total das usinas ou dos centros de custo marcados). */
 function barraGrande(titulo, m) {
@@ -855,7 +852,7 @@ function barraGrande(titulo, m) {
   return '<div class="bg"><div class="bg-h"><span class="bg-t">' + esc(titulo) + '</span>' + situacao(m) + '</div>' +
     '<div class="bul-bar g">' + segmentos(m) + '</div>' +
     '<div class="bg-nums">' + item('r', 'Realizado acumulado', m.real, pr.slice(3)) + item('p', 'Projeção atual', m.pt, 'fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—')) +
-    item('rp', 'Realizado + projeção', m.real + m.pt) + item('alvo', 'Orçado (alvo)', m.orc) + '</div></div>';
+    item('rp', 'Realizado + projeção', m.real + m.pt) + item('alvo', 'Orçado', m.orc) + '</div></div>';
 }
 /** Linha simples de um centro de custo marcado. */
 function barraLinha(c) {
@@ -870,7 +867,7 @@ function barraLinha(c) {
  */
 function renderBarras() {
   $('#leg').innerHTML = '<span><i class="sw-b r"></i>Realizado</span><span><i class="sw-b p"></i>Projeção</span>' +
-    '<span><i class="sw-b alvo"></i>Orçado (alvo)</span><span><i class="sw-b rx"></i>Acima do orçado</span>';
+    '<span><i class="sw-b alvo"></i>Orçado</span><span><i class="sw-b rx"></i>Acima do orçado</span>';
   const n = S.ccSel.size;
   $('#chSel').innerHTML = n === 0 ? '' : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSel)[0]]) : n + ' centros de custo marcados') + '</b><button type="button" id="ccLimpar">Voltar ao total</button>';
   $('#legNota').textContent = n === 0 ? 'Total de todos os centros de custo das usinas escolhidas. Marque centros de custo na tabela para ver cada um aqui.' : '';
@@ -925,7 +922,7 @@ const METRICAS = {
   pt: { t: 'Projeção atual', fonte: 'pt', desc: 'Soma de "Valor" das Projeções no fluxo atual.' },
   real: { t: 'Realizado acumulado', fonte: 'real', desc: 'Soma de "Pagamentos" do Realizado Controladoria (todas as linhas).' },
   rs: { t: 'Realizado semanal', fonte: 'rs', desc: 'Soma de "Pagamentos" das linhas marcadas como "Semanal".' },
-  d1: { t: 'Δ (Orçado − Projeção atual − Realizado)', cols: ['orc', 'pt', 'real'], desc: 'Positivo: sobra orçamento depois do realizado e do projetado. Negativo: estouro.' },
+  d1: { t: 'Δ (Orçado − Projeção atual − Realizado)', cols: ['orc', 'pt', 'real'], desc: 'Positivo: saldo do orçamento depois do realizado e do projetado. Negativo: estouro.' },
   d2: { t: 'Δ (Orçado − Realizado)', cols: ['orc', 'real'], desc: 'Quanto do orçado ainda não foi realizado. Negativo: o realizado passou do orçado.' },
   dP: { t: 'Δ Projeções (Anterior − Atual)', cols: ['pa', 'pt'], desc: 'Positivo: a projeção caiu desde o fluxo anterior. Negativo: a projeção subiu.' },
   dPp: { t: 'Δ Projeções %', cols: ['pa', 'pt', 'dP'], desc: 'Variação da projeção atual em relação à anterior. Atual maior = negativo.' }
