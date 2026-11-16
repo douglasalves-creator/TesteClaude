@@ -68,7 +68,10 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
    **Δ Projeções %** (atual maior que a anterior = negativo; menor = positivo).
    Nos blocos pretos, a faixa e o selo ficam **verdes** quando o Δ é positivo e **vermelhos** quando é negativo.
 4. **Clique nos centros de custo** para ver só eles no gráfico.
-5. O **gráfico** mostra Orçado, Projeção atual e Realizado mês a mês (clique no nome para esconder uma linha).
+5. O **gráfico de barras deitadas** mostra, para o total e para cada centro de custo: o **Orçado** como alvo (linha escura),
+   o **Realizado acumulado** (barra cheia) e a **Projeção atual** (hachurada, depois do realizado). O que passa do orçado fica
+   **vermelho**. Clique numa barra para ver os lançamentos. Os **cartões** do topo também são clicáveis: abrem o número quebrado
+   por centro de custo (e os lançamentos).
    Embaixo, a tabela com o valor de cada mês.
 6. **Clique no nome do centro de custo** para abrir os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
    Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Realizado são imutáveis.

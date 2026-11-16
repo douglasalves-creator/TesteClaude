@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   /* Identidade visual SolarGrid */
   :root{
@@ -158,7 +157,46 @@
   .note{font-size:12px; color:var(--ink-3); margin:12px 4px 0}
   .empty{padding:40px 20px; text-align:center; color:var(--ink-3)}
   .mt{margin-top:16px}
-  .chart-box{position:relative; height:340px; padding:0 20px 8px}
+  /* Cartões clicáveis */
+  .kpi.clk{cursor:pointer; transition:box-shadow .15s, transform .15s}
+  .kpi.clk:hover,.kpi.clk:focus-visible{box-shadow:0 0 0 2px var(--aurora); transform:translateY(-1px); outline:none}
+  /* Detalhe de um cartão */
+  .dk-res{background:var(--branco); border-radius:var(--radius); padding:18px 20px}
+  .dk-v{font-size:26px; font-weight:700; letter-spacing:-.02em}
+  .dk-res p{margin:6px 0 0; color:var(--ink-3); font-size:12.5px}
+  .part{display:inline-block; width:120px; height:8px; border-radius:4px; background:var(--sirius); vertical-align:middle; overflow:hidden; margin-right:6px}
+  .part i{display:block; height:100%; background:var(--aurora)}
+  /* Barras deitadas: orçado = alvo */
+  .bul{padding:4px 20px 18px}
+  .bul-leg{display:flex; gap:16px; flex-wrap:wrap; margin-left:auto; font-size:12px; color:var(--ink-2); font-weight:600}
+  .bul-leg span{display:inline-flex; align-items:center; gap:6px}
+  .sw-b{display:inline-block; width:16px; height:10px; border-radius:2px}
+  .sw-b.r{background:var(--aurora)}
+  .sw-b.p{background:repeating-linear-gradient(135deg,var(--aurora) 0 2px,var(--aurora-soft) 2px 5px)}
+  .sw-b.rx{background:var(--neg)}
+  .sw-b.alvo{width:3px; height:14px; background:var(--cosmos); border-radius:1px}
+  .bul-row{display:grid; grid-template-columns:minmax(200px,300px) minmax(0,1fr) minmax(250px,330px); gap:18px; align-items:center; padding:9px 8px; border-bottom:1px solid var(--line); border-radius:6px}
+  .bul-row[data-det]{cursor:pointer}
+  .bul-row[data-det]:hover,.bul-row[data-det]:focus-visible{background:#FFF6F1; outline:none}
+  .bul-row.tot{border-bottom:2px solid var(--eclipse); padding:14px 8px; margin-bottom:6px}
+  .bul-row.tot .bul-n{font-weight:700; font-size:14px}
+  .bul-row.tot .bul-bar{height:26px}
+  .bul-n{font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .bul-bar{position:relative; height:18px}
+  .bul-bar .trk{position:absolute; inset:0; background:var(--sirius); border-radius:3px}
+  .bul-bar .seg{position:absolute; top:0; bottom:0}
+  .bul-bar .seg.r{background:var(--aurora)}
+  .bul-bar .seg.rx{background:var(--neg)}
+  .bul-bar .seg.p{background:repeating-linear-gradient(135deg,var(--aurora) 0 2px,var(--aurora-soft) 2px 6px)}
+  .bul-bar .seg.px{background:repeating-linear-gradient(135deg,var(--neg) 0 2px,#F8D7D3 2px 6px)}
+  .bul-bar .alvo{position:absolute; top:-4px; bottom:-4px; width:3px; margin-left:-1.5px; background:var(--cosmos); border-radius:1px}
+  .bul-v{display:flex; flex-direction:column; gap:1px; font-size:11.5px; color:var(--ink-3); line-height:1.35}
+  .bul-v b{color:var(--ink); font-weight:700}
+  .pill{align-self:flex-start; margin-top:3px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:999px}
+  .pill.ok{background:#E6F6EC; color:#1E7A45}
+  .pill.alerta{background:#FDEBDF; color:#A9461A}
+  .pill.neg{background:#FBE3E0; color:var(--neg)}
+  @media (max-width:900px){ .bul-row{grid-template-columns:minmax(0,1fr); gap:6px} }
   .meses td,.meses th{padding:8px 8px; font-size:12px}
   .meses th:first-child,.meses td:first-child{padding-left:20px}
   .meses th:last-child,.meses td:last-child{padding-right:20px}
@@ -330,10 +368,9 @@
     </div>
     <p class="note">Clique no <b>nome</b> do centro de custo para ver os lançamentos. Marque a caixinha (ou clique em outra parte da linha) para ver só ele no gráfico abaixo. Valores em R$.</p>
     <div class="card mt">
-      <div class="card-h"><h2>Orçado × Projeção atual × Realizado por mês</h2><span class="chsel" id="chSel"></span><div class="leg" id="leg" title="Clique para mostrar ou esconder a linha"></div></div>
+      <div class="card-h"><h2>Realizado e projeção frente ao orçado</h2><span class="chsel" id="chSel"></span><div class="bul-leg" id="leg"></div></div>
       <p class="leg-nota" id="legNota"></p>
-      <div class="chart-box"><canvas id="chCurvas" role="img" aria-label="Orçado, projeção atual e realizado por mês"></canvas></div>
-      <div id="tabMeses"></div>
+      <div id="barras" class="bul"></div>
     </div>
   </div>
 </main>
@@ -361,7 +398,7 @@
 const S = {
   d: null, rows: { orc: [], real: [] }, proj: {}, setor: null, snapSetor: {},
   f: { us: new Set(), ant: '', atu: '' },
-  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', chart: null, drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set(), linhasOff: new Set()
+  sort: { k: 'nome', dir: 1 }, qTree: '', qUs: '', drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set()
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const $ = (s) => document.querySelector(s);
@@ -609,11 +646,6 @@ function prepararSetor() {
     else if (a.faltando.length) msgs.push('<b>' + esc(a.aba) + ':</b> colunas não encontradas — ' + a.faltando.map(esc).join(', '));
   });
   if (st.pronto && !(st.ccs && st.ccs.length)) msgs.push('Nenhum centro de custo do ' + esc(st.nome) + ' na aba Setores / CCs: o painel mostra todos os centros de custo.');
-  const fora = {};
-  S.L.projFora.forEach((r) => { const k = String(r.cc || '').trim(); fora[k] = (fora[k] || 0) + 1; });
-  const kf = Object.keys(fora);
-  if (kf.length) msgs.push('<b>' + esc(S.d.abas[st.id].aba) + ':</b> ' + kf.reduce((a, k) => a + fora[k], 0) + ' lançamentos estão em centros de custo de outro setor ' +
-    '(pela aba Setores / CCs) e não entram nos números: ' + kf.map(esc).join(', ') + '.');
   $('#avisos').innerHTML = (DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '') +
     (msgs.length && st.pronto ? '<div class="warnbox">' + msgs.join('<br>') + '</div>' : '');
   renderUsel();
@@ -689,15 +721,15 @@ function agregar(F) {
 /* =================================================================== */
 /* Tela                                                                 */
 /* =================================================================== */
-function kpi(l, v, dark) {
-  return '<div class="kpi' + (dark ? ' dark' : '') + '"><div class="l">' + l + '</div><div class="v tnum' + numCls(v) + '">' + brl2(v) + '</div></div>';
+function kpi(l, v, dark, chave) {
+  return '<div class="kpi' + (dark ? ' dark' : '') + (chave ? ' clk" data-kpi="' + chave + '" role="button" tabindex="0" title="Ver o detalhe' : '') + '"><div class="l">' + l + '</div><div class="v tnum' + numCls(v) + '">' + brl2(v) + '</div></div>';
 }
 /** Bloco preto de Δ: faixa e selo verde (positivo), vermelho (negativo) ou cinza (zero). */
-function kpiDelta(l, v, txt) {
+function kpiDelta(l, v, txt, chave) {
   const r = v === null || v === undefined ? 0 : Math.round(v * (txt ? 1000 : 100));
   const cls = r > 0 ? 'pos' : r < 0 ? 'neg' : 'zero';
   const selo = r > 0 ? '▲ Positivo' : r < 0 ? '▼ Negativo' : '= Zero';
-  return '<div class="kpi dark delta ' + cls + '"><div class="l">' + l + '</div><div class="v tnum">' + (txt || brl2(v)) + '</div><span class="selo">' + selo + '</span></div>';
+  return '<div class="kpi dark delta ' + cls + (chave ? ' clk" data-kpi="' + chave + '" role="button" tabindex="0" title="Ver o detalhe' : '') + '"><div class="l">' + l + '</div><div class="v tnum">' + (txt || brl2(v)) + '</div><span class="selo">' + selo + '</span></div>';
 }
 function dh(sub) { return '<span class="dh">Δ<small>' + sub + '</small></span>'; }
 const DH = {
@@ -706,16 +738,20 @@ const DH = {
   d1: dh('(Orçado − Projeção atual − Realizado)'),
   d2: dh('(Orçado − Realizado)')
 };
-function kpisHtml(m) {
-  return [kpi('Orçado', m.orc) + kpi('Projeção anterior', m.pa) + kpi('Projeção atual', m.pt) + kpi('Realizado acumulado', m.real) + kpi('Realizado semanal', m.rs),
-    kpiDelta(DH.d1, m.d1) + kpiDelta(DH.d2, m.d2) + kpiDelta(DH.dP, m.dP) + kpiDelta(DH.dPp, m.dPp, pct(m.dPp))];
+/** Cartões do topo. clic = true deixa cada cartão clicável (abre o detalhe daquele número). */
+function kpisHtml(m, clic) {
+  const c = (k) => (clic ? k : '');
+  return [kpi('Orçado', m.orc, false, c('orc')) + kpi('Projeção anterior', m.pa, false, c('pa')) + kpi('Projeção atual', m.pt, false, c('pt')) +
+      kpi('Realizado acumulado', m.real, false, c('real')) + kpi('Realizado semanal', m.rs, false, c('rs')),
+    kpiDelta(DH.d1, m.d1, '', c('d1')) + kpiDelta(DH.d2, m.d2, '', c('d2')) + kpiDelta(DH.dP, m.dP, '', c('dP')) + kpiDelta(DH.dPp, m.dPp, pct(m.dPp), c('dPp'))];
 }
 function th2(t, d) { return '<span class="th2">' + t + '<small>' + (d ? dt(d) : '—') + '</small></span>'; }
+function th3(t, sub) { return '<span class="th2">' + t + '<small>' + sub + '</small></span>'; }
 function colunas() {
   return [
     { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
     { k: 'pa', t: th2('Projeção anterior', S.f.ant), n: 1 }, { k: 'pt', t: th2('Projeção atual', S.f.atu), n: 1, c: 'pt' },
-    { k: 'real', t: 'Realizado acumulado', n: 1 }, { k: 'rs', t: 'Realizado semanal', n: 1 },
+    { k: 'real', t: th3('Realizado', 'Acumulado'), n: 1 }, { k: 'rs', t: th3('Realizado', 'Semanal'), n: 1 },
     { k: 'd1', t: DH.d1, n: 1, dl: 'first' }, { k: 'd2', t: DH.d2, n: 1, dl: 1 }, { k: 'dP', t: DH.dP, n: 1, dl: 1 }, { k: 'dPp', t: DH.dPp, n: 1, dl: 1 }
   ];
 }
@@ -739,14 +775,14 @@ function render() {
   $('#obraT').textContent = st.nome + ' · em construção';
   const tem = pronto && S.f.us.size > 0;
   $('#pick').hidden = !pronto || tem; $('#resumoBody').hidden = !tem;
-  if (!tem) { if (S.chart) { S.chart.destroy(); S.chart = null; } return; }
+  if (!tem) return;
   S.F = filtrar();
   S.A = agregar(S.F);
-  const k = kpisHtml(S.A.tot);
+  const k = kpisHtml(S.A.tot, true);
   $('#kpis').innerHTML = k[0]; $('#kpisD').innerHTML = k[1];
   $('#ttlCC').textContent = 'Centros de custo · ' + st.nome + ' · ' + (S.f.us.size > 3 ? S.f.us.size + ' usinas' : selNome());
   renderTabela();
-  renderCurvas();
+  renderBarras();
   if (S.drawer) renderDrawer();
 }
 
@@ -770,86 +806,52 @@ function renderTabela() {
   $('#tree').innerHTML = h + '</tbody></table>';
 }
 
-const SERIES = [
-  { k: 'orc', nome: 'Orçado', sw: 'background:var(--cosmos)' },
-  { k: 'pt', nome: 'Projeção atual', sw: 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)' },
-  { k: 'real', nome: 'Realizado acumulado', sw: 'background:var(--aurora)' }
-];
-/** Orçado (vencimento), Projeção atual (data programada) e Realizado (data do pagamento) mês a mês. */
-function renderCurvas() {
-  $('#leg').innerHTML = SERIES.map((x) => '<button type="button" data-linha="' + x.k + '" class="' + (S.linhasOff.has(x.k) ? 'off' : '') + '" aria-pressed="' + !S.linhasOff.has(x.k) + '"><span class="sw" style="' + x.sw + '"></span>' + x.nome + '</button>').join('');
-  $('#legNota').textContent = 'Clique em Orçado, Projeção atual ou Realizado acumulado para mostrar ou esconder a linha. Projeção atual: fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + ', pela data programada de pagamento.';
-  const o = {}, p = {}, r = {}, ms = new Set();
-  const add = (obj, d, v) => { if (!d) return; const m = d.slice(0, 7); obj[m] = (obj[m] || 0) + (v || 0); ms.add(m); };
-  const usa = (x) => !S.ccSel.size || S.ccSel.has(x._ck);
-  S.F.orc.forEach((x) => { if (usa(x)) add(o, x._d, x.valor); });
-  S.F.pt.forEach((x) => { if (usa(x)) add(p, x._d, x.valor); });
-  S.F.real.forEach((x) => { if (usa(x)) add(r, x._d, x.valor); });
+/**
+ * Barras deitadas, uma por centro de custo (e o total no topo), no formato "alvo":
+ *  - a linha escura é o Orçado (o alvo);
+ *  - a barra cheia é o Realizado acumulado (o que já aconteceu);
+ *  - a parte hachurada é a Projeção atual (o que ainda vai acontecer), somada depois do realizado;
+ *  - o que passa do orçado fica vermelho (cheio = realizado acima do orçado; hachurado = estouro previsto).
+ * Cada barra usa a própria escala (o maior entre orçado e realizado + projeção), para mostrar quanto do alvo já foi atingido.
+ */
+function barraHtml(nome, m, k, total) {
+  const o = Math.max(m.orc, 0), r = Math.max(m.real, 0), p = Math.max(m.pt, 0), fim = r + p;
+  const esc_ = Math.max(o, fim) || 1, w = (v) => (v / esc_) * 100;
+  const rDentro = Math.min(r, o), rFora = Math.max(0, r - o);
+  const pDentro = Math.max(0, Math.min(fim, o) - Math.min(r, o)), pFora = Math.max(0, fim - Math.max(r, o));
+  let segs = '';
+  segs += '<span class="seg r" style="left:0;width:' + w(rDentro) + '%"></span>';
+  if (rFora > 0) segs += '<span class="seg rx" style="left:' + w(o) + '%;width:' + w(rFora) + '%"></span>';
+  if (pDentro > 0) segs += '<span class="seg p" style="left:' + w(Math.min(r, o)) + '%;width:' + w(pDentro) + '%"></span>';
+  if (pFora > 0) segs += '<span class="seg px" style="left:' + w(Math.max(r, o)) + '%;width:' + w(pFora) + '%"></span>';
+  if (o > 0) segs += '<span class="alvo" style="left:' + w(o) + '%"></span>';
+  const pr = o > 0 ? r / o : null, pf = o > 0 ? fim / o : null;
+  const sit = o <= 0 ? (fim > 0.005 ? '<span class="pill neg">Sem orçado</span>' : '')
+    : r - o > 0.005 ? '<span class="pill neg">Realizado acima do orçado</span>'
+    : fim - o > 0.005 ? '<span class="pill alerta">Estouro previsto ' + compact(fim - o) + '</span>'
+    : '<span class="pill ok">Dentro do orçado</span>';
+  const tip = 'Orçado ' + brl2(m.orc) + ' · Realizado ' + brl2(m.real) + ' · Projeção atual ' + brl2(m.pt) + ' · Realizado + projeção ' + brl2(fim);
+  return '<div class="bul-row' + (total ? ' tot' : '') + '"' + (k ? ' data-det="' + esc(k) + '" role="button" tabindex="0"' : '') + ' title="' + esc(tip) + '">' +
+    '<div class="bul-n">' + esc(nome) + '</div>' +
+    '<div class="bul-bar"><span class="trk"></span>' + segs + '</div>' +
+    '<div class="bul-v tnum"><span><b>' + compact(m.real) + '</b> realizado' + (pr === null ? '' : ' · ' + Math.round(pr * 100) + '%') + '</span>' +
+    '<span>' + compact(m.pt) + ' projetado · alvo <b>' + compact(m.orc) + '</b></span>' + sit + '</div></div>';
+}
+function renderBarras() {
+  $('#leg').innerHTML = '<span><i class="sw-b r"></i>Realizado acumulado</span><span><i class="sw-b p"></i>Projeção atual</span>' +
+    '<span><i class="sw-b alvo"></i>Orçado (alvo)</span><span><i class="sw-b rx"></i>Acima do orçado</span>';
+  $('#legNota').textContent = 'A barra vai até o maior valor entre o orçado e realizado + projeção. Projeção atual: fluxo de ' +
+    (S.f.atu ? dt(S.f.atu) : '—') + '. Clique numa barra para ver os lançamentos daquele centro de custo.';
   const n = S.ccSel.size;
   $('#chSel').innerHTML = n === 0 ? 'Todos os centros de custo'
     : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSel)[0]]) : n + ' centros de custo selecionados') + '</b><button type="button" id="ccLimpar">Mostrar todos</button>';
-  const meses = [];
-  const ord = Array.from(ms).sort();
-  if (ord.length) {
-    let [y, m] = ord[0].split('-').map(Number);
-    const fim = ord[ord.length - 1];
-    for (let ym = ord[0]; ym <= fim; m === 12 ? (y++, m = 1) : m++, ym = y + '-' + ('0' + m).slice(-2)) meses.push(ym);
-  }
-  const faixa = (obj) => { const k = Object.keys(obj).sort(); return [k[0] || '9999', k[k.length - 1] || '']; };
-  const serie = (obj) => { const [ini, fim] = faixa(obj); return meses.map((m) => (m < ini || m > fim ? null : obj[m] || 0)); };
-  const sO = serie(o), sP = serie(p), sR = serie(r);
-  const dados = { orc: sO, pt: sP, real: sR };
-
-  // Escala do eixo: acompanha os valores das linhas visíveis, com folga igual em cima e embaixo,
-  // para as linhas ficarem no meio do gráfico.
-  const vis = SERIES.filter((x) => !S.linhasOff.has(x.k)).reduce((acc, x) => acc.concat(dados[x.k].filter((v) => v !== null)), []);
-  let yMin, yMax, yPasso;
-  if (vis.length) {
-    const lo = Math.min.apply(null, vis), hi = Math.max.apply(null, vis);
-    const folga = Math.max(hi - lo, Math.abs(hi) * 0.1, 1) * 0.12;
-    const bruto = (hi + folga - Math.min(0, lo - folga)) / 5, mag = Math.pow(10, Math.floor(Math.log10(bruto))), q = bruto / mag;
-    yPasso = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((x) => q <= x) * mag;
-    yMax = Math.ceil((hi + folga) / yPasso) * yPasso;
-    // Valores zero ficam um pouco acima da borda de baixo (a faixa abaixo de zero não tem rótulo nem grade).
-    yMin = lo >= 0 ? -yPasso * 0.3 : Math.floor((lo - folga) / yPasso) * yPasso;
-  }
-  if (S.chart) S.chart.destroy();
-  if (window.Chart) {
-    const linha = (label, data, cor, extra) => Object.assign({ label, data, borderColor: cor, backgroundColor: cor, borderWidth: 2.5, pointRadius: 3.5, pointHoverRadius: 6, pointBorderColor: '#fff', pointBorderWidth: 1.5, tension: 0.25 }, extra || {});
-    S.chart = new Chart($('#chCurvas'), {
-      type: 'line',
-      data: {
-        labels: meses.map(mes),
-        datasets: [
-          linha('Orçado', sO, COR.cosmos, { hidden: S.linhasOff.has('orc') }),
-          linha('Projeção atual', sP, COR.aurora, { borderDash: [7, 5], pointBackgroundColor: '#fff', pointBorderColor: COR.aurora, pointBorderWidth: 2, hidden: S.linhasOff.has('pt') }),
-          linha('Realizado acumulado', sR, COR.aurora, { hidden: S.linhasOff.has('real') })
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: false },
-          tooltip: { backgroundColor: '#0A0F14', padding: 10, filter: (c) => c.raw !== null, callbacks: { label: (c) => ' ' + c.dataset.label + ': R$ ' + num(c.raw) } }
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: COR.ink3, maxRotation: 0, autoSkip: true } },
-          y: { beginAtZero: false, min: yMin, max: yMax, border: { display: false }, grid: { color: COR.grid },
-            // Marcas em 0, 1 passo, 2 passos… (a faixa abaixo de zero fica sem marca)
-            afterBuildTicks: (ax) => { if (!yPasso) return; const t = []; for (let v = yMin < -yPasso * 0.5 ? yMin : 0; v <= yMax + yPasso / 1e6; v += yPasso) t.push({ value: Math.round(v * 100) / 100 }); ax.ticks = t; },
-            ticks: { color: COR.ink3, callback: (v) => compact(v) } }
-        }
-      }
-    });
-  }
-  // Tabela com o valor de cada mês
-  const cel = (v) => (v === null ? '<span style="color:var(--nevoa)">—</span>' : '<span class="' + numCls(v).trim() + '">' + num(v) + '</span>');
-  const soma = (arr) => arr.reduce((a, v) => a + (v || 0), 0);
-  const lin = (nome, sw, arr) => '<tr><td><span class="sw" style="' + sw + '"></span>' + nome + '</td>' + arr.map((v) => '<td class="n">' + cel(v) + '</td>').join('') + '<td class="n dl first"><b>' + num(soma(arr)) + '</b></td></tr>';
-  $('#tabMeses').innerHTML = meses.length ? '<table class="meses"><thead><tr><th>R$</th>' + meses.map((m) => '<th class="n">' + mes(m) + '</th>').join('') + '<th class="n dl first">Total</th></tr></thead><tbody>' +
-    SERIES.filter((x) => !S.linhasOff.has(x.k)).map((x) => lin(x.nome, x.sw, dados[x.k])).join('') + '</tbody></table>'
-    : '<div class="empty">Sem datas para montar o gráfico.</div>';
+  const vale = (m) => Math.abs(m.orc) >= 0.005 || Math.abs(m.real) >= 0.005 || Math.abs(m.pt) >= 0.005;
+  const lista = S.A.ccs.filter((c) => vale(c.m) && (!n || S.ccSel.has(c.k)))
+    .sort((a, b) => Math.max(b.m.orc, b.m.real + b.m.pt) - Math.max(a.m.orc, a.m.real + a.m.pt));
+  const tot = novoM(); lista.forEach((c) => somaM(tot, c.m));
+  $('#barras').innerHTML = lista.length
+    ? barraHtml(n ? 'Total dos selecionados' : 'Total', derivar(tot), '', true) + lista.map((c) => barraHtml(c.nome, c.m, c.k)).join('')
+    : '<div class="empty">Sem valores para mostrar.</div>';
 }
 
 /* =================================================================== */
@@ -890,6 +892,59 @@ function tabelaLanc(aba, rows) {
   if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">Total</td><td class="n">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
   return h + '</tbody></table>';
 }
+const METRICAS = {
+  orc: { t: 'Orçado', fonte: 'orc', desc: 'Soma de "VALOR A PAGAR" da aba Orçamento.' },
+  pa: { t: 'Projeção anterior', fonte: 'pa', desc: 'Soma de "Valor" das Projeções no fluxo anterior.' },
+  pt: { t: 'Projeção atual', fonte: 'pt', desc: 'Soma de "Valor" das Projeções no fluxo atual.' },
+  real: { t: 'Realizado acumulado', fonte: 'real', desc: 'Soma de "Pagamentos" do Realizado Controladoria (todas as linhas).' },
+  rs: { t: 'Realizado semanal', fonte: 'rs', desc: 'Soma de "Pagamentos" das linhas marcadas como "Semanal".' },
+  d1: { t: 'Δ (Orçado − Projeção atual − Realizado)', cols: ['orc', 'pt', 'real'], desc: 'Positivo: sobra orçamento depois do realizado e do projetado. Negativo: estouro.' },
+  d2: { t: 'Δ (Orçado − Realizado)', cols: ['orc', 'real'], desc: 'Quanto do orçado ainda não foi realizado. Negativo: o realizado passou do orçado.' },
+  dP: { t: 'Δ Projeções (Anterior − Atual)', cols: ['pa', 'pt'], desc: 'Positivo: a projeção caiu desde o fluxo anterior. Negativo: a projeção subiu.' },
+  dPp: { t: 'Δ Projeções %', cols: ['pa', 'pt', 'dP'], desc: 'Variação da projeção atual em relação à anterior. Atual maior = negativo.' }
+};
+const ROT_M = { orc: 'Orçado', pa: 'Projeção anterior', pt: 'Projeção atual', real: 'Realizado acumulado', rs: 'Realizado semanal', dP: 'Δ Projeções' };
+function abrirKpi(k) {
+  if (!METRICAS[k]) return;
+  S.drawer = { kpi: k };
+  $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
+  renderDrawer(true);
+}
+/** Detalhe de um cartão: o número quebrado por centro de custo e, quando é soma de lançamentos, a lista deles. */
+function renderDrawerKpi(novo) {
+  const k = S.drawer.kpi, M_ = METRICAS[k], st = S.setor, A = S.A;
+  $('#dwT').textContent = M_.t;
+  $('#dwS').textContent = st.nome + ' · ' + selNome();
+  const v = A.tot[k], fmt = (x) => (k === 'dPp' ? pct(x) : brl2(x));
+  let h = '<div class="dk-res"><div class="dk-v tnum' + numCls(v) + '">' + fmt(v) + '</div><p>' + esc(M_.desc) + '</p></div>';
+  const linhas = A.ccs.filter((c) => (M_.cols || [k]).concat([k]).some((x) => c.m[x] !== null && Math.abs(c.m[x]) >= 0.005));
+  if (M_.fonte) {
+    // Soma simples: participação de cada centro de custo no total.
+    const tot = Math.abs(v) || 1;
+    linhas.sort((a, b) => b.m[k] - a.m[k]);
+    h += '<div class="h3">Por centro de custo · ' + linhas.length + '</div><div class="card"><table class="tb-c"><thead><tr><th>Centro de custo</th><th class="n">' + esc(M_.t) + '</th><th>Participação</th></tr></thead><tbody>' +
+      linhas.map((c) => '<tr><td><button type="button" class="ccn" data-det="' + esc(c.k) + '">' + esc(c.nome) + '<span class="seta">→</span></button></td><td class="n' + numCls(c.m[k]) + '">' + num(c.m[k]) + '</td>' +
+        '<td><span class="part"><i style="width:' + Math.min(100, Math.abs(c.m[k]) / tot * 100) + '%"></i></span> ' + _pct.format(Math.abs(c.m[k]) / tot * 100) + '%</td></tr>').join('') +
+      '<tr class="tot"><td>Total</td><td class="n">' + num(v) + '</td><td></td></tr></tbody></table></div>';
+    const rows = S.F[M_.fonte], aba = M_.fonte === 'pa' || M_.fonte === 'pt' ? st.id : M_.fonte === 'rs' ? 'real' : M_.fonte;
+    h += '<details class="blk" data-blk="lanc"' + (S.dwAbertos.has('lanc') ? ' open' : '') + '><summary><span class="chev">▶</span><span class="t">Lançamentos</span>' +
+      '<span class="src">' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</span><span class="tt">' + brl2(v) + '</span></summary>' +
+      '<div class="card">' + tabelaLanc(aba, rows) + '</div></details>';
+  } else {
+    // Δ: os componentes de cada centro de custo, do mais negativo para o mais positivo.
+    linhas.sort((a, b) => (a.m[k] === null ? 1 : b.m[k] === null ? -1 : a.m[k] - b.m[k]));
+    const cols = M_.cols;
+    h += '<div class="h3">Por centro de custo · do mais negativo para o mais positivo</div><div class="card"><table class="tb-c"><thead><tr><th>Centro de custo</th>' +
+      cols.map((x) => '<th class="n">' + ROT_M[x] + '</th>').join('') + '<th class="n dl first">' + (k === 'dPp' ? 'Δ %' : 'Δ') + '</th></tr></thead><tbody>' +
+      linhas.map((c) => '<tr><td><button type="button" class="ccn" data-det="' + esc(c.k) + '">' + esc(c.nome) + '<span class="seta">→</span></button></td>' +
+        cols.map((x) => '<td class="n' + numCls(c.m[x]) + '">' + num(c.m[x]) + '</td>').join('') + '<td class="n dl first' + numCls(c.m[k]) + '"><b>' + fmt(c.m[k]) + '</b></td></tr>').join('') +
+      '<tr class="tot"><td>Total</td>' + cols.map((x) => '<td class="n">' + num(A.tot[x]) + '</td>').join('') + '<td class="n dl first">' + fmt(v) + '</td></tr></tbody></table></div>';
+  }
+  const body = $('#dwB'), sc = body.scrollTop;
+  body.innerHTML = h;
+  body.querySelectorAll('details.blk').forEach((d) => d.addEventListener('toggle', () => { if (d.open) S.dwAbertos.add(d.dataset.blk); else S.dwAbertos.delete(d.dataset.blk); }));
+  body.scrollTop = novo ? 0 : sc;
+}
 function abrirCC(ck) {
   S.drawer = { ck };
   S.dwAbertos = new Set(['pt']);
@@ -901,6 +956,7 @@ function fecharDrawer() {
   $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); $('#drawer').setAttribute('aria-hidden', 'true');
 }
 function renderDrawer(novo) {
+  if (S.drawer.kpi) { renderDrawerKpi(novo); return; }
   const { ck } = S.drawer, st = S.setor;
   const F = filtrar(), Fx = {};
   MK.forEach((k) => { Fx[k] = F[k].filter((r) => r._ck === ck); });
@@ -1066,8 +1122,8 @@ document.addEventListener('click', (e) => {
   if (!e.composedPath().includes($('#ms'))) abrirUsel(false);
   const th = t.closest('#tree th[data-sort]');
   if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (k === 'nome' ? 1 : -1) }; renderTabela(); return; }
-  const lb = t.closest('[data-linha]');
-  if (lb) { const k = lb.dataset.linha; if (S.linhasOff.has(k)) S.linhasOff.delete(k); else S.linhasOff.add(k); renderCurvas(); return; }
+  const kc = t.closest('[data-kpi]');
+  if (kc) { abrirKpi(kc.dataset.kpi); return; }
   const ed = t.closest('[data-ed]');
   if (ed) { const [aba, l] = ed.dataset.ed.split('|'); const r = acharLinha(aba, l); if (r) abrirEditor(aba, r); return; }
   const del = t.closest('[data-del]');
@@ -1076,12 +1132,12 @@ document.addEventListener('click', (e) => {
   if (nv) { e.preventDefault(); abrirEditor(nv.dataset.novo, null, novoPreset(S.drawer && S.drawer.ck)); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
-  if (t.closest('#ccLimpar')) { S.ccSel.clear(); renderTabela(); renderCurvas(); return; }
+  if (t.closest('#ccLimpar')) { S.ccSel.clear(); renderTabela(); renderBarras(); return; }
   const cc = t.closest('#tree tr.c[data-cc]');
   if (cc) {
     const k = cc.dataset.cc;
     if (S.ccSel.has(k)) S.ccSel.delete(k); else S.ccSel.add(k);
-    renderTabela(); renderCurvas();
+    renderTabela(); renderBarras();
   }
 });
 $('#scrim').addEventListener('click', fecharDrawer);
@@ -1099,12 +1155,12 @@ $('#mdOk').addEventListener('click', () => {
   }
 });
 document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-kpi], .bul-row[data-det]')) { e.preventDefault(); e.target.click(); return; }
   if (e.key !== 'Escape') return;
   if ($('#modal').classList.contains('on')) { fecharModal(); return; }
   if ($('#ms').classList.contains('on')) abrirUsel(false);
   else if (S.drawer) fecharDrawer();
 });
-if (window.Chart) { Chart.defaults.font.family = 'Montserrat, system-ui, sans-serif'; Chart.defaults.color = '#4B5259'; }
 atualizar(true);
 </script>
 </body>
