@@ -175,7 +175,20 @@
   .sw-b.p{background:repeating-linear-gradient(135deg,var(--aurora) 0 2px,var(--aurora-soft) 2px 5px)}
   .sw-b.rx{background:var(--neg)}
   .sw-b.alvo{width:3px; height:14px; background:var(--cosmos); border-radius:1px}
-  .bul-row{display:grid; grid-template-columns:minmax(200px,300px) minmax(0,1fr) minmax(250px,330px); gap:18px; align-items:center; padding:9px 8px; border-bottom:1px solid var(--line); border-radius:6px}
+  .bg{padding:6px 4px 4px}
+  .bg-h{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px}
+  .bg-t{font-weight:700; font-size:14px}
+  .bul-bar.g{height:34px}
+  .bul-bar.g .alvo{top:-7px; bottom:-7px; width:4px; margin-left:-2px}
+  .bg-nums{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-top:18px}
+  @media (max-width:900px){ .bg-nums{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  .bg-i{display:flex; flex-direction:column; gap:2px}
+  .bg-l{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); display:inline-flex; align-items:center; gap:6px}
+  .bg-v{font-size:18px; font-weight:700}
+  .bg-x{font-size:11.5px; color:var(--ink-3)}
+  .sw-b.rp{background:linear-gradient(90deg,var(--aurora) 0 55%,transparent 55%),repeating-linear-gradient(135deg,var(--aurora) 0 2px,var(--aurora-soft) 2px 5px)}
+  .bul-lista{margin-top:22px; border-top:1px solid var(--line); padding-top:6px}
+  .bul-row{display:grid; grid-template-columns:minmax(180px,280px) minmax(0,1fr) 400px; gap:18px; align-items:center; padding:9px 8px; border-bottom:1px solid var(--line); border-radius:6px}
   .bul-row[data-det]{cursor:pointer}
   .bul-row[data-det]:hover,.bul-row[data-det]:focus-visible{background:#FFF6F1; outline:none}
   .bul-row.tot{border-bottom:2px solid var(--eclipse); padding:14px 8px; margin-bottom:6px}
@@ -190,9 +203,9 @@
   .bul-bar .seg.p{background:repeating-linear-gradient(135deg,var(--aurora) 0 2px,var(--aurora-soft) 2px 6px)}
   .bul-bar .seg.px{background:repeating-linear-gradient(135deg,var(--neg) 0 2px,#F8D7D3 2px 6px)}
   .bul-bar .alvo{position:absolute; top:-4px; bottom:-4px; width:3px; margin-left:-1.5px; background:var(--cosmos); border-radius:1px}
-  .bul-v{display:flex; flex-direction:column; gap:1px; font-size:11.5px; color:var(--ink-3); line-height:1.35}
+  .bul-v{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12px; color:var(--ink-3)}
   .bul-v b{color:var(--ink); font-weight:700}
-  .pill{align-self:flex-start; margin-top:3px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:999px}
+  .pill{font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:999px}
   .pill.ok{background:#E6F6EC; color:#1E7A45}
   .pill.alerta{background:#FDEBDF; color:#A9461A}
   .pill.neg{background:#FBE3E0; color:var(--neg)}
@@ -368,7 +381,7 @@
     </div>
     <p class="note">Clique no <b>nome</b> do centro de custo para ver os lançamentos. Marque a caixinha (ou clique em outra parte da linha) para ver só ele no gráfico abaixo. Valores em R$.</p>
     <div class="card mt">
-      <div class="card-h"><h2>Realizado e projeção frente ao orçado</h2><span class="chsel" id="chSel"></span><div class="bul-leg" id="leg"></div></div>
+      <div class="card-h"><h2>Orçado × Realizado × Projeção</h2><span class="chsel" id="chSel"></span><div class="bul-leg" id="leg"></div></div>
       <p class="leg-nota" id="legNota"></p>
       <div id="barras" class="bul"></div>
     </div>
@@ -814,44 +827,58 @@ function renderTabela() {
  *  - o que passa do orçado fica vermelho (cheio = realizado acima do orçado; hachurado = estouro previsto).
  * Cada barra usa a própria escala (o maior entre orçado e realizado + projeção), para mostrar quanto do alvo já foi atingido.
  */
-function barraHtml(nome, m, k, total) {
-  const o = Math.max(m.orc, 0), r = Math.max(m.real, 0), p = Math.max(m.pt, 0), fim = r + p;
-  const esc_ = Math.max(o, fim) || 1, w = (v) => (v / esc_) * 100;
+/** Segmentos da barra: realizado (cheio), projeção (hachurada), parte acima do orçado (vermelha) e a linha do alvo. */
+function segmentos(m) {
+  const o = Math.max(m.orc, 0), r = Math.max(m.real, 0), fim = r + Math.max(m.pt, 0);
+  const escala = Math.max(o, fim) || 1, w = (v) => (v / escala) * 100;
   const rDentro = Math.min(r, o), rFora = Math.max(0, r - o);
-  const pDentro = Math.max(0, Math.min(fim, o) - Math.min(r, o)), pFora = Math.max(0, fim - Math.max(r, o));
-  let segs = '';
-  segs += '<span class="seg r" style="left:0;width:' + w(rDentro) + '%"></span>';
-  if (rFora > 0) segs += '<span class="seg rx" style="left:' + w(o) + '%;width:' + w(rFora) + '%"></span>';
-  if (pDentro > 0) segs += '<span class="seg p" style="left:' + w(Math.min(r, o)) + '%;width:' + w(pDentro) + '%"></span>';
-  if (pFora > 0) segs += '<span class="seg px" style="left:' + w(Math.max(r, o)) + '%;width:' + w(pFora) + '%"></span>';
-  if (o > 0) segs += '<span class="alvo" style="left:' + w(o) + '%"></span>';
-  const pr = o > 0 ? r / o : null, pf = o > 0 ? fim / o : null;
-  const sit = o <= 0 ? (fim > 0.005 ? '<span class="pill neg">Sem orçado</span>' : '')
-    : r - o > 0.005 ? '<span class="pill neg">Realizado acima do orçado</span>'
-    : fim - o > 0.005 ? '<span class="pill alerta">Estouro previsto ' + compact(fim - o) + '</span>'
-    : '<span class="pill ok">Dentro do orçado</span>';
-  const tip = 'Orçado ' + brl2(m.orc) + ' · Realizado ' + brl2(m.real) + ' · Projeção atual ' + brl2(m.pt) + ' · Realizado + projeção ' + brl2(fim);
-  return '<div class="bul-row' + (total ? ' tot' : '') + '"' + (k ? ' data-det="' + esc(k) + '" role="button" tabindex="0"' : '') + ' title="' + esc(tip) + '">' +
-    '<div class="bul-n">' + esc(nome) + '</div>' +
-    '<div class="bul-bar"><span class="trk"></span>' + segs + '</div>' +
-    '<div class="bul-v tnum"><span><b>' + compact(m.real) + '</b> realizado' + (pr === null ? '' : ' · ' + Math.round(pr * 100) + '%') + '</span>' +
-    '<span>' + compact(m.pt) + ' projetado · alvo <b>' + compact(m.orc) + '</b></span>' + sit + '</div></div>';
+  const pDentro = Math.max(0, Math.min(fim, o) - rDentro), pFora = Math.max(0, fim - Math.max(r, o));
+  let h = '<span class="trk"></span><span class="seg r" style="left:0;width:' + w(rDentro) + '%"></span>';
+  if (rFora > 0) h += '<span class="seg rx" style="left:' + w(o) + '%;width:' + w(rFora) + '%"></span>';
+  if (pDentro > 0) h += '<span class="seg p" style="left:' + w(rDentro) + '%;width:' + w(pDentro) + '%"></span>';
+  if (pFora > 0) h += '<span class="seg px" style="left:' + w(Math.max(r, o)) + '%;width:' + w(pFora) + '%"></span>';
+  if (o > 0) h += '<span class="alvo" style="left:' + w(o) + '%"></span>';
+  return h;
 }
+/** Situação em relação ao orçado (selo). */
+function situacao(m) {
+  const o = m.orc, r = m.real, fim = m.real + m.pt;
+  if (o <= 0.005) return fim > 0.005 ? '<span class="pill neg">Sem orçado</span>' : '';
+  if (r - o > 0.005) return '<span class="pill neg">Realizado acima do orçado</span>';
+  if (fim - o > 0.005) return '<span class="pill alerta">Estouro previsto de ' + brl2(fim - o) + '</span>';
+  return '<span class="pill ok">Dentro do orçado · sobra ' + brl2(o - fim) + '</span>';
+}
+/** Uma barra grande com os quatro números embaixo (total das usinas ou dos centros de custo marcados). */
+function barraGrande(titulo, m) {
+  const pr = m.orc > 0.005 ? ' · ' + Math.round((m.real / m.orc) * 100) + '% do orçado' : '';
+  const item = (cls, l, v, extra) => '<div class="bg-i"><span class="bg-l"><i class="sw-b ' + cls + '"></i>' + l + '</span><span class="bg-v tnum">' + brl2(v) + '</span>' + (extra ? '<span class="bg-x">' + extra + '</span>' : '') + '</div>';
+  return '<div class="bg"><div class="bg-h"><span class="bg-t">' + esc(titulo) + '</span>' + situacao(m) + '</div>' +
+    '<div class="bul-bar g">' + segmentos(m) + '</div>' +
+    '<div class="bg-nums">' + item('r', 'Realizado acumulado', m.real, pr.slice(3)) + item('p', 'Projeção atual', m.pt, 'fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—')) +
+    item('rp', 'Realizado + projeção', m.real + m.pt) + item('alvo', 'Orçado (alvo)', m.orc) + '</div></div>';
+}
+/** Linha simples de um centro de custo marcado. */
+function barraLinha(c) {
+  return '<div class="bul-row" data-det="' + esc(c.k) + '" role="button" tabindex="0" title="Ver os lançamentos">' +
+    '<div class="bul-n">' + esc(c.nome) + '</div><div class="bul-bar">' + segmentos(c.m) + '</div>' +
+    '<div class="bul-v tnum"><b>' + compact(c.m.real + c.m.pt) + '</b> de ' + compact(c.m.orc) + ' ' + situacao(c.m) + '</div></div>';
+}
+/**
+ * Gráfico do orçado como alvo:
+ *  - sem centro de custo marcado: uma barra só, com o total das usinas escolhidas;
+ *  - com centros de custo marcados na tabela: a barra do total deles e uma linha para cada um.
+ */
 function renderBarras() {
-  $('#leg').innerHTML = '<span><i class="sw-b r"></i>Realizado acumulado</span><span><i class="sw-b p"></i>Projeção atual</span>' +
+  $('#leg').innerHTML = '<span><i class="sw-b r"></i>Realizado</span><span><i class="sw-b p"></i>Projeção</span>' +
     '<span><i class="sw-b alvo"></i>Orçado (alvo)</span><span><i class="sw-b rx"></i>Acima do orçado</span>';
-  $('#legNota').textContent = 'A barra vai até o maior valor entre o orçado e realizado + projeção. Projeção atual: fluxo de ' +
-    (S.f.atu ? dt(S.f.atu) : '—') + '. Clique numa barra para ver os lançamentos daquele centro de custo.';
   const n = S.ccSel.size;
-  $('#chSel').innerHTML = n === 0 ? 'Todos os centros de custo'
-    : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSel)[0]]) : n + ' centros de custo selecionados') + '</b><button type="button" id="ccLimpar">Mostrar todos</button>';
-  const vale = (m) => Math.abs(m.orc) >= 0.005 || Math.abs(m.real) >= 0.005 || Math.abs(m.pt) >= 0.005;
-  const lista = S.A.ccs.filter((c) => vale(c.m) && (!n || S.ccSel.has(c.k)))
-    .sort((a, b) => Math.max(b.m.orc, b.m.real + b.m.pt) - Math.max(a.m.orc, a.m.real + a.m.pt));
+  $('#chSel').innerHTML = n === 0 ? '' : '<b>' + (n === 1 ? esc(S.ccNome[Array.from(S.ccSel)[0]]) : n + ' centros de custo marcados') + '</b><button type="button" id="ccLimpar">Voltar ao total</button>';
+  $('#legNota').textContent = n === 0 ? 'Total de todos os centros de custo das usinas escolhidas. Marque centros de custo na tabela para ver cada um aqui.' : '';
+  const lista = S.A.ccs.filter((c) => n && S.ccSel.has(c.k)).sort((a, b) => b.m.orc - a.m.orc);
+  if (!n) { $('#barras').innerHTML = barraGrande('Total · ' + (S.f.us.size === 1 ? selNome() : S.f.us.size + ' usinas'), S.A.tot); return; }
   const tot = novoM(); lista.forEach((c) => somaM(tot, c.m));
-  $('#barras').innerHTML = lista.length
-    ? barraHtml(n ? 'Total dos selecionados' : 'Total', derivar(tot), '', true) + lista.map((c) => barraHtml(c.nome, c.m, c.k)).join('')
-    : '<div class="empty">Sem valores para mostrar.</div>';
+  $('#barras').innerHTML = barraGrande(n === 1 ? lista[0] ? lista[0].nome : '' : 'Total dos ' + n + ' centros de custo marcados', derivar(tot)) +
+    (n > 1 ? '<div class="bul-lista">' + lista.map(barraLinha).join('') + '</div>' : '');
 }
 
 /* =================================================================== */
