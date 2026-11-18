@@ -54,6 +54,9 @@ const CONFIG = {
   // Toda alteração feita pelo painel é registrada nesta aba (criada se não existir).
   ABA_AUDITORIA: 'Auditoria',
 
+  // Comentários por usina e centro de custo, feitos pelo painel (a aba e o cabeçalho são criados sozinhos).
+  ABA_COMENTARIOS: 'Comentários',
+
   // Saídas sempre aparecem positivas no painel. Se uma aba guardar os pagamentos
   // como número negativo, o painel percebe sozinho e inverte o sinal na tela
   // (e desinverte ao gravar).
@@ -708,6 +711,7 @@ function carregarDados(forcar) {
     planilha: ss.getName(),
     urlPlanilha: ac.tudo ? ss.getUrl() : '',
     usinas: lerUsinas_(ss),
+    comentarios: lerComentarios_(ss, setores.map(function (s) { return s.nome; })),
     abas: abas
   };
 }
@@ -853,6 +857,82 @@ function auditar_(ctx, linha, acao, mudancas) {
   const ini = sh.getLastRow() + 1;
   sh.getRange(ini, 1, linhas.length, CAB_AUDITORIA.length).setValues(linhas);
   sh.getRange(ini, 1, linhas.length, 1).setNumberFormat('dd/MM/yyyy HH:mm:ss');
+}
+
+/* ------------------------------------------------------------------ */
+/* Comentários (balão ao lado do centro de custo)                      */
+/* ------------------------------------------------------------------ */
+
+/* Colunas da aba Comentários. Os valores do momento do comentário ficam guardados para consulta futura. */
+const CAB_COMENTARIOS = ['Data do comentário', 'E-mail', 'Setor', 'Código usina', 'Usina (UFV)', 'Código CC', 'Centro de Custo',
+  'Data do Fluxo (projeção atual)', 'Data do Fluxo (projeção anterior)', 'Comentário',
+  'Orçado', 'Projeção anterior', 'Projeção atual', 'Δ semana (anterior − atual)', 'Realizado semanal', 'Realizado acumulado', 'Usinas na análise'];
+
+function abaComentarios_(ss) {
+  let sh = getAba_(ss, CONFIG.ABA_COMENTARIOS, false);
+  if (!sh) sh = ss.insertSheet(CONFIG.ABA_COMENTARIOS);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, CAB_COMENTARIOS.length).setValues([CAB_COMENTARIOS])
+      .setFontWeight('bold').setBackground('#0A0F14').setFontColor('#ffffff').setWrap(true);
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(10, 420);
+  }
+  return sh;
+}
+
+/** Comentários dos setores que a pessoa pode ver (os mais recentes por último). */
+function lerComentarios_(ss, setores) {
+  const sh = getAba_(ss, CONFIG.ABA_COMENTARIOS, false);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const ok = {};
+  setores.forEach(function (s) { ok[nk_(s)] = true; });
+  const tz = ss.getSpreadsheetTimeZone();
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 10).getValues()
+    .filter(function (l) { return l[9] !== '' && ok[nk_(l[2])]; })
+    .map(function (l) {
+      const quando = Object.prototype.toString.call(l[0]) === '[object Date]' ? Utilities.formatDate(l[0], tz, 'dd/MM/yyyy HH:mm') : String(l[0]);
+      return { quando: quando, email: String(l[1]), setor: String(l[2]), usina: codUsina_(l[3] || l[4]), usinaNome: String(l[4]),
+        cc: codCC_(l[5] || l[6]), ccNome: String(l[6]), fluxo: parseData_(l[7], tz), texto: String(l[9]) };
+    });
+}
+
+/**
+ * Grava um comentário (uma linha por usina escolhida).
+ * p = { setor, fluxo, ant, texto, usinasAnalise, itens: [{ usina, usinaNome, cc, ccNome, orc, pa, pt, dP, rs, real }] }
+ */
+function salvarComentario(p) {
+  const ss = getSS_(), tz = ss.getSpreadsheetTimeZone();
+  const email = Session.getActiveUser().getEmail() || '';
+  const texto = String(p.texto || '').trim();
+  if (!texto) throw new Error('Escreva o comentário.');
+  if (texto.length > 2000) throw new Error('Comentário muito longo (máximo de 2000 caracteres).');
+  if (!acesso_(ss, email).ver[nk_(p.setor)]) throw new Error('O seu e-mail não tem acesso ao setor ' + p.setor + '.');
+  const itens = (p.itens || []).slice(0, 200);
+  if (!itens.length) throw new Error('Escolha pelo menos uma usina.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = abaComentarios_(ss), agora = new Date();
+    const dataFluxo = function (iso) { return iso ? Utilities.parseDate(String(iso), tz, 'yyyy-MM-dd') : ''; };
+    const valor = function (v) { const n = Number(v); return isFinite(n) ? Math.round(n * 100) / 100 : ''; };
+    const linhas = itens.map(function (it) {
+      return [agora, email || '(não identificado)', textoSeguro_(p.setor), textoSeguro_(it.usina), textoSeguro_(it.usinaNome), textoSeguro_(it.cc), textoSeguro_(it.ccNome),
+        dataFluxo(p.fluxo), dataFluxo(p.ant), textoSeguro_(texto),
+        valor(it.orc), valor(it.pa), valor(it.pt), valor(it.dP), valor(it.rs), valor(it.real), textoSeguro_(p.usinasAnalise || '')];
+    });
+    const ini = sh.getLastRow() + 1;
+    sh.getRange(ini, 1, linhas.length, CAB_COMENTARIOS.length).setValues(linhas);
+    sh.getRange(ini, 1, linhas.length, 1).setNumberFormat('dd/MM/yyyy HH:mm:ss');
+    sh.getRange(ini, 8, linhas.length, 2).setNumberFormat('dd/MM/yyyy');
+    sh.getRange(ini, 11, linhas.length, 6).setNumberFormat('#,##0.00');
+    sh.getRange(ini, 10, linhas.length, 1).setWrap(true);
+    const quando = Utilities.formatDate(agora, tz, 'dd/MM/yyyy HH:mm');
+    return itens.map(function (it) {
+      return { quando: quando, email: email, setor: p.setor, usina: codUsina_(it.usina), usinaNome: it.usinaNome, cc: codCC_(it.cc), ccNome: it.ccNome, fluxo: p.fluxo || '', texto: texto };
+    });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /* ------------------------------------------------------------------ */

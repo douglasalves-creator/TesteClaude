@@ -206,6 +206,22 @@
   .fm-bar{padding:12px 16px 0}
   .semana .ri-l{color:#A9461A}
   .sobe{color:#1E7A45}
+  /* Comentários */
+  .cc-cel{display:inline-flex; align-items:center; gap:8px}
+  .com{display:inline-flex; align-items:center; gap:3px; border:1px solid transparent; background:none; border-radius:999px; padding:2px 6px; color:#B8BCC0; font-size:11px; font-weight:700; line-height:1}
+  .com svg{width:15px; height:15px}
+  .com:hover{color:var(--aurora); border-color:var(--nevoa)}
+  .com.tem{color:var(--ink-2); background:var(--sirius)}
+  .com.sem{color:var(--branco); background:var(--aurora)}
+  .coms{display:flex; flex-direction:column; gap:10px; max-height:260px; overflow-y:auto}
+  .cm{border-left:3px solid var(--aurora); padding:4px 0 4px 10px}
+  .cm-h{display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; font-size:11.5px; color:var(--ink-3)}
+  .cm-h b{color:var(--ink); font-size:12.5px}
+  .cm-t{background:var(--sirius); border-radius:999px; padding:1px 8px}
+  .cm-x{font-size:13px; margin-top:3px}
+  .com-us{display:flex; flex-direction:column; gap:6px}
+  .fld .com-us label{flex-direction:row; align-items:center; gap:8px; font-size:12.5px; text-transform:none; letter-spacing:0; color:var(--ink); font-weight:500; display:flex}
+  .fld .com-us input{width:16px; height:16px; margin:0; accent-color:var(--aurora)}
   /* Tabela agrupada */
   .segm{display:inline-flex; gap:3px; background:var(--sirius); padding:3px; border-radius:10px}
   .segm button{border:0; background:none; padding:6px 12px; border-radius:8px; font-weight:600; font-size:12px; color:var(--ink-3)}
@@ -542,6 +558,8 @@ const DEMO_API = DEMO ? (function () {
   }));
   const aba = (id, nome, ed, setor) => ({ id, aba: nome, editavel: ed, setor: setor || '', sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], ausentes: [], linhaCab: 1, erro: '' });
   const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
+  const COMENT = [{ quando: '11/11/2026 09:12', email: 'compras@solargrid.com.br', setor: 'Supply', usina: cod(usinas[0]), usinaNome: usinas[0], cc: '849', ccNome: ccSupply[5],
+    fluxo: snaps[snaps.length - 1], texto: 'Exemplo: pagamento dos módulos antecipado para novembro; projeção ajustada.' }];
   const idx = (id, linha) => L[id].findIndex((l) => l[0] === +linha);
   const obj = (id, l) => { const o = { _r: l[0] }; C[id].forEach((c, j) => { o[c[0]] = l[j + 1]; }); return o; };
   return {
@@ -551,11 +569,13 @@ const DEMO_API = DEMO ? (function () {
       setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(cod), ccNomes: Object.fromEntries(ccSupply.map((c) => [cod(c), c])), origemCC: 'setores', edita: true,
         outros: ccOutros.map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
         { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: '', pronto: false, ccs: [], edita: false }, { nome: 'GA', id: '', pronto: false, ccs: [], edita: false }],
-      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', true, 'Supply') }
+      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', false, 'Supply') },
+      comentarios: COMENT
     }),
     salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
     novaLinha: (p) => { const l = [n++].concat(C[p.aba].map((c) => p.valores[c[0]] === undefined ? '' : p.valores[c[0]])); L[p.aba].push(l); return obj(p.aba, l); },
-    excluirLinha: (p) => { L[p.aba].splice(idx(p.aba, p.linha), 1); return true; }
+    excluirLinha: (p) => { L[p.aba].splice(idx(p.aba, p.linha), 1); return true; },
+    salvarComentario: (p) => { const q = agora(); const novos = p.itens.map((it) => ({ quando: q, email: 'voce@demo', setor: p.setor, usina: it.usina, usinaNome: it.usinaNome, cc: it.cc, ccNome: it.ccNome, fluxo: p.fluxo, texto: p.texto })); COMENT.push(...novos); return novos; }
   };
 })() : null;
 
@@ -596,6 +616,7 @@ function receber(d) {
     return;
   }
   S.d = d;
+  S.coment = d.comentarios || [];
   DESC.u = {}; DESC.cc = {};
   DESC.u = mapaDesc(Object.values(d.usinas || {}), codUsina, RE_USINA);
   DESC.cc = mapaDesc([].concat(...d.setores.map((s) => Object.values(s.ccNomes || {}))), codCC, RE_CC);
@@ -902,7 +923,7 @@ function renderTabela() {
     const fechado = S.grpFechado.has(g);
     h += '<tr class="gh" data-grp="' + g + '"><td><span class="chev">' + (fechado ? '▸' : '▾') + '</span>' + g + ' <span class="muted">· ' + l.length + ' centro' + (l.length === 1 ? '' : 's') + ' de custo</span></td>' + celulas(derivar(sub), cols) + '</tr>';
     if (!fechado) l.forEach((c) => {
-      h += '<tr class="c" data-det="' + esc(c.k) + '" title="Ver os lançamentos"><td><button type="button" class="ccn" data-det="' + esc(c.k) + '">' + esc(c.nome) + '<span class="seta">→</span></button></td>' + celulas(c.m, cols) + '</tr>';
+      h += '<tr class="c" data-det="' + esc(c.k) + '" title="Ver os lançamentos"><td><span class="cc-cel"><button type="button" class="ccn" data-det="' + esc(c.k) + '">' + esc(c.nome) + '<span class="seta">→</span></button>' + balao(c.k) + '</span></td>' + celulas(c.m, cols) + '</tr>';
     });
   });
   if (!algum) h += '<tr><td colspan="' + cols.length + '" class="empty">Nada encontrado.</td></tr>';
@@ -1098,6 +1119,9 @@ function renderDrawer(novo) {
   $('#dwS').textContent = st.nome + ' · ' + selNome();
   const k = kpisHtml(m);
   let h = '<div class="kpis k5">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
+  const cms = comentariosDe(ck);
+  h += '<div class="h3">Comentários · ' + cms.length + '<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
+    '<div class="card" style="padding:12px 16px">' + listaComentarios(cms) + '</div>';
   const proj = S.d.abas[st.id] ? S.d.abas[st.id].aba : 'Projeções';
   const blocos = [
     ['pt', st.id, Fx.pt, 'Projeção atual', proj + ' · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
@@ -1152,6 +1176,55 @@ function abrirModal(titulo, corpo, okTxt, onOk, perigo) {
   const f = $('#mdB').querySelector('input,select,textarea'); if (f) setTimeout(() => f.focus(), 30);
 }
 function fecharModal() { $('#modal').classList.remove('on'); MD = null; }
+/* =================================================================== */
+/* Comentários por usina e centro de custo (gravados na aba Comentários) */
+/* =================================================================== */
+/** Comentários do centro de custo nas usinas selecionadas (mais recentes primeiro). */
+function comentariosDe(ck) {
+  return (S.coment || []).filter((c) => c.setor === S.setor.nome && c.cc === ck && S.f.us.has(c.usina)).slice().reverse();
+}
+function balao(ck) {
+  const l = comentariosDe(ck), daSemana = l.some((c) => c.fluxo === S.f.atu);
+  const dica = l.length ? l[0].texto.slice(0, 160) + (l[0].texto.length > 160 ? '…' : '') : 'Escrever comentário';
+  return '<button type="button" class="com' + (l.length ? ' tem' : '') + (daSemana ? ' sem' : '') + '" data-com="' + esc(ck) + '" title="' + esc(dica) + '">' +
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>' + (l.length ? '<span>' + l.length + '</span>' : '') + '</button>';
+}
+function listaComentarios(l0) {
+  if (!l0.length) return '<p class="muted" style="margin:0">Nenhum comentário ainda.</p>';
+  // O mesmo comentário gravado para várias usinas aparece uma vez só, com as usinas juntas.
+  const l = [];
+  l0.forEach((c) => { const ult = l[l.length - 1], nome = S.uNome[c.usina] || c.usinaNome;
+    if (ult && ult.quando === c.quando && ult.email === c.email && ult.texto === c.texto && ult.fluxo === c.fluxo) ult.usinas.push(nome);
+    else l.push(Object.assign({}, c, { usinas: [nome] })); });
+  return '<div class="coms">' + l.map((c) => '<div class="cm"><div class="cm-h"><b>' + esc(c.email.split('@')[0]) + '</b><span>' + esc(c.quando) + '</span>' +
+    c.usinas.map((u) => '<span class="cm-t">' + esc(u) + '</span>').join('') + '<span class="cm-t">fluxo ' + (c.fluxo ? dt(c.fluxo) : '—') + '</span></div>' +
+    '<div class="cm-x">' + esc(c.texto).replace(/\n/g, '<br>') + '</div></div>').join('') + '</div>';
+}
+/** Valores do momento do comentário, por usina, para guardar junto na planilha. */
+function valoresUsinaCC(u, ck) {
+  const m = novoM();
+  MK.forEach((k) => S.F[k].forEach((r) => { if (r._u === u && r._ck === ck) m[k] += r.valor || 0; }));
+  return derivar(m);
+}
+function abrirComentarios(ck) {
+  const us = Array.from(S.f.us).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
+  let h = '<p style="margin:0 0 10px;color:var(--ink-3);font-size:12.5px">Semana: fluxo de <b>' + (S.f.atu ? dt(S.f.atu) : '—') + '</b> (anterior ' + (S.f.ant ? dt(S.f.ant) : '—') + ')</p>' +
+    listaComentarios(comentariosDe(ck)) +
+    '<div class="fld" style="margin-top:14px"><label for="comTxt">Novo comentário</label><textarea id="comTxt" maxlength="2000" placeholder="Motivo da alteração ou observação sobre este centro de custo"></textarea></div>';
+  if (us.length > 1) h += '<div class="fld" style="margin-top:10px"><label>Gravar para as usinas</label><div class="com-us">' +
+    us.map((u) => '<label><input type="checkbox" data-cu="' + esc(u) + '" checked> ' + esc(S.uNome[u]) + '</label>').join('') + '</div></div>';
+  h += '<p style="font-size:11.5px;color:var(--ink-3);margin:10px 0 0">Fica salvo na aba Comentários, com o seu e-mail, a data e os valores de hoje. Todos que acessam o ' + esc(S.setor.nome) + ' veem.</p>';
+  abrirModal('Comentários · ' + (S.ccNome[ck] || ''), h, 'Salvar comentário', () => {
+    const texto = $('#comTxt').value.trim();
+    if (!texto) return 'Escreva o comentário.';
+    const escolhidas = us.length > 1 ? us.filter((u) => document.querySelector('[data-cu="' + CSS.escape(u) + '"]').checked) : us;
+    if (!escolhidas.length) return 'Escolha pelo menos uma usina.';
+    const itens = escolhidas.map((u) => { const m = valoresUsinaCC(u, ck);
+      return { usina: u, usinaNome: S.uNome[u], cc: ck, ccNome: S.ccNome[ck], orc: m.orc, pa: m.pa, pt: m.pt, dP: m.dP, rs: m.rs, real: m.real }; });
+    return run('salvarComentario', { setor: S.setor.nome, fluxo: S.f.atu, ant: S.f.ant, texto, itens, usinasAnalise: us.map((u) => S.uNome[u]).join(' + ') })
+      .then((novos) => { S.coment = (S.coment || []).concat(novos); fecharModal(); renderTabela(); if (S.drawer) renderDrawer(); toast('Comentário salvo.'); });
+  });
+}
 /** Depois de gravar: refaz os números sem perder as datas escolhidas. */
 function depoisDeGravar() { prepararSetor(); render(); }
 
@@ -1266,6 +1339,8 @@ document.addEventListener('click', (e) => {
   if (del) { const [aba, l] = del.dataset.del.split('|'); const r = acharLinha(aba, l); if (r) excluir(aba, r); return; }
   const nv = t.closest('[data-novo]');
   if (nv) { e.preventDefault(); abrirEditor(nv.dataset.novo, null, novoPreset(S.drawer && S.drawer.ck)); return; }
+  const cb = t.closest('[data-com]');
+  if (cb) { abrirComentarios(cb.dataset.com); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
   const gs = t.closest('[data-gsel]');

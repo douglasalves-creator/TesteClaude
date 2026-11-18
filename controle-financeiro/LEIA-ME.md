@@ -75,6 +75,14 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
    No **Supply**, o painel é só de consulta (nada é alterado na planilha). Para liberar a edição de um setor, use `editavel` em `CONFIG.SETORES`.
    Cada alteração vira linhas na aba **Auditoria**: Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 
+**Comentários**
+- Ao lado de cada centro de custo há um balão 💬 (cinza = sem comentário; cinza com número = já tem; laranja = tem comentário desta semana).
+- Clique no balão para ler o histórico e escrever. Com várias usinas selecionadas, escolha para quais usinas o comentário vale.
+- Tudo fica salvo na aba **Comentários** (o cabeçalho é criado sozinho): Data do comentário · E-mail · Setor · Código e nome da usina ·
+  Código e nome do centro de custo · Data do Fluxo atual e anterior · Comentário · e os valores do momento (Orçado, Projeção anterior,
+  Projeção atual, Δ semana, Realizado semanal e acumulado) · Usinas na análise.
+- Todos que acessam o setor veem os comentários (também no detalhe do centro de custo). Quem não tem acesso ao setor não vê nem comenta.
+
 **Regras usadas:**
 - **Orçado** = VALOR A PAGAR, pelo mês da DATA DE VENCIMENTO.
 - **Projeção** = soma de "Valor" das linhas daquela Data do Fluxo, pelo mês da Data programada de pgto.
