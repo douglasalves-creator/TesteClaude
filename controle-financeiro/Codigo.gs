@@ -39,7 +39,8 @@ const CONFIG = {
   SETORES: [
     // palavras: centro de custo sem código cadastrado entra no setor se a descrição tiver uma delas (palavra inteira).
     // orcSetor: no Orçamento, também entra se a coluna SETOR tiver uma delas.
-    { nome: 'Supply', projecoes: 'Projeções - Supply', palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
+    // editavel: false = as projeções deste setor não podem ser alteradas pelo painel (só consulta).
+    { nome: 'Supply', projecoes: 'Projeções - Supply', editavel: false, palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
     { nome: 'Projetos', projecoes: '' },
     { nome: 'EP', projecoes: '' },
     { nome: 'GA', projecoes: '' }
@@ -262,7 +263,7 @@ function defAba_(id) {
   if (id === 'real') return { id: id, nome: CONFIG.ABA_REALIZADO, campos: CAMPOS.real, editavel: false };
   const st = CONFIG.SETORES.filter(function (s) { return s.projecoes && idProj_(s.nome) === id; })[0];
   if (!st) return null;
-  return { id: id, nome: st.projecoes, campos: CAMPOS.proj, editavel: true, setor: st.nome };
+  return { id: id, nome: st.projecoes, campos: CAMPOS.proj, editavel: st.editavel !== false, setor: st.nome };
 }
 
 /** Todas as abas que o painel lê. */

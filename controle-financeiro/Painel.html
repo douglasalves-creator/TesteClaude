@@ -337,6 +337,7 @@
   .drawer .kpi .l{font-size:10px; letter-spacing:.05em}
   @media (max-width:700px){ .drawer .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .drawer td{font-size:12.5px}
+  .drawer table.lanc th,.drawer table.lanc td{text-align:center}
   .h3{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--ink-3); margin:24px 0 10px; display:flex; align-items:center; gap:8px}
   .h3 .r{margin-left:auto}
 
@@ -987,10 +988,11 @@ function renderResumo() {
 /* =================================================================== */
 /* Detalhar: todos os lançamentos de um centro de custo                  */
 /* =================================================================== */
+/* Colunas mostradas nos lançamentos do detalhe, com o nome igual ao cabeçalho da planilha. */
 const COLS_LANC = {
-  orc: [['venc', 'Vencimento', 'data'], ['projeto', 'Usina'], ['valor', 'Valor', 'valor']],
-  proj: [['dataProg', 'Data programada', 'data'], ['fornecedor', 'Fornecedor'], ['projeto', 'Usina'], ['coment', 'Comentário'], ['valor', 'Valor', 'valor']],
-  real: [['pagto', 'Data do pagamento', 'data'], ['favorecido', 'Favorecido'], ['projeto', 'Usina', 'usina'], ['doc', 'Documento'], ['obs', 'Consolidado'], ['tipo', 'Semanal / Acumulado'], ['valor', 'Valor', 'valor']]
+  orc: [['setor', 'SETOR'], ['venc', 'DATA DE VENCIMENTO', 'data'], ['valor', 'VALOR A PAGAR', 'valor']],
+  proj: [['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor'], ['valor', 'Valor', 'valor'], ['dataFluxo', 'Data do Fluxo', 'data']],
+  real: [['pagto', 'Pagto.', 'data'], ['favorecido', 'Favorecido'], ['valor', 'Pagamentos', 'valor'], ['doc', 'Documento']]
 };
 function tipoLanc(aba) { return aba === 'orc' || aba === 'real' ? aba : 'proj'; }
 function celula(r, col) {
@@ -1009,17 +1011,18 @@ const IC = {
 function podeEditar(aba) { const a = S.d.abas[aba]; return !!(a && a.editavel && S.setor.edita && a.setor === S.setor.nome); }
 function tabelaLanc(aba, rows) {
   const aus = new Set((S.d.abas[aba] && S.d.abas[aba].ausentes) || []);
-  const cols = [['_r', 'Linha', 'linha']].concat(COLS_LANC[tipoLanc(aba)].filter((c) => !aus.has(c[0]) && (c[0] !== 'projeto' || S.f.us.size > 1)));
+  const cols = COLS_LANC[tipoLanc(aba)].filter((c) => !aus.has(c[0]));
   const ed = podeEditar(aba);
-  const ord = cols[1][0]; // ordena pela data
-  const lista = rows.slice().sort((a, b) => String(a[ord] || '').localeCompare(String(b[ord] || '')));
-  let h = '<table><thead><tr>' + cols.map((c) => '<th' + (c[2] === 'valor' ? ' class="n"' : '') + '>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
+  const iv = cols.findIndex((c) => c[2] === 'valor');
+  const dataCol = (cols.find((c) => c[2] === 'data') || cols[0])[0]; // ordena pela data
+  const lista = rows.slice().sort((a, b) => String(a[dataCol] || '').localeCompare(String(b[dataCol] || '')));
+  let h = '<table class="lanc"><thead><tr>' + cols.map((c) => '<th>' + c[1] + '</th>').join('') + (ed ? '<th></th>' : '') + '</tr></thead><tbody>';
   if (!lista.length) h += '<tr><td colspan="' + (cols.length + 1) + '" class="empty">Nenhum lançamento.</td></tr>';
   lista.forEach((r) => {
     h += '<tr>' + cols.map((c) => celula(r, c)).join('') + (ed ? '<td class="acts"><button type="button" class="ib" data-ed="' + aba + '|' + r._r + '" title="Editar">' + IC.ed +
       '</button><button type="button" class="ib" data-del="' + aba + '|' + r._r + '" title="Excluir">' + IC.del + '</button></td>' : '') + '</tr>';
   });
-  if (lista.length) h += '<tr class="tot"><td colspan="' + (cols.length - 1) + '">Total</td><td class="n">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</td>' + (ed ? '<td></td>' : '') + '</tr>';
+  if (lista.length) h += '<tr class="tot">' + cols.map((c, i) => '<td>' + (i === iv ? brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) : i === 0 ? 'Total' : '') + '</td>').join('') + (ed ? '<td></td>' : '') + '</tr>';
   return h + '</tbody></table>';
 }
 const METRICAS = {
@@ -1100,7 +1103,8 @@ function renderDrawer(novo) {
     ['pt', st.id, Fx.pt, 'Projeção atual', proj + ' · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
     ['pa', st.id, Fx.pa, 'Projeção anterior', proj + ' · fluxo de ' + (S.f.ant ? dt(S.f.ant) : '—'), 'background:repeating-linear-gradient(90deg,#9AA0A6 0 5px,transparent 5px 8px)'],
     ['orc', 'orc', Fx.orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'],
-    ['real', 'real', Fx.real, 'Realizado acumulado', S.d.abas.real.aba + ' · semanal: ' + brl2(m.rs), 'background:var(--aurora)']
+    ['real', 'real', Fx.real, 'Realizado acumulado', S.d.abas.real.aba, 'background:var(--aurora)'],
+    ['rs', 'real', Fx.rs, 'Realizado semanal', S.d.abas.real.aba + ' · só as linhas marcadas como Semanal', 'background:var(--aurora)']
   ];
   blocos.forEach(([blk, aba, rows, t, fonte, sw]) => {
     h += '<details class="blk" data-blk="' + blk + '"' + (S.dwAbertos.has(blk) ? ' open' : '') + '><summary>' +

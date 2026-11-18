@@ -71,8 +71,8 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
    embaixo) · **Δ (Orçado − Realizado)** · Consumo do orçado. A tabela vem do maior risco para o menor; clique no título de uma
    coluna para ordenar por ela.
 5. Clique num centro de custo para ver os lançamentos.
-6. **Clique no nome do centro de custo** para abrir os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado e Realizado (fechados).
-   Quem tem permissão vê **Editar**, **Excluir** e **+ Novo** nas Projeções. Orçamento e Realizado são imutáveis.
+6. **Clique no nome do centro de custo** para abrir os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado, Realizado acumulado e Realizado semanal (fechados).
+   No **Supply**, o painel é só de consulta (nada é alterado na planilha). Para liberar a edição de um setor, use `editavel` em `CONFIG.SETORES`.
    Cada alteração vira linhas na aba **Auditoria**: Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 
 **Regras usadas:**
