@@ -78,7 +78,7 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 **Comentários**
 - O balão 💬 fica na coluna **Projeção atual (anterior)**, ao lado do valor: é a variação da projeção que se comenta.
   Ele só fica **laranja, com número,** quando há comentário **da semana em análise** (a Data do Fluxo escolhida em "Projeção atual").
-- Clicando, aparecem só a **data do comentário** e o **comentário**, e o campo para escrever. Comentários de outras semanas ficam
+- **Passando o mouse** no balão laranja, o comentário aparece na hora (data + texto). **Clicando**, abre a janela para escrever. Comentários de outras semanas ficam
   recolhidos em "Semanas anteriores". O comentário vale para todas as usinas selecionadas.
 - Tudo fica salvo na aba **Comentários** (o cabeçalho é criado sozinho): Data do comentário · E-mail · Setor · Código e nome da usina ·
   Código e nome do centro de custo · Data do Fluxo atual e anterior · Comentário · e os valores do momento (Orçado, Projeção anterior,

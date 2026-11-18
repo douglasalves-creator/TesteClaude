@@ -211,6 +211,10 @@
   .com{display:inline-flex; align-items:center; gap:3px; border:1px solid transparent; background:none; border-radius:999px; padding:2px 6px; color:#B8BCC0; font-size:11px; font-weight:700; line-height:1}
   .com svg{width:15px; height:15px}
   .com:hover{color:var(--aurora); border-color:var(--nevoa)}
+  .com-tip{position:fixed; z-index:70; max-width:360px; background:var(--eclipse); color:var(--branco); border-radius:10px; padding:10px 12px; font-size:12.5px; line-height:1.4; box-shadow:0 12px 30px -10px rgba(10,15,20,.45); pointer-events:none}
+  .com-tip .ct + .ct{margin-top:8px; padding-top:8px; border-top:1px solid #2a3138}
+  .com-tip .ct span{display:block; font-size:11px; color:#9aa1a8; font-weight:600; margin-bottom:2px}
+  .com-tip .ct-h{margin-top:8px; font-size:10.5px; color:var(--aurora); font-weight:600}
   .com-old{margin-top:12px}
   .com-old summary{cursor:pointer; font-size:12px; font-weight:600; color:var(--ink-3)}
   .com-old .coms{margin-top:8px; opacity:.6}
@@ -474,6 +478,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="com-tip" id="comTip" role="tooltip" hidden></div>
 
 <script>
 /* =================================================================== */
@@ -1197,9 +1202,9 @@ function unicos(l) { const v = new Set(); return l.filter((c) => { const k = c.q
 /** Balão: só acende (laranja, com número) quando há comentário da semana em análise. */
 function balao(ck) {
   const { semana: s0, antigos: a0 } = comentariosDe(ck), semana = unicos(s0), antigos = unicos(a0);
-  const dica = semana.length ? semana[0].texto.slice(0, 160) + (semana[0].texto.length > 160 ? '…' : '')
-    : 'Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar';
-  return '<button type="button" class="com' + (semana.length ? ' sem' : '') + '" data-com="' + esc(ck) + '" title="' + esc(dica) + '">' +
+  // Com comentário, o texto aparece ao passar o mouse (caixinha própria); sem comentário, só a dica de como comentar.
+  const dica = semana.length ? '' : ' title="' + esc('Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar') + '"';
+  return '<button type="button" class="com' + (semana.length ? ' sem' : '') + '" data-com="' + esc(ck) + '"' + dica + ' aria-label="Comentários">' +
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>' + (semana.length ? '<span>' + semana.length + '</span>' : '') + '</button>';
 }
 /** Comentários da semana em destaque e, recolhidos e apagados, os de semanas anteriores. */
@@ -1353,7 +1358,7 @@ document.addEventListener('click', (e) => {
   const nv = t.closest('[data-novo]');
   if (nv) { e.preventDefault(); abrirEditor(nv.dataset.novo, null, novoPreset(S.drawer && S.drawer.ck)); return; }
   const cb = t.closest('[data-com]');
-  if (cb) { abrirComentarios(cb.dataset.com); return; }
+  if (cb) { esconderTip(); abrirComentarios(cb.dataset.com); return; }
   const det = t.closest('[data-det]');
   if (det) { abrirCC(det.dataset.det); return; }
   const gs = t.closest('[data-gsel]');
@@ -1361,6 +1366,25 @@ document.addEventListener('click', (e) => {
   const gr = t.closest('tr.gh[data-grp]');
   if (gr) { const g = gr.dataset.grp; if (S.grpFechado.has(g)) S.grpFechado.delete(g); else S.grpFechado.add(g); renderTabela(); return; }
 });
+/* Comentários da semana ao passar o mouse no balão (clicar abre a janela para escrever). */
+function mostrarTip(b) {
+  const l = unicos(comentariosDe(b.dataset.com).semana);
+  if (!l.length) return;
+  const tip = $('#comTip');
+  tip.innerHTML = l.map((c) => '<div class="ct"><span>' + esc(c.quando) + '</span>' + esc(c.texto).replace(/\n/g, '<br>') + '</div>').join('') + '<div class="ct-h">Clique para comentar</div>';
+  tip.hidden = false;
+  const r = b.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, y = r.bottom + 8;
+  x = Math.max(8, Math.min(x, window.innerWidth - w - 8));
+  if (y + h > window.innerHeight - 8) y = r.top - h - 8;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function esconderTip() { $('#comTip').hidden = true; }
+document.addEventListener('mouseover', (e) => { const b = e.target.closest && e.target.closest('.com.sem'); if (b) mostrarTip(b); });
+document.addEventListener('mouseout', (e) => { const b = e.target.closest && e.target.closest('.com.sem'); if (b && !b.contains(e.relatedTarget)) esconderTip(); });
+document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('.com.sem')) mostrarTip(e.target); });
+document.addEventListener('focusout', (e) => { if (e.target.matches && e.target.matches('.com.sem')) esconderTip(); });
+document.addEventListener('scroll', esconderTip, true);
 $('#scrim').addEventListener('click', fecharDrawer);
 $('#dwX').addEventListener('click', fecharDrawer);
 $('#mdX').addEventListener('click', fecharModal);
