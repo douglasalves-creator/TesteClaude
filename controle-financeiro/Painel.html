@@ -866,7 +866,7 @@ function colunas() {
       f: (m) => duplo(deltaSem(m.dP), Math.abs(m.dP) < 0.005 ? '' : '<span class="' + (m.dP > 0 ? 'sobe' : 'neg') + '">(' + (m.dPp === null ? 'novo' : pct(Math.abs(m.dPp)).replace('−', '')) + ')</span>') },
     { k: 'rs', t: th3('Realizado semanal', '(acumulado)'), n: 1, f: (m) => duplo(num(m.rs), '(' + num(m.real) + ')') },
     { k: 'd2', t: th3('Δ', 'Orçado − Realizado'), n: 1, f: (m) => '<span class="' + numCls(m.d2).trim() + '">' + num(m.d2) + '</span>' },
-    { k: 'cons', t: 'Consumo do orçado', f: (m) => '<span class="cons"><span class="bul-bar">' + segmentos(m) + '</span><span class="muted">' + (m.orc > 0.005 ? Math.round(((m.real + m.pt) / m.orc) * 100) + '%' : '—') + '</span></span>' }
+    { k: 'cons', t: 'Aderência orçamentária', f: (m) => '<span class="cons"><span class="bul-bar">' + segmentos(m) + '</span><span class="muted">' + (m.orc > 0.005 ? Math.round(((m.real + m.pt) / m.orc) * 100) + '%' : '—') + '</span></span>' }
   ];
 }
 function cmp(a, b) {
@@ -1012,7 +1012,7 @@ function renderResumo() {
     '<span class="sm-l"><span>' + (queda >= 0 ? 'Queda da projeção' : 'Aumento da projeção') + '</span><b class="tnum ' + (queda >= 0 ? 'sobe' : 'neg') + '">' + brl2(Math.abs(queda)) + '</b></span>' +
     '<span class="sm-l dif"><span>Diferença</span><b class="tnum">' + brl2(dif) + '</b></span></div>';
   $('#resumo').innerHTML = '<div class="mg">' + gaugeSvg(m) + '</div>' +
-    item('Orçado', o) + item('Projeção atual', m.pt) + item('Realizado acumulado', m.real) +
+    item('Orçado', o) + item('Projeção atual', m.pt) + item('Realizado semanal', m.rs) + item('Realizado acumulado', m.real) +
     item(saldo >= 0 ? 'Saldo' : 'Estouro previsto', Math.abs(saldo), saldo >= 0 ? ' ok' : ' neg') +
     '<div class="sp"></div>' + semana;
 }

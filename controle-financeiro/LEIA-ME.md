@@ -68,7 +68,7 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
 4. A **tabela** separa os centros de custo em **Curva A**, **BOP** e **Outros** (pela descrição), com subtotal de cada grupo
    (clique no grupo para abrir ou fechar). Colunas: Orçado · **Projeção atual** (com a anterior embaixo, entre parênteses) ·
    **Δ semana** (▼ verde = a projeção caiu, ▲ vermelho = subiu, com o % embaixo) · **Realizado semanal** (com o acumulado
-   embaixo) · **Δ (Orçado − Realizado)** · Consumo do orçado. A tabela vem do maior risco para o menor; clique no título de uma
+   embaixo) · **Δ (Orçado − Realizado)** · Aderência orçamentária. A tabela vem do maior risco para o menor; clique no título de uma
    coluna para ordenar por ela.
 5. Clique num centro de custo para ver os lançamentos.
 6. **Clique no nome do centro de custo** para abrir os lançamentos: **Projeção atual** (aberta), Projeção anterior, Orçado, Realizado acumulado e Realizado semanal (fechados).
