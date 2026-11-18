@@ -76,15 +76,14 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
    Cada alteração vira linhas na aba **Auditoria**: Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 
 **Comentários**
-- Ao lado de cada centro de custo há um balão 💬. Ele só fica **laranja, com número,** quando há comentário **da semana em análise**
-  (a Data do Fluxo escolhida em "Projeção atual"). Comentários de outras semanas não acendem o balão: ficam só no
-  "Histórico de semanas anteriores", recolhido e apagado, porque não valem para a semana atual. Trocando a "Projeção atual"
-  para uma semana antiga, aparecem os comentários daquela semana.
-- Clique no balão para ler o histórico e escrever. Com várias usinas selecionadas, escolha para quais usinas o comentário vale.
+- O balão 💬 fica na coluna **Projeção atual (anterior)**, ao lado do valor: é a variação da projeção que se comenta.
+  Ele só fica **laranja, com número,** quando há comentário **da semana em análise** (a Data do Fluxo escolhida em "Projeção atual").
+- Clicando, aparecem só a **data do comentário** e o **comentário**, e o campo para escrever. Comentários de outras semanas ficam
+  recolhidos em "Semanas anteriores". O comentário vale para todas as usinas selecionadas.
 - Tudo fica salvo na aba **Comentários** (o cabeçalho é criado sozinho): Data do comentário · E-mail · Setor · Código e nome da usina ·
   Código e nome do centro de custo · Data do Fluxo atual e anterior · Comentário · e os valores do momento (Orçado, Projeção anterior,
   Projeção atual, Δ semana, Realizado semanal e acumulado) · Usinas na análise.
-- Todos que acessam o setor veem os comentários (também no detalhe do centro de custo). Quem não tem acesso ao setor não vê nem comenta.
+- Todos que acessam o setor veem os comentários. Quem não tem acesso ao setor não vê nem comenta.
 
 **Regras usadas:**
 - **Orçado** = VALOR A PAGAR, pelo mês da DATA DE VENCIMENTO.

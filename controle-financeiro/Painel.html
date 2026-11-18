@@ -218,9 +218,9 @@
   .com.sem{color:var(--branco); background:var(--aurora)}
   .coms{display:flex; flex-direction:column; gap:10px; max-height:260px; overflow-y:auto}
   .cm{border-left:3px solid var(--aurora); padding:4px 0 4px 10px}
-  .cm-h{display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; font-size:11.5px; color:var(--ink-3)}
-  .cm-h b{color:var(--ink); font-size:12.5px}
-  .cm-t{background:var(--sirius); border-radius:999px; padding:1px 8px}
+  .cm-d{font-size:11.5px; color:var(--ink-3); font-weight:600}
+  .pt-cel{display:inline-flex; align-items:center; gap:6px}
+  .pt-cel .dup{min-width:104px}
   .cm-x{font-size:13px; margin-top:3px}
   .com-us{display:flex; flex-direction:column; gap:6px}
   .fld .com-us label{flex-direction:row; align-items:center; gap:8px; font-size:12.5px; text-transform:none; letter-spacing:0; color:var(--ink); font-weight:500; display:flex}
@@ -854,7 +854,7 @@ function colunas() {
   return [
     { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
     { k: 'pt', t: th3('Projeção atual · ' + d(S.f.atu), '(anterior · ' + d(S.f.ant) + ')'), n: 1, c: 'sem',
-      f: (m) => duplo(num(m.pt), '(' + num(m.pa) + ')') },
+      f: (m, k) => (k ? '<span class="pt-cel">' + duplo(num(m.pt), '(' + num(m.pa) + ')') + balao(k) + '</span>' : duplo(num(m.pt), '(' + num(m.pa) + ')')) },
     { k: 'dP', t: th3('Δ semana', '(%)'), n: 1, c: 'sem',
       f: (m) => duplo(deltaSem(m.dP), Math.abs(m.dP) < 0.005 ? '' : '<span class="' + (m.dP > 0 ? 'sobe' : 'neg') + '">(' + (m.dPp === null ? 'novo' : pct(Math.abs(m.dPp)).replace('−', '')) + ')</span>') },
     { k: 'rs', t: th3('Realizado semanal', '(acumulado)'), n: 1, f: (m) => duplo(num(m.rs), '(' + num(m.real) + ')') },
@@ -869,8 +869,9 @@ function cmp(a, b) {
   const val = (x) => (k === 'cons' ? (x.m.orc > 0.005 ? (x.m.real + x.m.pt) / x.m.orc : Infinity) : x.m[k] === null ? -Infinity : x.m[k]);
   return (val(a) - val(b)) * S.sort.dir;
 }
-function celulas(m, cols) {
-  return cols.slice(1).map((c) => '<td class="' + (c.n ? 'n' : '') + (c.c ? ' ' + c.c : '') + '">' + (c.f ? c.f(m) : num(m[c.k])) + '</td>').join('');
+/** k = código do centro de custo (só nas linhas de centro de custo; vazio no subtotal e no total). */
+function celulas(m, cols, k) {
+  return cols.slice(1).map((c) => '<td class="' + (c.n ? 'n' : '') + (c.c ? ' ' + c.c : '') + '">' + (c.f ? c.f(m, k) : num(m[c.k])) + '</td>').join('');
 }
 
 function render() {
@@ -926,7 +927,7 @@ function renderTabela() {
     const fechado = S.grpFechado.has(g);
     h += '<tr class="gh" data-grp="' + g + '"><td><span class="chev">' + (fechado ? '▸' : '▾') + '</span>' + g + ' <span class="muted">· ' + l.length + ' centro' + (l.length === 1 ? '' : 's') + ' de custo</span></td>' + celulas(derivar(sub), cols) + '</tr>';
     if (!fechado) l.forEach((c) => {
-      h += '<tr class="c" data-det="' + esc(c.k) + '" title="Ver os lançamentos"><td><span class="cc-cel"><button type="button" class="ccn" data-det="' + esc(c.k) + '">' + esc(c.nome) + '<span class="seta">→</span></button>' + balao(c.k) + '</span></td>' + celulas(c.m, cols) + '</tr>';
+      h += '<tr class="c" data-det="' + esc(c.k) + '" title="Ver os lançamentos"><td><button type="button" class="ccn" data-det="' + esc(c.k) + '">' + esc(c.nome) + '<span class="seta">→</span></button></td>' + celulas(c.m, cols, c.k) + '</tr>';
     });
   });
   if (!algum) h += '<tr><td colspan="' + cols.length + '" class="empty">Nada encontrado.</td></tr>';
@@ -1191,9 +1192,11 @@ function comentariosDe(ck) {
   const l = (S.coment || []).filter((c) => c.setor === S.setor.nome && c.cc === ck && S.f.us.has(c.usina)).slice().reverse();
   return { semana: l.filter((c) => c.fluxo === S.f.atu), antigos: l.filter((c) => c.fluxo !== S.f.atu).sort((a, b) => String(b.fluxo).localeCompare(String(a.fluxo))) };
 }
+/** O mesmo comentário gravado para várias usinas conta uma vez só. */
+function unicos(l) { const v = new Set(); return l.filter((c) => { const k = c.quando + '|' + c.email + '|' + c.fluxo + '|' + c.texto; if (v.has(k)) return false; v.add(k); return true; }); }
 /** Balão: só acende (laranja, com número) quando há comentário da semana em análise. */
 function balao(ck) {
-  const { semana, antigos } = comentariosDe(ck);
+  const { semana: s0, antigos: a0 } = comentariosDe(ck), semana = unicos(s0), antigos = unicos(a0);
   const dica = semana.length ? semana[0].texto.slice(0, 160) + (semana[0].texto.length > 160 ? '…' : '')
     : 'Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar';
   return '<button type="button" class="com' + (semana.length ? ' sem' : '') + '" data-com="' + esc(ck) + '" title="' + esc(dica) + '">' +
@@ -1203,20 +1206,16 @@ function balao(ck) {
 function blocoComentarios(ck, parte) {
   const { semana, antigos } = comentariosDe(ck);
   let h = '';
-  if (parte !== 'antigos') h += semana.length ? listaComentarios(semana) : '<p class="muted" style="margin:0">Nenhum comentário para a semana de ' + (S.f.atu ? dt(S.f.atu) : '—') + '.</p>';
-  if (parte !== 'semana' && antigos.length) h += '<details class="com-old"><summary>Histórico de semanas anteriores (' + antigos.length + ') · não valem para esta semana</summary>' + listaComentarios(antigos) + '</details>';
+  if (parte !== 'antigos') h += semana.length ? listaComentarios(semana) : (parte === 'semana' ? '' : '<p class="muted" style="margin:0">Sem comentário nesta semana.</p>');
+  if (parte !== 'semana' && antigos.length) h += '<details class="com-old"><summary>Semanas anteriores (' + unicos(antigos).length + ')</summary>' + listaComentarios(antigos) + '</details>';
   return h;
 }
 function listaComentarios(l0) {
   if (!l0.length) return '';
-  // O mesmo comentário gravado para várias usinas aparece uma vez só, com as usinas juntas.
+  // O mesmo comentário gravado para várias usinas aparece uma vez só.
   const l = [];
-  l0.forEach((c) => { const ult = l[l.length - 1], nome = S.uNome[c.usina] || c.usinaNome;
-    if (ult && ult.quando === c.quando && ult.email === c.email && ult.texto === c.texto && ult.fluxo === c.fluxo) ult.usinas.push(nome);
-    else l.push(Object.assign({}, c, { usinas: [nome] })); });
-  return '<div class="coms">' + l.map((c) => '<div class="cm"><div class="cm-h"><b>' + esc(c.email.split('@')[0]) + '</b><span>' + esc(c.quando) + '</span>' +
-    c.usinas.map((u) => '<span class="cm-t">' + esc(u) + '</span>').join('') + '<span class="cm-t">fluxo ' + (c.fluxo ? dt(c.fluxo) : '—') + '</span></div>' +
-    '<div class="cm-x">' + esc(c.texto).replace(/\n/g, '<br>') + '</div></div>').join('') + '</div>';
+  l0.forEach((c) => { const ult = l[l.length - 1]; if (!(ult && ult.quando === c.quando && ult.email === c.email && ult.texto === c.texto && ult.fluxo === c.fluxo)) l.push(c); });
+  return '<div class="coms">' + l.map((c) => '<div class="cm"><span class="cm-d">' + esc(c.quando) + '</span><div class="cm-x">' + esc(c.texto).replace(/\n/g, '<br>') + '</div></div>').join('') + '</div>';
 }
 /** Valores do momento do comentário, por usina, para guardar junto na planilha. */
 function valoresUsinaCC(u, ck) {
@@ -1225,19 +1224,15 @@ function valoresUsinaCC(u, ck) {
   return derivar(m);
 }
 function abrirComentarios(ck) {
-  const us = Array.from(S.f.us).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
-  let h = '<p style="margin:0 0 10px;color:var(--ink-3);font-size:12.5px">Semana: fluxo de <b>' + (S.f.atu ? dt(S.f.atu) : '—') + '</b> (anterior ' + (S.f.ant ? dt(S.f.ant) : '—') + ')</p>' +
-    blocoComentarios(ck, 'semana') +
-    '<div class="fld" style="margin-top:14px"><label for="comTxt">Novo comentário</label><textarea id="comTxt" maxlength="2000" placeholder="Motivo da alteração ou observação sobre este centro de custo"></textarea></div>';
-  if (us.length > 1) h += '<div class="fld" style="margin-top:10px"><label>Gravar para as usinas</label><div class="com-us">' +
-    us.map((u) => '<label><input type="checkbox" data-cu="' + esc(u) + '" checked> ' + esc(S.uNome[u]) + '</label>').join('') + '</div></div>';
-  h += '<p style="font-size:11.5px;color:var(--ink-3);margin:10px 0 0">Fica salvo na aba Comentários, com o seu e-mail, a data e os valores de hoje. Todos que acessam o ' + esc(S.setor.nome) + ' veem. Vale só para esta semana.</p>' + blocoComentarios(ck, 'antigos');
+  const us = Array.from(S.f.us);
+  const h = blocoComentarios(ck, 'semana') +
+    '<div class="fld" style="margin-top:12px"><textarea id="comTxt" maxlength="2000" placeholder="Escreva o comentário" aria-label="Comentário"></textarea></div>' +
+    blocoComentarios(ck, 'antigos');
   abrirModal('Comentários · ' + (S.ccNome[ck] || ''), h, 'Salvar comentário', () => {
     const texto = $('#comTxt').value.trim();
     if (!texto) return 'Escreva o comentário.';
-    const escolhidas = us.length > 1 ? us.filter((u) => document.querySelector('[data-cu="' + CSS.escape(u) + '"]').checked) : us;
-    if (!escolhidas.length) return 'Escolha pelo menos uma usina.';
-    const itens = escolhidas.map((u) => { const m = valoresUsinaCC(u, ck);
+    // Vale para todas as usinas selecionadas (uma linha por usina na aba Comentários).
+    const itens = us.map((u) => { const m = valoresUsinaCC(u, ck);
       return { usina: u, usinaNome: S.uNome[u], cc: ck, ccNome: S.ccNome[ck], orc: m.orc, pa: m.pa, pt: m.pt, dP: m.dP, rs: m.rs, real: m.real }; });
     return run('salvarComentario', { setor: S.setor.nome, fluxo: S.f.atu, ant: S.f.ant, texto, itens, usinasAnalise: us.map((u) => S.uNome[u]).join(' + ') })
       .then((novos) => { S.coment = (S.coment || []).concat(novos); fecharModal(); renderTabela(); if (S.drawer) renderDrawer(); toast('Comentário salvo.'); });
