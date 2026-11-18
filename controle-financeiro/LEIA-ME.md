@@ -76,7 +76,10 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as tr�
    Cada alteração vira linhas na aba **Auditoria**: Data e hora · E-mail · Aba · Linha · Ação · Campo · Antes · Depois.
 
 **Comentários**
-- Ao lado de cada centro de custo há um balão 💬 (cinza = sem comentário; cinza com número = já tem; laranja = tem comentário desta semana).
+- Ao lado de cada centro de custo há um balão 💬. Ele só fica **laranja, com número,** quando há comentário **da semana em análise**
+  (a Data do Fluxo escolhida em "Projeção atual"). Comentários de outras semanas não acendem o balão: ficam só no
+  "Histórico de semanas anteriores", recolhido e apagado, porque não valem para a semana atual. Trocando a "Projeção atual"
+  para uma semana antiga, aparecem os comentários daquela semana.
 - Clique no balão para ler o histórico e escrever. Com várias usinas selecionadas, escolha para quais usinas o comentário vale.
 - Tudo fica salvo na aba **Comentários** (o cabeçalho é criado sozinho): Data do comentário · E-mail · Setor · Código e nome da usina ·
   Código e nome do centro de custo · Data do Fluxo atual e anterior · Comentário · e os valores do momento (Orçado, Projeção anterior,

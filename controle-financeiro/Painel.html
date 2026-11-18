@@ -211,7 +211,10 @@
   .com{display:inline-flex; align-items:center; gap:3px; border:1px solid transparent; background:none; border-radius:999px; padding:2px 6px; color:#B8BCC0; font-size:11px; font-weight:700; line-height:1}
   .com svg{width:15px; height:15px}
   .com:hover{color:var(--aurora); border-color:var(--nevoa)}
-  .com.tem{color:var(--ink-2); background:var(--sirius)}
+  .com-old{margin-top:12px}
+  .com-old summary{cursor:pointer; font-size:12px; font-weight:600; color:var(--ink-3)}
+  .com-old .coms{margin-top:8px; opacity:.6}
+  .com-old .cm{border-left-color:var(--nevoa)}
   .com.sem{color:var(--branco); background:var(--aurora)}
   .coms{display:flex; flex-direction:column; gap:10px; max-height:260px; overflow-y:auto}
   .cm{border-left:3px solid var(--aurora); padding:4px 0 4px 10px}
@@ -1119,9 +1122,8 @@ function renderDrawer(novo) {
   $('#dwS').textContent = st.nome + ' · ' + selNome();
   const k = kpisHtml(m);
   let h = '<div class="kpis k5">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
-  const cms = comentariosDe(ck);
-  h += '<div class="h3">Comentários · ' + cms.length + '<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
-    '<div class="card" style="padding:12px 16px">' + listaComentarios(cms) + '</div>';
+  h += '<div class="h3">Comentários da semana · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + '<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
+    '<div class="card" style="padding:12px 16px">' + blocoComentarios(ck) + '</div>';
   const proj = S.d.abas[st.id] ? S.d.abas[st.id].aba : 'Projeções';
   const blocos = [
     ['pt', st.id, Fx.pt, 'Projeção atual', proj + ' · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
@@ -1180,17 +1182,33 @@ function fecharModal() { $('#modal').classList.remove('on'); MD = null; }
 /* Comentários por usina e centro de custo (gravados na aba Comentários) */
 /* =================================================================== */
 /** Comentários do centro de custo nas usinas selecionadas (mais recentes primeiro). */
+/**
+ * Comentários do centro de custo nas usinas selecionadas, separados por semana:
+ *  - semana: os feitos para a semana em análise (Data do Fluxo da projeção atual escolhida);
+ *  - antigos: os de outras semanas (só histórico; não valem para a semana em análise).
+ */
 function comentariosDe(ck) {
-  return (S.coment || []).filter((c) => c.setor === S.setor.nome && c.cc === ck && S.f.us.has(c.usina)).slice().reverse();
+  const l = (S.coment || []).filter((c) => c.setor === S.setor.nome && c.cc === ck && S.f.us.has(c.usina)).slice().reverse();
+  return { semana: l.filter((c) => c.fluxo === S.f.atu), antigos: l.filter((c) => c.fluxo !== S.f.atu).sort((a, b) => String(b.fluxo).localeCompare(String(a.fluxo))) };
 }
+/** Balão: só acende (laranja, com número) quando há comentário da semana em análise. */
 function balao(ck) {
-  const l = comentariosDe(ck), daSemana = l.some((c) => c.fluxo === S.f.atu);
-  const dica = l.length ? l[0].texto.slice(0, 160) + (l[0].texto.length > 160 ? '…' : '') : 'Escrever comentário';
-  return '<button type="button" class="com' + (l.length ? ' tem' : '') + (daSemana ? ' sem' : '') + '" data-com="' + esc(ck) + '" title="' + esc(dica) + '">' +
-    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>' + (l.length ? '<span>' + l.length + '</span>' : '') + '</button>';
+  const { semana, antigos } = comentariosDe(ck);
+  const dica = semana.length ? semana[0].texto.slice(0, 160) + (semana[0].texto.length > 160 ? '…' : '')
+    : 'Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar';
+  return '<button type="button" class="com' + (semana.length ? ' sem' : '') + '" data-com="' + esc(ck) + '" title="' + esc(dica) + '">' +
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>' + (semana.length ? '<span>' + semana.length + '</span>' : '') + '</button>';
+}
+/** Comentários da semana em destaque e, recolhidos e apagados, os de semanas anteriores. */
+function blocoComentarios(ck, parte) {
+  const { semana, antigos } = comentariosDe(ck);
+  let h = '';
+  if (parte !== 'antigos') h += semana.length ? listaComentarios(semana) : '<p class="muted" style="margin:0">Nenhum comentário para a semana de ' + (S.f.atu ? dt(S.f.atu) : '—') + '.</p>';
+  if (parte !== 'semana' && antigos.length) h += '<details class="com-old"><summary>Histórico de semanas anteriores (' + antigos.length + ') · não valem para esta semana</summary>' + listaComentarios(antigos) + '</details>';
+  return h;
 }
 function listaComentarios(l0) {
-  if (!l0.length) return '<p class="muted" style="margin:0">Nenhum comentário ainda.</p>';
+  if (!l0.length) return '';
   // O mesmo comentário gravado para várias usinas aparece uma vez só, com as usinas juntas.
   const l = [];
   l0.forEach((c) => { const ult = l[l.length - 1], nome = S.uNome[c.usina] || c.usinaNome;
@@ -1209,11 +1227,11 @@ function valoresUsinaCC(u, ck) {
 function abrirComentarios(ck) {
   const us = Array.from(S.f.us).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
   let h = '<p style="margin:0 0 10px;color:var(--ink-3);font-size:12.5px">Semana: fluxo de <b>' + (S.f.atu ? dt(S.f.atu) : '—') + '</b> (anterior ' + (S.f.ant ? dt(S.f.ant) : '—') + ')</p>' +
-    listaComentarios(comentariosDe(ck)) +
+    blocoComentarios(ck, 'semana') +
     '<div class="fld" style="margin-top:14px"><label for="comTxt">Novo comentário</label><textarea id="comTxt" maxlength="2000" placeholder="Motivo da alteração ou observação sobre este centro de custo"></textarea></div>';
   if (us.length > 1) h += '<div class="fld" style="margin-top:10px"><label>Gravar para as usinas</label><div class="com-us">' +
     us.map((u) => '<label><input type="checkbox" data-cu="' + esc(u) + '" checked> ' + esc(S.uNome[u]) + '</label>').join('') + '</div></div>';
-  h += '<p style="font-size:11.5px;color:var(--ink-3);margin:10px 0 0">Fica salvo na aba Comentários, com o seu e-mail, a data e os valores de hoje. Todos que acessam o ' + esc(S.setor.nome) + ' veem.</p>';
+  h += '<p style="font-size:11.5px;color:var(--ink-3);margin:10px 0 0">Fica salvo na aba Comentários, com o seu e-mail, a data e os valores de hoje. Todos que acessam o ' + esc(S.setor.nome) + ' veem. Vale só para esta semana.</p>' + blocoComentarios(ck, 'antigos');
   abrirModal('Comentários · ' + (S.ccNome[ck] || ''), h, 'Salvar comentário', () => {
     const texto = $('#comTxt').value.trim();
     if (!texto) return 'Escreva o comentário.';
