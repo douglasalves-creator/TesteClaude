@@ -231,6 +231,11 @@
   .com-us{display:flex; flex-direction:column; gap:6px}
   .fld .com-us label{flex-direction:row; align-items:center; gap:8px; font-size:12.5px; text-transform:none; letter-spacing:0; color:var(--ink); font-weight:500; display:flex}
   .fld .com-us input{width:16px; height:16px; margin:0; accent-color:var(--aurora)}
+  /* Aba GA */
+  .ga-anos{display:flex; align-items:center; gap:10px; margin:6px 0 14px}
+  .tb-g.ga th.ga-ano{text-align:center; color:var(--ink); font-weight:700; border-bottom:1px solid var(--nevoa)}
+  .tb-g.ga th.ga-ini,.tb-g.ga td.ga-ini{border-left:1px solid var(--line)}
+  .tb-g.ga tr.c td:first-child .ccn{cursor:pointer}
   /* Tabela agrupada */
   .segm{display:inline-flex; gap:3px; background:var(--sirius); padding:3px; border-radius:10px}
   .segm button{border:0; background:none; padding:6px 12px; border-radius:8px; font-weight:600; font-size:12px; color:var(--ink-3)}
@@ -463,6 +468,13 @@
       <div id="tree"></div>
     </div>
   </div>
+
+  <!-- Aba GA: Orçado × Realizado por centro de custo de GA, com as usinas dentro -->
+  <div id="gaBody" hidden>
+    <div class="ga-anos" id="gaAnos"></div>
+    <div class="card res" id="gaResumo"></div>
+    <div class="card mt"><div id="gaTree"></div></div>
+  </div>
 </main>
 
 <div class="scrim" id="scrim"></div>
@@ -489,7 +501,7 @@
 const S = {
   d: null, rows: { orc: [], real: [] }, proj: {}, setor: null, snapSetor: {},
   f: { us: new Set(), ant: '', atu: '' },
-  sort: { k: 'risco', dir: 1 }, qTree: '', qUs: '', drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set(), filtroM: null, grp: '', grpFechado: new Set()
+  sort: { k: 'risco', dir: 1 }, qTree: '', qUs: '', drawer: null, dwAbertos: new Set(['pt']), ccSel: new Set(), filtroM: null, grp: '', grpFechado: new Set(), gaAno: 'tot', gaAbertos: new Set()
 };
 const COR = { aurora: '#EC6E2D', cosmos: '#0D3459', grid: '#EEEEEE', ink3: '#80868C' };
 const $ = (s) => document.querySelector(s);
@@ -566,6 +578,14 @@ const DEMO_API = DEMO ? (function () {
       if (ci === 0 && ui % 5 === 0) L.p_supply.push([n++, u, 'ENG - IND. EPC. SUPPLY', 1500, iso(Y, sm, 20), s, 'A DEFINIR', '']);
     });
   }));
+  // GA: orçado só no ano atual (CPX e GPX) e realizado no ano anterior e no atual, nos 5 centros de custo de GA.
+  const ccGA = ['973  -  GA - CPX MANUTENÇÃO GERAL', '972  -  GA - GPX MANUTENÇÃO INVERSOR', '393  -  GA - GARANTIAS', '391  -  GA - REINVESTIMENTO', '392  -  GA - SINISTRO'];
+  usinas.slice(0, 24).forEach((u, ui) => ccGA.forEach((c, ci) => {
+    if ((ui + ci) % 3 === 2 || (ci >= 2 && ui % 4)) return;
+    const base = 3000 + rnd() * 9000;
+    if (ci < 2) for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10), 'GE - ENG - GESTÃO DE ATIVO']);
+    [Y - 1, Y].forEach((y) => { for (let m = 1; m <= (y === Y ? M - 1 : 12); m += 2) L.real.push([n++, iso(y, m, 8), cent(base * (0.6 + rnd() * 0.9)), cod(u), cod(c), c.split('  -  ')[1], y === Y && m >= M - 2 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(50000 + n), '']); });
+  }));
   const aba = (id, nome, ed, setor) => ({ id, aba: nome, editavel: ed, setor: setor || '', sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], ausentes: [], linhaCab: 1, erro: '' });
   const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
   const COMENT = [{ quando: '11/11/2026 09:12', email: 'compras@solargrid.com.br', setor: 'Supply', usina: cod(usinas[0]), usinaNome: usinas[0], cc: '849', ccNome: ccSupply[5],
@@ -577,8 +597,8 @@ const DEMO_API = DEMO ? (function () {
       geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#', acesso: { tudo: true, setores: ['Supply', 'Projetos', 'EP', 'GA'] },
       usinas: Object.fromEntries(usinas.map((u) => [cod(u), u])),
       setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(cod), ccNomes: Object.fromEntries(ccSupply.map((c) => [cod(c), c])), origemCC: 'setores', edita: true,
-        outros: ccOutros.map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
-        { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: '', pronto: false, ccs: [], edita: false }, { nome: 'GA', id: '', pronto: false, ccs: [], edita: false }],
+        outros: ccOutros.concat(ccGA).map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
+        { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: '', pronto: false, ccs: [], edita: false }, { nome: 'GA', id: '', pronto: true, modo: 'ga', orcSetorExato: 'GE - ENG - GESTÃO DE ATIVO', ccs: ccGA.map(cod), ccNomes: Object.fromEntries(ccGA.map((c) => [cod(c), c])), edita: false }],
       abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', false, 'Supply') },
       comentarios: COMENT
     }),
@@ -696,6 +716,7 @@ function linhasSetor() {
   return { orc: filtra('orc', S.rows.orc), real: filtra('real', S.rows.real), proj: projOk, projFora: proj.filter((r) => !dentro.has(r)) };
 }
 function prepararSetor() {
+  if (S.setor.modo === 'ga') { prepararGA(); return; }
   const st = S.setor;
   S.L = linhasSetor();
   // Nomes: da aba Usinas e da aba Setores / CCs; se faltar, o texto mais completo encontrado nos dados.
@@ -883,6 +904,8 @@ function celulas(m, cols, k) {
 
 function render() {
   if (!S.d) return;
+  $('#gaBody').hidden = true;
+  if (S.setor.modo === 'ga') { renderGA(); return; }
   const st = S.setor, pronto = st.pronto;
   $('#filtros').hidden = !pronto;
   $('#obra').hidden = pronto;
@@ -972,7 +995,7 @@ function situacao(m) {
   return '<span class="pill ok">Dentro do orçado · saldo ' + brl2(o - fim) + '</span>';
 }
 /** Velocímetro pequeno: % do orçado comprometido (realizado + projeção). */
-function gaugeSvg(m) {
+function gaugeSvg(m, rotulo) {
   const o = m.orc, r = Math.max(m.real, 0), fim = r + Math.max(m.pt, 0);
   const temOrc = o > 0.005, pr = temOrc ? r / o : 0, pf = temOrc ? fim / o : 0;
   const max = temOrc ? Math.max(1.3, Math.ceil((pf + 0.08) * 10) / 10) : 1.3;
@@ -995,7 +1018,7 @@ function gaugeSvg(m) {
   return '<svg viewBox="0 0 420 222" class="vm-svg" role="img" aria-label="' + (temOrc ? Math.round(pf * 100) + '% do orçado comprometido' : 'Sem orçado') + '">' +
     '<defs><pattern id="hachA" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#FDEBDF"/><rect width="3" height="8" fill="#EC6E2D"/></pattern>' +
     '<pattern id="hachV" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#F8D7D3"/><rect width="3" height="8" fill="#C0392B"/></pattern></defs>' + g + '</svg>' +
-    '<div class="mg-c"><b class="tnum' + (pf > 1 ? ' neg' : '') + '">' + (temOrc ? Math.round(pf * 100) + '%' : '—') + '</b><span>' + (temOrc ? 'do orçado comprometido' : 'sem orçado') + '</span></div>';
+    '<div class="mg-c"><b class="tnum' + (pf > 1 ? ' neg' : '') + '">' + (temOrc ? Math.round(pf * 100) + '%' : '—') + '</b><span>' + (temOrc ? (rotulo || 'do orçado comprometido') : 'sem orçado') + '</span></div>';
 }
 /**
  * Faixa de resumo: velocímetro pequeno, Orçado, Realizado, Projeção, Saldo e a variação da projeção na semana.
@@ -1015,6 +1038,131 @@ function renderResumo() {
     item('Orçado', o) + item('Projeção atual', m.pt) + item('Realizado semanal', m.rs) + item('Realizado acumulado', m.real) +
     item(saldo >= 0 ? 'Saldo' : 'Estouro previsto', Math.abs(saldo), saldo >= 0 ? ' ok' : ' neg') +
     '<div class="sp"></div>' + semana;
+}
+
+/* =================================================================== */
+/* Aba GA: Orçado × Realizado por centro de custo, com as usinas dentro  */
+/* =================================================================== */
+/*
+ * Regras:
+ *  - Orçamento: só as linhas com SETOR = "GE - ENG - GESTÃO DE ATIVO";
+ *  - Realizado Controladoria: só os centros de custo de GA (aba Setores / CCs), pelo código ou pela descrição;
+ *  - um centro de custo aparece se estiver no orçamento, no realizado ou nos dois, e dentro dele aparecem
+ *    todas as usinas em que foi orçado ou realizado;
+ *  - o ano vem da DATA DE VENCIMENTO (orçado) e da data de pagamento, Pagto. (realizado).
+ */
+const GA_ORDEM = ['cpx', 'gpx', 'garantia', 'reinvestimento', 'sinistro'];
+function prepararGA() {
+  const st = S.setor, ccTab = st.ccNomes || {}, usTab = S.d.usinas || {};
+  const nomes = {};
+  Object.keys(ccTab).forEach((c) => { nomes[nk(String(ccTab[c]).replace(RE_CC, ''))] = c; });
+  const grupo = (texto, desc) => {
+    const t = String(texto || '').trim(), c = codCC(t);
+    if (c in ccTab) return c;
+    const d = nk(String(desc || t).replace(RE_CC, ''));
+    return nomes[d] || c || '~';
+  };
+  S.gaNome = {}; S.uNome = {};
+  const nomeG = (g, txt) => { if (ccTab[g]) S.gaNome[g] = ccTab[g].replace(/\s+/g, ' '); else if (!S.gaNome[g]) S.gaNome[g] = String(txt || '(sem centro de custo)').replace(/\s+/g, ' '); };
+  const nomeU = (u, txt) => { if (!S.uNome[u]) S.uNome[u] = usTab[u] ? usTab[u].replace(/\s+/g, ' ') : String(txt || '(sem usina)').replace(/\s+/g, ' '); };
+  const orc = S.rows.orc.filter((r) => nk(r.setor) === nk(st.orcSetorExato));
+  const real = S.rows.real.filter((r) => { const g = grupo(r.cc, r.ccDesc); return g in ccTab; });
+  orc.forEach((r) => { r._g = grupo(r.cc); r._u = codUsina(r.projeto) || '~'; r._d = r.venc; r._ano = String(r.venc || '').slice(0, 4); nomeG(r._g, r.cc); nomeU(r._u, r.projeto); });
+  real.forEach((r) => { r._g = grupo(r.cc, r.ccDesc); r._u = codUsina(r.projeto) || '~'; r._d = r.pagto; r._ano = String(r.pagto || '').slice(0, 4); r._sem = nk(r.tipo) === 'semanal'; nomeG(r._g, r.ccDesc || r.cc); nomeU(r._u, r.projeto); });
+  S.GA = { orc, real };
+  // Anos analisados: do primeiro ano com realizado até o ano atual (o orçamento de anos futuros fica de fora).
+  const hoje = String(new Date().getFullYear()), anos = new Set([hoje]);
+  real.forEach((r) => { if (/^\d{4}$/.test(r._ano) && r._ano <= hoje) anos.add(r._ano); });
+  S.gaAnosLista = Array.from(anos).sort();
+  if (S.gaAno !== 'tot' && S.gaAno !== 'cmp' && S.gaAnosLista.indexOf(S.gaAno) === -1) S.gaAno = 'tot';
+  $('#avisos').innerHTML = DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '';
+}
+/** Soma por grupo (centro de custo) e usina: orçado e realizado de cada ano e o total. */
+function agregarGA() {
+  const G = new Map(), novo = () => ({ orc: {}, real: {}, rs: 0 });
+  const add = (r, tipo) => {
+    let g = G.get(r._g); if (!g) { g = { k: r._g, nome: S.gaNome[r._g], us: new Map(), m: novo() }; G.set(r._g, g); }
+    let u = g.us.get(r._u); if (!u) { u = { k: r._u, nome: S.uNome[r._u], m: novo() }; g.us.set(r._u, u); }
+    const v = r.valor || 0, a = r._ano || '?';
+    [g.m, u.m].forEach((m) => { m[tipo][a] = (m[tipo][a] || 0) + v; m[tipo].tot = (m[tipo].tot || 0) + v; if (tipo === 'real' && r._sem) m.rs += v; });
+  };
+  const ok = (r) => S.gaAnosLista.indexOf(r._ano) !== -1;
+  S.GA.orc.forEach((r) => { if (ok(r)) add(r, 'orc'); });
+  S.GA.real.forEach((r) => { if (ok(r)) add(r, 'real'); });
+  const ordem = (g) => { const n = nk(g.nome), i = GA_ORDEM.findIndex((p) => n.indexOf(p) !== -1); return i === -1 ? 99 : i; };
+  const grupos = Array.from(G.values()).sort((a, b) => ordem(a) - ordem(b) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+  grupos.forEach((g) => { g.lista = Array.from(g.us.values()).sort((a, b) => (b.m.orc.tot || 0) + (b.m.real.tot || 0) - (a.m.orc.tot || 0) - (a.m.real.tot || 0)); });
+  const tot = novo();
+  grupos.forEach((g) => { ['orc', 'real'].forEach((t) => Object.keys(g.m[t]).forEach((a) => { tot[t][a] = (tot[t][a] || 0) + g.m[t][a]; })); tot.rs += g.m.rs; });
+  return { grupos, tot };
+}
+const vAno = (m, t, a) => m[t][a] || 0;
+function renderGA() {
+  const st = S.setor;
+  $('#filtros').hidden = true; $('#obra').hidden = true; $('#pick').hidden = true; $('#resumoBody').hidden = true; $('#gaBody').hidden = false;
+  S.GAA = agregarGA();
+  const anos = S.gaAnosLista, a = S.gaAno;
+  $('#gaAnos').innerHTML = '<span class="lbl">Ano</span><div class="segm">' + [['tot', 'Total']].concat(anos.map((y) => [y, y]), [['cmp', 'Comparar anos']])
+    .map(([k, t]) => '<button type="button" data-gano="' + k + '"' + (a === k ? ' class="on"' : '') + '>' + t + '</button>').join('') + '</div>';
+  // Resumo do ano escolhido (em "Comparar anos", o total).
+  const ar = a === 'cmp' ? 'tot' : a, T = S.GAA.tot;
+  const m = { orc: vAno(T, 'orc', ar), real: vAno(T, 'real', ar), pt: 0 }, saldo = m.orc - m.real;
+  const item = (rot, v, cls) => '<div class="ri"><span class="ri-l">' + rot + '</span><b class="ri-v tnum' + (cls || '') + '">' + brl2(v) + '</b></div>';
+  $('#gaResumo').innerHTML = '<div class="mg">' + gaugeSvg(m, 'do orçado realizado') + '</div>' +
+    '<div class="ri"><span class="ri-l">' + (ar === 'tot' ? S.gaAnosLista.join(' + ') : 'Ano ' + ar) + '</span><b class="ri-v">' + esc(st.nome) + '</b></div>' +
+    item('Orçado', m.orc) + item('Realizado acumulado', m.real) + item('Realizado semanal', T.rs) +
+    item(saldo >= 0 ? 'Saldo' : 'Estouro', Math.abs(saldo), saldo >= 0 ? ' ok' : ' neg');
+  renderTabelaGA();
+}
+function renderTabelaGA() {
+  const a = S.gaAno, cmp = a === 'cmp', anos = cmp ? S.gaAnosLista.concat(['tot']) : [a];
+  const rotA = (y) => (y === 'tot' ? 'Total ' + S.gaAnosLista.join(' + ') : y);
+  const bar = (m, y) => { const o = vAno(m, 'orc', y), r = vAno(m, 'real', y);
+    return '<span class="cons"><span class="bul-bar">' + segmentos({ orc: o, real: r, pt: 0 }) + '</span><span class="muted">' + (o > 0.005 ? Math.round((r / o) * 100) + '%' : '—') + '</span></span>'; };
+  const cels = (m) => anos.map((y) => { const o = vAno(m, 'orc', y), r = vAno(m, 'real', y), d = o - r;
+    return '<td class="n' + (cmp ? ' ga-ini' : '') + '">' + num(o) + '</td><td class="n">' + (cmp ? num(r) : duplo(num(r), '(semanal ' + num(m.rs) + ')')) + '</td>' +
+      '<td class="n"><span class="' + numCls(d).trim() + '">' + num(d) + '</span></td>' + (cmp ? '' : '<td>' + bar(m, y) + '</td>'); }).join('');
+  let h = '<table class="tb-c tb-g ga"><thead>';
+  if (cmp) h += '<tr><th></th>' + anos.map((y) => '<th colspan="3" class="ga-ano">' + rotA(y) + '</th>').join('') + '</tr>';
+  h += '<tr><th>Centro de custo / Usina</th>' + anos.map(() => '<th class="n' + (cmp ? ' ga-ini' : '') + '">Orçado</th><th class="n">' + (cmp ? 'Realizado' : th3('Realizado', '(semanal)')) + '</th><th class="n">' + th3('Δ', 'Orçado − Realizado') + '</th>' + (cmp ? '' : '<th>Aderência orçamentária</th>')).join('') + '</tr></thead><tbody>';
+  const G = S.GAA.grupos;
+  if (!G.length) h += '<tr><td colspan="9" class="empty">Nenhum lançamento de GA.</td></tr>';
+  G.forEach((g) => {
+    const aberto = S.gaAbertos.has(g.k);
+    h += '<tr class="gh" data-gag="' + esc(g.k) + '" role="button" tabindex="0"><td><span class="chev">' + (aberto ? '▾' : '▸') + '</span>' + esc(g.nome) +
+      ' <span class="muted">· ' + g.lista.length + ' usina' + (g.lista.length === 1 ? '' : 's') + '</span></td>' + cels(g.m) + '</tr>';
+    if (aberto) g.lista.forEach((u) => {
+      h += '<tr class="c" data-gau="' + esc(g.k + '|' + u.k) + '" role="button" tabindex="0" title="Ver os lançamentos"><td><span class="ccn">' + esc(u.nome) + '<span class="seta">→</span></span></td>' + cels(u.m) + '</tr>';
+    });
+  });
+  if (G.length) h += '<tr class="tot"><td>Total</td>' + cels(S.GAA.tot) + '</tr>';
+  $('#gaTree').innerHTML = h + '</tbody></table>';
+}
+/** Detalhe de uma usina dentro de um centro de custo de GA: lançamentos de orçado e realizado. */
+function abrirGA(g, u) {
+  S.drawer = { ga: { g, u } };
+  S.dwAbertos = new Set(['orc', 'real']);
+  $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
+  renderDrawer(true);
+}
+function renderDrawerGA(novo) {
+  const { g, u } = S.drawer.ga, a = S.gaAno === 'cmp' ? 'tot' : S.gaAno;
+  const noAno = (r) => r._g === g && r._u === u && (a === 'tot' ? S.gaAnosLista.indexOf(r._ano) !== -1 : r._ano === a);
+  const orc = S.GA.orc.filter(noAno), real = S.GA.real.filter(noAno), rs = real.filter((r) => r._sem);
+  $('#dwT').textContent = S.uNome[u] || u;
+  $('#dwS').textContent = (S.gaNome[g] || '') + ' · ' + (a === 'tot' ? S.gaAnosLista.join(' + ') : 'ano ' + a);
+  const so = orc.reduce((x, r) => x + (r.valor || 0), 0), sr = real.reduce((x, r) => x + (r.valor || 0), 0);
+  let h = '<div class="kpis k4">' + kpi('Orçado', so) + kpi('Realizado acumulado', sr) + kpi('Realizado semanal', rs.reduce((x, r) => x + (r.valor || 0), 0)) + kpiDelta(dh('(Orçado − Realizado)'), so - sr) + '</div>';
+  [['orc', 'orc', orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'], ['real', 'real', real, 'Realizado acumulado', S.d.abas.real.aba, 'background:var(--aurora)'],
+    ['rs', 'real', rs, 'Realizado semanal', S.d.abas.real.aba + ' · só as linhas marcadas como Semanal', 'background:var(--aurora)']].forEach(([blk, aba, rows, t, fonte, sw]) => {
+    h += '<details class="blk" data-blk="' + blk + '"' + (S.dwAbertos.has(blk) ? ' open' : '') + '><summary><span class="chev">▶</span><span class="sw" style="' + sw + '"></span><span class="t">' + t + '</span>' +
+      '<span class="src">' + esc(fonte) + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</span><span class="tt">' + brl2(rows.reduce((x, r) => x + (r.valor || 0), 0)) + '</span></summary>' +
+      '<div class="card">' + tabelaLanc(aba, rows) + '</div></details>';
+  });
+  const body = $('#dwB'), sc = body.scrollTop;
+  body.innerHTML = h;
+  body.querySelectorAll('details.blk').forEach((d) => d.addEventListener('toggle', () => { if (d.open) S.dwAbertos.add(d.dataset.blk); else S.dwAbertos.delete(d.dataset.blk); }));
+  body.scrollTop = novo ? 0 : sc;
 }
 
 /* =================================================================== */
@@ -1122,6 +1270,7 @@ function fecharDrawer() {
 }
 function renderDrawer(novo) {
   if (S.drawer.kpi) { renderDrawerKpi(novo); return; }
+  if (S.drawer.ga) { renderDrawerGA(novo); return; }
   const { ck } = S.drawer, st = S.setor;
   const F = filtrar(), Fx = {};
   MK.forEach((k) => { Fx[k] = F[k].filter((r) => r._ck === ck); });
@@ -1359,6 +1508,12 @@ document.addEventListener('click', (e) => {
   if (del) { const [aba, l] = del.dataset.del.split('|'); const r = acharLinha(aba, l); if (r) excluir(aba, r); return; }
   const nv = t.closest('[data-novo]');
   if (nv) { e.preventDefault(); abrirEditor(nv.dataset.novo, null, novoPreset(S.drawer && S.drawer.ck)); return; }
+  const ga = t.closest('[data-gano], [data-gag], [data-gau]');
+  if (ga) {
+    if (ga.dataset.gano) { S.gaAno = ga.dataset.gano; renderGA(); return; }
+    if (ga.dataset.gau) { const [g, u] = ga.dataset.gau.split('|'); abrirGA(g, u); return; }
+    const g = ga.dataset.gag; if (S.gaAbertos.has(g)) S.gaAbertos.delete(g); else S.gaAbertos.add(g); renderGA(); return;
+  }
   const cb = t.closest('[data-com]');
   if (cb) { esconderTip(); abrirComentarios(cb.dataset.com); return; }
   const det = t.closest('[data-det]');
@@ -1402,7 +1557,7 @@ $('#mdOk').addEventListener('click', () => {
   }
 });
 document.addEventListener('keydown', (e) => {
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-kpi], [data-fm], tr.c[data-det], tr.gh[data-grp]')) { e.preventDefault(); e.target.click(); return; }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-kpi], [data-fm], tr.c[data-det], tr.gh[data-grp], tr[data-gag], tr[data-gau]')) { e.preventDefault(); e.target.click(); return; }
   if (e.key !== 'Escape') return;
   if ($('#modal').classList.contains('on')) { fecharModal(); return; }
   if ($('#ms').classList.contains('on')) abrirUsel(false);

@@ -56,7 +56,21 @@ Enquanto a aba **Acessos** não existir, todos veem todas as abas e só o dono e
 
 ## 4. O que o painel faz
 
-No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (as três últimas ainda em construção).
+No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projetos e EP ainda em construção).
+
+**GA** (só Orçado × Realizado; GA não tem projeção)
+1. Não tem filtro: a tabela mostra direto os 5 centros de custo de GA (CPX Manutenção Geral, GPX Manutenção Inversor,
+   Garantias, Reinvestimento e Sinistro). Clique na **setinha** para abrir as usinas daquele centro de custo.
+2. No topo, escolha o ano: **Total**, **2025**, **2026** ou **Comparar anos** (Orçado, Realizado e Δ de cada ano lado a lado, e o total).
+   Os anos vão do primeiro ano com realizado até o ano atual; o orçamento de anos futuros fica de fora.
+3. Colunas: Orçado · Realizado (com o semanal embaixo) · **Δ (Orçado − Realizado)** · Aderência orçamentária.
+4. Clique numa usina para ver os lançamentos de Orçado, Realizado acumulado e Realizado semanal.
+5. Regras:
+   - **Orçado** = só as linhas do Orçamento com SETOR = **GE - ENG - GESTÃO DE ATIVO** (VALOR A PAGAR, ano da DATA DE VENCIMENTO).
+   - **Realizado** = linhas do Realizado Controladoria com centro de custo de GA (pelo código ou pelo nome na coluna Centro de Custo),
+     ano da coluna Pagto.
+   - O centro de custo aparece se estiver no orçado, no realizado ou nos dois; dentro dele aparecem todas as usinas em que foi usado.
+   - Os 5 centros de custo de GA vêm da aba **Setores / CCs** (setor **GA**).
 
 **Supply**
 1. **Escolha as usinas** na lista suspensa (dá para digitar e marcar várias). Sem usina marcada, o painel pede uma.

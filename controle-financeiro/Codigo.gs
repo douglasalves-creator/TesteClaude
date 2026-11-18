@@ -43,7 +43,10 @@ const CONFIG = {
     { nome: 'Supply', projecoes: 'Projeções - Supply', editavel: false, palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
     { nome: 'Projetos', projecoes: '' },
     { nome: 'EP', projecoes: '' },
-    { nome: 'GA', projecoes: '' }
+    // GA (Gestão de Ativo): só Orçado × Realizado, sem projeção.
+    //  - Orçamento: só as linhas com SETOR igual a orcSetorExato;
+    //  - Realizado: centros de custo de GA da aba Setores / CCs (pelo código ou pela descrição da coluna Centro de Custo).
+    { nome: 'GA', projecoes: '', modo: 'ga', orcSetorExato: 'GE - ENG - GESTÃO DE ATIVO' }
   ],
 
   ABA_ORCAMENTO: 'Orçamento',
@@ -618,6 +621,7 @@ function textoCC_(aba, v) {
  * regra = { ccs: {código}, outros: {código}, palavras: [], orcSetor: [] }
  */
 function doSetor_(regra, aba, v) {
+  if (regra.modo === 'ga') return doGA_(regra, aba, v);
   const t = textoCC_(aba, v);
   if (ccVazio_(t)) return aba === 'proj' || (aba === 'orc' && temPalavra_(v.setor, regra.orcSetor));
   const c = codCC_(t);
@@ -628,6 +632,14 @@ function doSetor_(regra, aba, v) {
   return aba === 'orc' && temPalavra_(v.setor, regra.orcSetor);
 }
 
+/** GA: Orçamento pela coluna SETOR; Realizado pelos centros de custo de GA (código ou descrição). */
+function doGA_(regra, aba, v) {
+  if (aba === 'orc') return nk_(v.setor) === nk_(regra.orcSetorExato);
+  if (aba !== 'real') return false;
+  if (codCC_(String(v.cc || '').trim()) in regra.ccs) return true;
+  return !!regra.nomes[nk_(String(v.ccDesc || '').replace(RE_CC_, ''))];
+}
+
 /** Regras de cada setor: os códigos dele, os códigos dos outros setores e as palavras-chave. */
 function regrasSetores_(porSetor) {
   const out = {};
@@ -635,7 +647,10 @@ function regrasSetores_(porSetor) {
     const k = nk_(s.nome), outros = {};
     Object.keys(porSetor).forEach(function (o) { if (o !== k && o.indexOf('__') !== 0) Object.keys(porSetor[o].ccs).forEach(function (c) { outros[c] = true; }); });
     (porSetor.__outrosSetores || []).forEach(function (c) { outros[c] = true; });
-    out[k] = { ccs: porSetor[k].ccs, outros: outros, palavras: s.palavras || [], orcSetor: s.orcSetor || [] };
+    const nomes = {};
+    Object.keys(porSetor[k].ccs).forEach(function (c) { nomes[nk_(String(porSetor[k].ccs[c]).replace(RE_CC_, ''))] = c; });
+    out[k] = { ccs: porSetor[k].ccs, outros: outros, palavras: s.palavras || [], orcSetor: s.orcSetor || [],
+      modo: s.modo || '', orcSetorExato: s.orcSetorExato || '', nomes: nomes };
   });
   return out;
 }
@@ -686,7 +701,7 @@ function carregarDados(forcar) {
   const setores = meus.map(function (s) {
     const k = nk_(s.nome);
     return {
-      nome: s.nome, id: s.projecoes ? idProj_(s.nome) : '', pronto: !!s.projecoes,
+      nome: s.nome, id: s.projecoes ? idProj_(s.nome) : '', pronto: !!s.projecoes || s.modo === 'ga', modo: s.modo || '', orcSetorExato: s.orcSetorExato || '',
       ccs: Object.keys(porSetor[k].ccs), ccNomes: porSetor[k].ccs, origemCC: porSetor[k].origem, edita: !!ac.edita[k],
       outros: Object.keys(regras[k].outros), palavras: regras[k].palavras, orcSetor: regras[k].orcSetor
     };
@@ -1072,7 +1087,7 @@ function verificarSetores_(ss, abas) {
     const n = Object.keys(p.ccs).length;
     Logger.log('Setor ' + s.nome + ': ' + (p.origem === 'setores' ? n + ' centros de custo na aba "' + CONFIG.ABA_SETORES + '"'
       : p.origem === 'projecoes' ? 'nenhum centro de custo na aba "' + CONFIG.ABA_SETORES + '"; usando os ' + n + ' da aba de projeções'
-      : 'nenhum centro de custo cadastrado') + (s.projecoes ? '' : ' (aba em construção)'));
+      : 'nenhum centro de custo cadastrado') + (s.projecoes || s.modo === 'ga' ? '' : ' (aba em construção)'));
   });
   const faltam = (lerTabela_(ss, CONFIG.ABA_SETORES) || []).filter(function (l) { return !existe[codCC_(ccDaLinhaSetor_(l))]; });
   if (faltam.length) Logger.log('Centros de custo da aba "' + CONFIG.ABA_SETORES + '" que NÃO aparecem em nenhuma aba de dados: ' +
