@@ -4,7 +4,7 @@ O painel só altera a planilha pelo detalhe do centro de custo (clique no nome),
 Toda alteração fica registrada na aba **Auditoria**.
 
 **Antes de começar, confira na base oficial:**
-- As abas se chamam **Orçamento**, **Projeções - Supply**, **Realizado Controladoria**, **Usinas** e **Setores / CCs**.
+- As abas se chamam **Orçamento**, **Projeções - Supply**, **Projeções - Engenharia**, **Realizado Controladoria**, **Usinas** e **Setores / CCs**.
 - Os cabeçalhos usados estão com estes nomes (a posição da coluna não importa):
   - Orçamento (cabeçalho na linha 1): PROJETO, CENTRO DE CUSTO, VALOR A PAGAR, DATA DE VENCIMENTO
   - Projeções - Supply (cabeçalho na linha 1): Projeto Padrão, Centro de Custo Padrão, Valor, Data programada de pgto,
@@ -56,7 +56,18 @@ Enquanto a aba **Acessos** não existir, todos veem todas as abas e só o dono e
 
 ## 4. O que o painel faz
 
-No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projetos e EP ainda em construção).
+No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projetos ainda em construção).
+
+**EP** (igual ao Supply, com uma projeção só)
+1. Escolha as usinas na lista (os nomes aparecem só com a descrição, sem o código).
+2. Faixa de resumo: velocímetro, **Orçado**, **Projeção**, **Realizado semanal**, **Realizado acumulado** e **Saldo** (ou Estouro previsto).
+3. Tabela com os centros de custo de EP: Orçado · Projeção (com o balão de comentário) · Realizado semanal (acumulado embaixo) ·
+   **Δ Orçado − (Projeção + Realizado)** · **Δ Orçado − Realizado** · Aderência orçamentária. Clique num centro de custo para ver os lançamentos.
+4. Regras:
+   - **Projeção** = aba **Projeções - Engenharia**, só as linhas com **Setor = EP** (se "Setor Corrigido" estiver preenchido, vale ele;
+     se "Centro de Custo Corrijido" estiver preenchido, vale ele). Não há "Data do Fluxo", então não há comparação de semanas.
+   - **Orçado** e **Realizado** = linhas cujo centro de custo é de EP na aba **Setores / CCs** (956 a 971).
+   - Comentários funcionam como no Supply, mas sem separação por semana.
 
 **GA** (só Orçado × Realizado; GA não tem projeção)
 1. Não tem filtro: a tabela mostra direto os 5 centros de custo de GA (CPX Manutenção Geral, GPX Manutenção Inversor,

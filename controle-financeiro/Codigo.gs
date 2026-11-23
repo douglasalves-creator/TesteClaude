@@ -42,7 +42,10 @@ const CONFIG = {
     // editavel: false = as projeções deste setor não podem ser alteradas pelo painel (só consulta).
     { nome: 'Supply', projecoes: 'Projeções - Supply', editavel: false, palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
     { nome: 'Projetos', projecoes: '' },
-    { nome: 'EP', projecoes: '' },
+    // EP (Engenharia do Proprietário): igual ao Supply, mas com uma projeção só (a aba não tem "Data do Fluxo").
+    //  - Projeções: aba "Projeções - Engenharia", só as linhas com Setor = EP (Setor Corrigido, se preenchido, vale mais);
+    //  - Orçamento e Realizado: pelos centros de custo de EP da aba Setores / CCs.
+    { nome: 'EP', projecoes: 'Projeções - Engenharia', editavel: false, semFluxo: true, campos: 'projEng', filtroSetor: 'EP' },
     // GA (Gestão de Ativo): só Orçado × Realizado, sem projeção.
     //  - Orçamento: só as linhas com SETOR igual a orcSetorExato;
     //  - Realizado: centros de custo de GA da aba Setores / CCs (pelo código ou pela descrição da coluna Centro de Custo).
@@ -111,6 +114,18 @@ const CAMPOS = {
     { k: 'dataFluxo', nome: 'Data do Fluxo', tipo: 'data', dic: true },
     { k: 'fornecedor', nome: 'Fornecedor', tipo: 'texto', dic: true, opcional: true },
     { k: 'coment', nome: 'Comentário', tipo: 'texto', opcional: true, alias: ['Comentarios', 'Comentários'] }
+  ],
+  // Aba "Projeções - Engenharia" (EP e Projetos na mesma aba, separados pela coluna Setor).
+  projEng: [
+    { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true },
+    { k: 'cc', nome: 'Centro de Custo', tipo: 'texto', dic: true },
+    { k: 'valor', nome: 'Valor', tipo: 'valor' },
+    { k: 'dataProg', nome: 'Data programada de pgto', tipo: 'data', alias: ['Data programada de pagamento', 'Data programada'] },
+    { k: 'fornecedor', nome: 'Fornecedor', tipo: 'texto', dic: true, opcional: true },
+    { k: 'coment', nome: 'Comentário', tipo: 'texto', opcional: true, alias: ['Comentarios', 'Comentários'] },
+    { k: 'setorProj', nome: 'Setor', tipo: 'texto', dic: true },
+    { k: 'setorCorr', nome: 'Setor Corrigido', tipo: 'texto', dic: true, opcional: true },
+    { k: 'ccCorr', nome: 'Centro de Custo Corrijido', tipo: 'texto', dic: true, opcional: true, alias: ['Centro de Custo Corrigido'] }
   ]
 };
 
@@ -272,7 +287,7 @@ function defAba_(id) {
   if (id === 'real') return { id: id, nome: CONFIG.ABA_REALIZADO, campos: CAMPOS.real, editavel: false };
   const st = CONFIG.SETORES.filter(function (s) { return s.projecoes && idProj_(s.nome) === id; })[0];
   if (!st) return null;
-  return { id: id, nome: st.projecoes, campos: CAMPOS.proj, editavel: st.editavel !== false, setor: st.nome };
+  return { id: id, nome: st.projecoes, campos: CAMPOS[st.campos || 'proj'], editavel: st.editavel !== false, setor: st.nome, filtroSetor: st.filtroSetor || '' };
 }
 
 /** Todas as abas que o painel lê. */
@@ -440,6 +455,12 @@ function lerAba_(ss, id, tz) {
       vals[c.k] = v;
     });
     if (vazia) continue;
+    // Aba de projeções com vários setores (Projeções - Engenharia): só as linhas do setor;
+    // "Setor Corrigido" e "Centro de Custo Corrijido", quando preenchidos, valem mais que os originais.
+    if (def.filtroSetor) {
+      if (nk_(vals.setorCorr || vals.setorProj) !== nk_(def.filtroSetor)) continue;
+      if (vals.ccCorr) vals.cc = vals.ccCorr;
+    }
     const linha = [ini + r];
     def.campos.forEach(function (c) {
       let v = vals[c.k];
@@ -704,7 +725,7 @@ function carregarDados(forcar) {
   const setores = meus.map(function (s) {
     const k = nk_(s.nome);
     return {
-      nome: s.nome, id: s.projecoes ? idProj_(s.nome) : '', pronto: !!s.projecoes || s.modo === 'ga', modo: s.modo || '', orcSetorExato: s.orcSetorExato || '',
+      nome: s.nome, id: s.projecoes ? idProj_(s.nome) : '', pronto: !!s.projecoes || s.modo === 'ga', modo: s.modo || '', orcSetorExato: s.orcSetorExato || '', semFluxo: !!s.semFluxo,
       ccs: Object.keys(porSetor[k].ccs), ccNomes: porSetor[k].ccs, origemCC: porSetor[k].origem, edita: !!ac.edita[k],
       outros: Object.keys(regras[k].outros), palavras: regras[k].palavras, orcSetor: regras[k].orcSetor
     };

@@ -563,7 +563,9 @@ const DEMO_API = DEMO ? (function () {
     p_supply: [['projeto', 'Projeto Padrão', 'texto'], ['cc', 'Centro de Custo Padrão', 'texto'], ['valor', 'Valor', 'valor'], ['dataProg', 'Data programada de pgto', 'data'],
       ['dataFluxo', 'Data do Fluxo', 'data'], ['fornecedor', 'Fornecedor', 'texto'], ['coment', 'Comentário', 'texto']]
   };
-  const L = { orc: [], real: [], p_supply: [] };
+  C.p_ep = [['projeto', 'Projeto', 'texto'], ['cc', 'Centro de Custo', 'texto'], ['valor', 'Valor', 'valor'], ['dataProg', 'Data programada de pgto', 'data'],
+    ['fornecedor', 'Fornecedor', 'texto'], ['coment', 'Comentário', 'texto'], ['setorProj', 'Setor', 'texto']];
+  const L = { orc: [], real: [], p_supply: [], p_ep: [] };
   const seg = new Date(hoje); seg.setDate(seg.getDate() - ((seg.getDay() + 6) % 7));
   const snaps = [];
   for (let d = new Date(seg); d.getFullYear() === Y; d.setDate(d.getDate() - 7)) snaps.unshift(iso(d.getFullYear(), d.getMonth() + 1, d.getDate()));
@@ -594,6 +596,14 @@ const DEMO_API = DEMO ? (function () {
     if (ci < 2) for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10), 'GE - ENG - GESTÃO DE ATIVO']);
     [Y - 1, Y].forEach((y) => { for (let m = 1; m <= (y === Y ? M - 1 : 12); m += 2) L.real.push([n++, iso(y, m, 8), cent(base * (0.6 + rnd() * 0.9)), cod(u), u.split('  -  ')[1], cod(c), c.split('  -  ')[1], y === Y && m >= M - 2 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(50000 + n), '']); });
   }));
+  // EP: orçado, uma projeção (sem Data do Fluxo) e realizado em 10 usinas.
+  const ccEP = ['957  -  EP-ALUGUEL DE CARRO', '958  -  EP-COMBUSTÍVEL', '960  -  EP-VIAGENS', '961  -  EP-ALUGUEL DE IMÓVEL', '969  -  EP-CONSUMÍVEIS E FERRAMENTAL'];
+  usinas.slice(30, 40).forEach((u, ui) => ccEP.forEach((c, ci) => {
+    const base = 700 + rnd() * 2500;
+    for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10), 'GE - ENG - PROPRIETÁRIO']);
+    for (let m = 1; m < M; m++) L.real.push([n++, iso(Y, m, 6), cent(base * ((ui + ci) % 5 === 0 ? 1.3 : 0.85) * (0.7 + rnd() * 0.5)), cod(u), u.split('  -  ')[1], cod(c), c.split('  -  ')[1], m === M - 1 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(70000 + n), '']);
+    for (let m = M; m <= 12; m++) L.p_ep.push([n++, u, c, cent(base * (0.9 + rnd() * 0.3)), iso(Y, m, 7), 'A DEFINIR', '', 'EP']);
+  }));
   const aba = (id, nome, ed, setor) => ({ id, aba: nome, editavel: ed, setor: setor || '', sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], ausentes: [], linhaCab: 1, erro: '' });
   const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
   const COMENT = [{ quando: '11/11/2026 09:12', email: 'compras@solargrid.com.br', setor: 'Supply', usina: cod(usinas[0]), usinaNome: usinas[0], cc: '849', ccNome: ccSupply[5],
@@ -605,9 +615,9 @@ const DEMO_API = DEMO ? (function () {
       geradoEm: agora(), usuario: '', planilha: 'Demonstração', urlPlanilha: '#', acesso: { tudo: true, setores: ['Supply', 'Projetos', 'EP', 'GA'] },
       usinas: Object.fromEntries(usinas.map((u) => [cod(u), u])),
       setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(cod), ccNomes: Object.fromEntries(ccSupply.map((c) => [cod(c), c])), origemCC: 'setores', edita: true,
-        outros: ccOutros.concat(ccGA).map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
-        { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: '', pronto: false, ccs: [], edita: false }, { nome: 'GA', id: '', pronto: true, modo: 'ga', orcSetorExato: 'GE - ENG - GESTÃO DE ATIVO', ccs: ccGA.map(cod), ccNomes: Object.fromEntries(ccGA.map((c) => [cod(c), c])), edita: false }],
-      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', false, 'Supply') },
+        outros: ccOutros.concat(ccGA, ccEP).map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
+        { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: 'p_ep', pronto: true, semFluxo: true, ccs: ccEP.map(cod), ccNomes: Object.fromEntries(ccEP.map((c) => [cod(c), c])), edita: false }, { nome: 'GA', id: '', pronto: true, modo: 'ga', orcSetorExato: 'GE - ENG - GESTÃO DE ATIVO', ccs: ccGA.map(cod), ccNomes: Object.fromEntries(ccGA.map((c) => [cod(c), c])), edita: false }],
+      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', false, 'Supply'), p_ep: aba('p_ep', 'Projeções - Engenharia', false, 'EP') },
       comentarios: COMENT
     }),
     salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
@@ -746,6 +756,8 @@ function prepararSetor() {
   S.L.projFora.forEach((r) => { r._u = codUsina(r.projeto); r._ck = ''; });
   // Lista suspensa = coluna PROJETO / UFV da aba Usinas (se a aba estiver vazia, as usinas que aparecem nos dados).
   Object.keys(usTab).forEach((k) => { S.uNome[k] = usTab[k].replace(/\s+/g, ' '); });
+  // EP: nome da usina só com a descrição, sem o código (padrão do Orçamento).
+  if (st.semFluxo) Object.keys(S.uNome).forEach((k) => { S.uNome[k] = S.uNome[k].replace(RE_USINA, '').trim() || S.uNome[k]; });
   const lista = Object.keys(usTab).length ? Object.keys(usTab) : Object.keys(S.uNome).filter((k) => k !== '~');
   S.uLista = lista.sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
   S.f.us.forEach((k) => { if (S.uLista.indexOf(k) === -1) S.f.us.delete(k); });
@@ -809,6 +821,11 @@ function abrirUsel(abrir) {
 /* =================================================================== */
 function passa(r) { return S.f.us.has(r._u); }
 function filtrar() {
+  // Setor sem "Data do Fluxo" (EP): uma projeção só; a anterior fica igual à atual (sem comparação de semana).
+  if (S.setor.semFluxo) {
+    const p = S.L.proj.filter(passa);
+    return { orc: S.L.orc.filter(passa), pa: p, pt: p, real: S.L.real.filter(passa), rs: S.L.real.filter((r) => r._sem && passa(r)) };
+  }
   return {
     orc: S.L.orc.filter(passa),
     pa: S.L.proj.filter((r) => r.dataFluxo === S.f.ant && passa(r)),
@@ -887,6 +904,7 @@ function risco(m) { return m.orc <= 0.005 ? 1 : m.real - m.orc > 0.005 ? 0 : m.d
 function duplo(cima, baixo) { return '<span class="dup">' + cima + '<small>' + baixo + '</small></span>'; }
 function colunas() {
   const d = (x) => (x ? dt(x).slice(0, 5) : '—');
+  if (S.setor.semFluxo) return colunasSemFluxo();
   return [
     { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
     { k: 'pt', t: th3('Projeção atual · ' + d(S.f.atu), '(anterior · ' + d(S.f.ant) + ')'), n: 1, c: 'sem',
@@ -894,6 +912,17 @@ function colunas() {
     { k: 'dP', t: th3('Δ semana', '(%)'), n: 1, c: 'sem',
       f: (m) => duplo(deltaSem(m.dP), Math.abs(m.dP) < 0.005 ? '' : '<span class="' + (m.dP > 0 ? 'sobe' : 'neg') + '">(' + (m.dPp === null ? 'novo' : pct(Math.abs(m.dPp)).replace('−', '')) + ')</span>') },
     { k: 'rs', t: th3('Realizado semanal', '(acumulado)'), n: 1, f: (m) => duplo(num(m.rs), '(' + num(m.real) + ')') },
+    { k: 'd2', t: th3('Δ', 'Orçado − Realizado'), n: 1, f: (m) => '<span class="' + numCls(m.d2).trim() + '">' + num(m.d2) + '</span>' },
+    { k: 'cons', t: 'Aderência orçamentária', f: (m) => '<span class="cons"><span class="bul-bar">' + segmentos(m) + '</span><span class="muted">' + (m.orc > 0.005 ? Math.round(((m.real + m.pt) / m.orc) * 100) + '%' : '—') + '</span></span>' }
+  ];
+}
+/** Colunas do setor sem "Data do Fluxo" (EP): sem projeção anterior e sem Δ semana. */
+function colunasSemFluxo() {
+  return [
+    { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
+    { k: 'pt', t: 'Projeção', n: 1, c: 'sem', f: (m, k) => (k ? '<span class="pt-cel">' + num(m.pt) + balao(k) + '</span>' : num(m.pt)) },
+    { k: 'rs', t: th3('Realizado semanal', '(acumulado)'), n: 1, f: (m) => duplo(num(m.rs), '(' + num(m.real) + ')') },
+    { k: 'd1', t: th3('Δ', 'Orçado − (Projeção + Realizado)'), n: 1, f: (m) => '<span class="' + numCls(m.d1).trim() + '">' + num(m.d1) + '</span>' },
     { k: 'd2', t: th3('Δ', 'Orçado − Realizado'), n: 1, f: (m) => '<span class="' + numCls(m.d2).trim() + '">' + num(m.d2) + '</span>' },
     { k: 'cons', t: 'Aderência orçamentária', f: (m) => '<span class="cons"><span class="bul-bar">' + segmentos(m) + '</span><span class="muted">' + (m.orc > 0.005 ? Math.round(((m.real + m.pt) / m.orc) * 100) + '%' : '—') + '</span></span>' }
   ];
@@ -916,6 +945,7 @@ function render() {
   if (S.setor.modo === 'ga') { renderGA(); return; }
   const st = S.setor, pronto = st.pronto;
   $('#filtros').hidden = !pronto;
+  $('.snapsel').hidden = !!st.semFluxo;
   $('#obra').hidden = pronto;
   $('#obraT').textContent = st.nome + ' · em construção';
   const tem = pronto && S.f.us.size > 0;
@@ -957,13 +987,16 @@ function renderTabela() {
     (S.sort.k === c.k ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '</tr></thead><tbody>';
   const tot = novoM();
   let algum = false;
-  GRUPOS.filter((g) => !S.grp || S.grp === g).forEach((g) => {
+  // EP: lista única de centros de custo (sem os grupos Curva A / BOP / Outros).
+  const semGrupo = !!S.setor.semFluxo;
+  if (semGrupo) lista.forEach((c) => { c.g = '_'; });
+  (semGrupo ? ['_'] : GRUPOS.filter((g) => !S.grp || S.grp === g)).forEach((g) => {
     const l = lista.filter((c) => c.g === g).sort(cmp);
     if (!l.length) return;
     algum = true;
     const sub = novoM(); l.forEach((c) => { somaM(sub, c.m); somaM(tot, c.m); });
-    const fechado = S.grpFechado.has(g);
-    h += '<tr class="gh" data-grp="' + g + '"><td><span class="chev">' + (fechado ? '▸' : '▾') + '</span>' + g + ' <span class="muted">· ' + l.length + ' centro' + (l.length === 1 ? '' : 's') + ' de custo</span></td>' + celulas(derivar(sub), cols) + '</tr>';
+    const fechado = !semGrupo && S.grpFechado.has(g);
+    if (!semGrupo) h += '<tr class="gh" data-grp="' + g + '"><td><span class="chev">' + (fechado ? '▸' : '▾') + '</span>' + g + ' <span class="muted">· ' + l.length + ' centro' + (l.length === 1 ? '' : 's') + ' de custo</span></td>' + celulas(derivar(sub), cols) + '</tr>';
     if (!fechado) l.forEach((c) => {
       h += '<tr class="c" data-det="' + esc(c.k) + '" title="Ver os lançamentos"><td><button type="button" class="ccn" data-det="' + esc(c.k) + '">' + esc(c.nome) + '<span class="seta">→</span></button></td>' + celulas(c.m, cols, c.k) + '</tr>';
     });
@@ -1042,6 +1075,12 @@ function renderResumo() {
     '<span class="sm-l"><span>Realizado na semana</span><b class="tnum">' + brl2(m.rs) + '</b></span>' +
     '<span class="sm-l"><span>' + (queda >= 0 ? 'Queda da projeção' : 'Aumento da projeção') + '</span><b class="tnum ' + (queda >= 0 ? 'sobe' : 'neg') + '">' + brl2(Math.abs(queda)) + '</b></span>' +
     '<span class="sm-l dif"><span>Diferença</span><b class="tnum">' + brl2(dif) + '</b></span></div>';
+  if (S.setor.semFluxo) {
+    $('#resumo').innerHTML = '<div class="mg">' + gaugeSvg(m) + '</div>' +
+      item('Orçado', o) + item('Projeção', m.pt) + item('Realizado semanal', m.rs) + item('Realizado acumulado', m.real) +
+      item(saldo >= 0 ? 'Saldo' : 'Estouro previsto', Math.abs(saldo), saldo >= 0 ? ' ok' : ' neg');
+    return;
+  }
   $('#resumo').innerHTML = '<div class="mg">' + gaugeSvg(m) + '</div>' +
     item('Orçado', o) + item('Projeção atual', m.pt) + item('Realizado semanal', m.rs) + item('Realizado acumulado', m.real) +
     item(saldo >= 0 ? 'Saldo' : 'Estouro previsto', Math.abs(saldo), saldo >= 0 ? ' ok' : ' neg') +
@@ -1229,9 +1268,11 @@ function renderDrawerGA(novo) {
 const COLS_LANC = {
   orc: [['setor', 'SETOR'], ['venc', 'DATA DE VENCIMENTO', 'data'], ['valor', 'VALOR A PAGAR', 'valor']],
   proj: [['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor'], ['valor', 'Valor', 'valor'], ['dataFluxo', 'Data do Fluxo', 'data']],
-  real: [['pagto', 'Pagto.', 'data'], ['favorecido', 'Favorecido'], ['valor', 'Pagamentos', 'valor'], ['doc', 'Documento']]
+  real: [['pagto', 'Pagto.', 'data'], ['favorecido', 'Favorecido'], ['valor', 'Pagamentos', 'valor'], ['doc', 'Documento']],
+  // Projeções - Engenharia (EP): sem "Data do Fluxo".
+  projEng: [['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor'], ['valor', 'Valor', 'valor'], ['coment', 'Comentário']]
 };
-function tipoLanc(aba) { return aba === 'orc' || aba === 'real' ? aba : 'proj'; }
+function tipoLanc(aba) { return aba === 'orc' || aba === 'real' ? aba : S.setor.semFluxo ? 'projEng' : 'proj'; }
 function celula(r, col) {
   const k = col[0], tp = col[2];
   if (tp === 'linha') return '<td class="muted" style="white-space:nowrap">' + r._r + '</td>';
@@ -1334,12 +1375,22 @@ function renderDrawer(novo) {
   const m = agregar(Fx).tot;
   $('#dwT').textContent = S.ccNome[ck] || '';
   $('#dwS').textContent = st.nome + ' · ' + selNome();
+  const sf = !!st.semFluxo;
   const k = kpisHtml(m);
-  let h = '<div class="kpis k5">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
-  h += '<div class="h3">Comentários da semana · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + '<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
+  let h = sf ? '<div class="kpis k4">' + kpi('Orçado', m.orc) + kpi('Projeção', m.pt) + kpi('Realizado acumulado', m.real) + kpi('Realizado semanal', m.rs) + '</div>' +
+      '<div class="kpis k4">' + kpiDelta(DH.d1.replace('Projeção atual', 'Projeção'), m.d1) + kpiDelta(DH.d2, m.d2) + '</div>'
+    : '<div class="kpis k5">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
+  h += sf ? '<div class="h3">Comentários<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
+    '<div class="card" style="padding:12px 16px">' + blocoComentarios(ck) + '</div>' : '';
+  if (!sf) h += '<div class="h3">Comentários da semana · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + '<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
     '<div class="card" style="padding:12px 16px">' + blocoComentarios(ck) + '</div>';
   const proj = S.d.abas[st.id] ? S.d.abas[st.id].aba : 'Projeções';
-  const blocos = [
+  const blocos = sf ? [
+    ['pt', st.id, Fx.pt, 'Projeção', proj + ' · Setor ' + st.nome, 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
+    ['orc', 'orc', Fx.orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'],
+    ['real', 'real', Fx.real, 'Realizado acumulado', S.d.abas.real.aba, 'background:var(--aurora)'],
+    ['rs', 'real', Fx.rs, 'Realizado semanal', S.d.abas.real.aba + ' · só as linhas marcadas como Semanal', 'background:var(--aurora)']
+  ] : [
     ['pt', st.id, Fx.pt, 'Projeção atual', proj + ' · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
     ['pa', st.id, Fx.pa, 'Projeção anterior', proj + ' · fluxo de ' + (S.f.ant ? dt(S.f.ant) : '—'), 'background:repeating-linear-gradient(90deg,#9AA0A6 0 5px,transparent 5px 8px)'],
     ['orc', 'orc', Fx.orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'],
@@ -1411,7 +1462,7 @@ function unicos(l) { const v = new Set(); return l.filter((c) => { const k = c.q
 function balao(ck) {
   const { semana: s0, antigos: a0 } = comentariosDe(ck), semana = unicos(s0), antigos = unicos(a0);
   // Com comentário, o texto aparece ao passar o mouse (caixinha própria); sem comentário, só a dica de como comentar.
-  const dica = semana.length ? '' : ' title="' + esc('Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar') + '"';
+  const dica = semana.length ? '' : S.setor.semFluxo ? ' title="Sem comentário · clique para comentar"' : ' title="' + esc('Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar') + '"';
   return '<button type="button" class="com' + (semana.length ? ' sem' : '') + '" data-com="' + esc(ck) + '"' + dica + ' aria-label="Comentários">' +
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>' + (semana.length ? '<span>' + semana.length + '</span>' : '') + '</button>';
 }
@@ -1419,7 +1470,7 @@ function balao(ck) {
 function blocoComentarios(ck, parte) {
   const { semana, antigos } = comentariosDe(ck);
   let h = '';
-  if (parte !== 'antigos') h += semana.length ? listaComentarios(semana) : (parte === 'semana' ? '' : '<p class="muted" style="margin:0">Sem comentário nesta semana.</p>');
+  if (parte !== 'antigos') h += semana.length ? listaComentarios(semana) : (parte === 'semana' ? '' : '<p class="muted" style="margin:0">' + (S.setor.semFluxo ? 'Sem comentário.' : 'Sem comentário nesta semana.') + '</p>');
   if (parte !== 'semana' && antigos.length) h += '<details class="com-old"><summary>Semanas anteriores (' + unicos(antigos).length + ')</summary>' + listaComentarios(antigos) + '</details>';
   return h;
 }
@@ -1446,7 +1497,8 @@ function abrirComentarios(ck) {
     if (!texto) return 'Escreva o comentário.';
     // Vale para todas as usinas selecionadas (uma linha por usina na aba Comentários).
     const itens = us.map((u) => { const m = valoresUsinaCC(u, ck);
-      return { usina: u, usinaNome: S.uNome[u], cc: ck, ccNome: S.ccNome[ck], orc: m.orc, pa: m.pa, pt: m.pt, dP: m.dP, rs: m.rs, real: m.real }; });
+      const sf = S.setor.semFluxo; // EP: sem projeção anterior
+      return { usina: u, usinaNome: S.uNome[u], cc: ck, ccNome: S.ccNome[ck], orc: m.orc, pa: sf ? '' : m.pa, pt: m.pt, dP: sf ? '' : m.dP, rs: m.rs, real: m.real }; });
     return run('salvarComentario', { setor: S.setor.nome, fluxo: S.f.atu, ant: S.f.ant, texto, itens, usinasAnalise: us.map((u) => S.uNome[u]).join(' + ') })
       .then((novos) => { S.coment = (S.coment || []).concat(novos); fecharModal(); renderTabela(); if (S.drawer) renderDrawer(); toast('Comentário salvo.'); });
   });
