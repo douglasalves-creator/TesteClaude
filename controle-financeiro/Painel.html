@@ -552,7 +552,7 @@ const DEMO_API = DEMO ? (function () {
   const forn = ['WEG S.A.', 'Gerdau', 'Trina Solar', 'Huawei', 'Prysmian', 'Transportes Rápido'];
   const C = {
     orc: [['projeto', 'PROJETO', 'texto'], ['cc', 'CENTRO DE CUSTO', 'texto'], ['valor', 'VALOR A PAGAR', 'valor'], ['venc', 'DATA DE VENCIMENTO', 'data'], ['setor', 'SETOR', 'texto']],
-    real: [['pagto', 'Pagto.', 'data'], ['valor', 'Pagamentos', 'valor'], ['projeto', 'Cod. Projeto', 'texto'], ['cc', 'C. Custo', 'texto'],
+    real: [['pagto', 'Pagto.', 'data'], ['valor', 'Pagamentos', 'valor'], ['projeto', 'Cod. Projeto', 'texto'], ['projDesc', 'Projeto', 'texto'], ['cc', 'C. Custo', 'texto'],
       ['ccDesc', 'Centro de Custo', 'texto'], ['tipo', 'Semanal / Acumulado', 'texto'], ['favorecido', 'Favorecido', 'texto'], ['doc', 'Documento', 'texto'], ['obs', 'Consolidado', 'texto']],
     p_supply: [['projeto', 'Projeto Padrão', 'texto'], ['cc', 'Centro de Custo Padrão', 'texto'], ['valor', 'Valor', 'valor'], ['dataProg', 'Data programada de pgto', 'data'],
       ['dataFluxo', 'Data do Fluxo', 'data'], ['fornecedor', 'Fornecedor', 'texto'], ['coment', 'Comentário', 'texto']]
@@ -568,7 +568,7 @@ const DEMO_API = DEMO ? (function () {
     for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10), ci < ccSupply.length ? 'GE - ENG - BOP' : 'GE - ENG - PROJETOS']);
     const fator = (ui + ci) % 7 === 0 ? 1.4 : 0.9;
     // No Realizado, usina e centro de custo vêm só com o código (como na aba Realizado Controladoria).
-    for (let m = 1; m < M; m++) L.real.push([n++, iso(Y, m, 5), cent(base * fator * (0.75 + rnd() * 0.5)), cod(u), cod(c), c.split('  -  ')[1], m === M - 1 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(30000 + n), 'Parcela ' + m]);
+    for (let m = 1; m < M; m++) L.real.push([n++, iso(Y, m, 5), cent(base * fator * (0.75 + rnd() * 0.5)), cod(u), u.split('  -  ')[1], cod(c), c.split('  -  ')[1], m === M - 1 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(30000 + n), 'Parcela ' + m]);
     if (ci >= ccSupply.length) return; // só o Supply tem aba de projeções
     snaps.forEach((s, si) => {
       const sm = +s.slice(5, 7), deriva = 1 + (si - snaps.length) * 0.012 * ((ui + ci) % 3 - 1);
@@ -586,7 +586,7 @@ const DEMO_API = DEMO ? (function () {
     if ((ui + ci) % 3 === 2 || (ci >= 2 && ui % 4)) return;
     const base = 3000 + rnd() * 9000;
     if (ci < 2) for (let m = 1; m <= 12; m++) L.orc.push([n++, u, c, cent(base * (0.8 + rnd() * 0.4)), iso(Y, m, 10), 'GE - ENG - GESTÃO DE ATIVO']);
-    [Y - 1, Y].forEach((y) => { for (let m = 1; m <= (y === Y ? M - 1 : 12); m += 2) L.real.push([n++, iso(y, m, 8), cent(base * (0.6 + rnd() * 0.9)), cod(u), cod(c), c.split('  -  ')[1], y === Y && m >= M - 2 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(50000 + n), '']); });
+    [Y - 1, Y].forEach((y) => { for (let m = 1; m <= (y === Y ? M - 1 : 12); m += 2) L.real.push([n++, iso(y, m, 8), cent(base * (0.6 + rnd() * 0.9)), cod(u), u.split('  -  ')[1], cod(c), c.split('  -  ')[1], y === Y && m >= M - 2 ? 'Semanal' : 'Acumulado', forn[ci % 6], String(50000 + n), '']); });
   }));
   const aba = (id, nome, ed, setor) => ({ id, aba: nome, editavel: ed, setor: setor || '', sinal: 1, campos: C[id].map((c) => ({ k: c[0], nome: c[1], tipo: c[2] })), linhas: L[id], dic: {}, faltando: [], ausentes: [], linhaCab: 1, erro: '' });
   const agora = () => new Date().toLocaleString('pt-BR').slice(0, 17);
@@ -1066,11 +1066,14 @@ function prepararGA() {
   };
   S.gaNome = {}; S.gaUNome = {};
   const nomeG = (g, txt) => { if (ccTab[g]) S.gaNome[g] = ccTab[g].replace(/\s+/g, ' '); else if (!S.gaNome[g]) S.gaNome[g] = String(txt || '(sem centro de custo)').replace(/\s+/g, ' '); };
-  const nomeU = (u, txt) => { if (!S.gaUNome[u]) S.gaUNome[u] = usTab[u] ? usTab[u].replace(/\s+/g, ' ') : String(txt || '(sem usina)').replace(/\s+/g, ' '); };
+  // Padrão: o nome da usina aparece só com a descrição, sem o código (como no Orçamento).
+  // Ordem: aba Usinas → texto do Orçamento → descrição do Realizado (coluna Projeto). Sem nenhum, fica o código.
+  const semCod = (t) => String(t || '').replace(RE_USINA, '').replace(/\s+/g, ' ').trim();
+  const nomeU = (u, ...txts) => { if (S.gaUNome[u]) return; const n = [usTab[u]].concat(txts).map(semCod).find(Boolean); if (n) S.gaUNome[u] = n; };
   const orc = S.rows.orc.filter((r) => nk(r.setor) === nk(st.orcSetorExato));
   const real = S.rows.real.filter((r) => { const g = grupo(r.cc, r.ccDesc); return g in ccTab; });
   orc.forEach((r) => { r._g = grupo(r.cc); r._u = codUsina(r.projeto) || '~'; r._d = r.venc; r._ano = String(r.venc || '').slice(0, 4); nomeG(r._g, r.cc); nomeU(r._u, r.projeto); });
-  real.forEach((r) => { r._g = grupo(r.cc, r.ccDesc); r._u = codUsina(r.projeto) || '~'; r._d = r.pagto; r._ano = String(r.pagto || '').slice(0, 4); r._sem = nk(r.tipo) === 'semanal'; nomeG(r._g, r.ccDesc || r.cc); nomeU(r._u, r.projeto); });
+  real.forEach((r) => { r._g = grupo(r.cc, r.ccDesc); r._u = codUsina(r.projeto) || '~'; r._d = r.pagto; r._ano = String(r.pagto || '').slice(0, 4); r._sem = nk(r.tipo) === 'semanal'; nomeG(r._g, r.ccDesc || r.cc); nomeU(r._u, r.projDesc, r.projeto); });
   S.GA = { orc, real };
   // "Total" = todos os anos. Botões para os anos com realizado até o ano atual; os demais anos (orçamento futuro) ficam na lista "Outros anos".
   const hoje = String(new Date().getFullYear()), ehAno = (a) => /^\d{4}$/.test(a), botoes = new Set([hoje]);
@@ -1085,7 +1088,7 @@ function agregarGA() {
   const G = new Map(), novo = () => ({ orc: {}, real: {}, rs: {} });
   const add = (r, tipo) => {
     let g = G.get(r._g); if (!g) { g = { k: r._g, nome: S.gaNome[r._g], us: new Map(), m: novo() }; G.set(r._g, g); }
-    let u = g.us.get(r._u); if (!u) { u = { k: r._u, nome: S.gaUNome[r._u], m: novo() }; g.us.set(r._u, u); }
+    let u = g.us.get(r._u); if (!u) { u = { k: r._u, nome: S.gaUNome[r._u] || (r._u === '~' ? '(sem usina)' : r._u), m: novo() }; g.us.set(r._u, u); }
     const v = r.valor || 0, a = r._ano || '?';
     [g.m, u.m].forEach((m) => { m[tipo][a] = (m[tipo][a] || 0) + v; m[tipo].tot = (m[tipo].tot || 0) + v;
       if (tipo === 'real' && r._sem) { m.rs[a] = (m.rs[a] || 0) + v; m.rs.tot = (m.rs.tot || 0) + v; } });
@@ -1156,7 +1159,7 @@ function renderDrawerGA(novo) {
   const { g, u } = S.drawer.ga, a = S.gaAno === 'cmp' ? 'tot' : S.gaAno;
   const noAno = (r) => r._g === g && r._u === u && (a === 'tot' || r._ano === a);
   const orc = S.GA.orc.filter(noAno), real = S.GA.real.filter(noAno), rs = real.filter((r) => r._sem);
-  $('#dwT').textContent = S.gaUNome[u] || u;
+  $('#dwT').textContent = S.gaUNome[u] || (u === '~' ? '(sem usina)' : u);
   $('#dwS').textContent = (S.gaNome[g] || '') + ' · ' + (a === 'tot' ? 'todos os anos' : 'ano ' + a);
   const so = orc.reduce((x, r) => x + (r.valor || 0), 0), sr = real.reduce((x, r) => x + (r.valor || 0), 0);
   let h = '<div class="kpis k4">' + kpi('Orçado', so) + kpi('Realizado acumulado', sr) + kpi('Realizado semanal', rs.reduce((x, r) => x + (r.valor || 0), 0)) + kpiDelta(dh('(Orçado − Realizado)'), so - sr) + '</div>';

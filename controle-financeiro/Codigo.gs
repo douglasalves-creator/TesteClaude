@@ -94,6 +94,8 @@ const CAMPOS = {
     // Código da usina: coluna "Cod. Projeto" (a coluna "Projeto" é a descrição).
     // Se "Cod. Projeto" não existir (base antiga), usa a primeira coluna "Projeto".
     { k: 'projeto', nome: 'Cod. Projeto', tipo: 'texto', dic: true, alias: ['Cód. Projeto', 'Cod Projeto', 'Código Projeto', 'Projeto'] },
+    // Descrição da usina (coluna "Projeto"): usada só para mostrar o nome quando o código não está na aba Usinas.
+    { k: 'projDesc', nome: 'Projeto', tipo: 'texto', dic: true, opcional: true },
     { k: 'cc', nome: 'C. Custo', tipo: 'texto', dic: true, alias: ['Cod. Custo', 'C.Custo'] },
     { k: 'ccDesc', nome: 'Centro de Custo', tipo: 'texto', dic: true, opcional: true },
     { k: 'tipo', nome: 'Semanal / Acumulado', tipo: 'texto', dic: true, opcional: true, alias: ['Semanal/Acumulado'] },

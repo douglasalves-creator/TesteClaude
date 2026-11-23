@@ -72,6 +72,9 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projet
      ano da coluna Pagto.
    - O centro de custo aparece se estiver no orçado, no realizado ou nos dois; dentro dele aparecem todas as usinas em que foi usado.
    - Os 5 centros de custo de GA vêm da aba **Setores / CCs** (setor **GA**).
+   - **Nome da usina:** sempre só a descrição, sem o código (padrão do Orçamento). Vem da aba **Usinas**; se a usina não estiver lá,
+     do texto do Orçamento; se só tiver realizado, da coluna **Projeto** (descrição) do Realizado Controladoria.
+     A ligação entre as abas continua pelo código (coluna **Cod. Projeto** no Realizado) ou, sem código, pela descrição igual à da aba Usinas.
 
 **Supply**
 1. **Escolha as usinas** na lista suspensa (dá para digitar e marcar várias). Sem usina marcada, o painel pede uma.
