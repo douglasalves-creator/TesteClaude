@@ -61,8 +61,9 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projet
 **GA** (só Orçado × Realizado; GA não tem projeção)
 1. Não tem filtro: a tabela mostra direto os 5 centros de custo de GA (CPX Manutenção Geral, GPX Manutenção Inversor,
    Garantias, Reinvestimento e Sinistro). Clique na **setinha** para abrir as usinas daquele centro de custo.
-2. No topo, escolha o ano: **Total**, **2025**, **2026** ou **Comparar anos** (Orçado, Realizado e Δ de cada ano lado a lado, e o total).
-   Os anos vão do primeiro ano com realizado até o ano atual; o orçamento de anos futuros fica de fora.
+2. No topo, escolha o ano: **Total** (todos os anos, inclusive o orçamento futuro), **2025**, **2026**, os demais anos na lista
+   **Outros anos**, ou **Comparar anos** (Orçado, Realizado e Δ de 2025, 2026 e do total, lado a lado).
+   Os valores do resumo (velocímetro, Orçado, Realizado acumulado e semanal, Saldo) e da tabela seguem o ano escolhido.
 3. Colunas: Orçado · Realizado (com o semanal embaixo) · **Δ (Orçado − Realizado)** · Aderência orçamentária.
 4. Clique numa usina para ver os lançamentos de Orçado, Realizado acumulado e Realizado semanal.
 5. Regras:

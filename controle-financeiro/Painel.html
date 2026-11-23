@@ -232,7 +232,9 @@
   .fld .com-us label{flex-direction:row; align-items:center; gap:8px; font-size:12.5px; text-transform:none; letter-spacing:0; color:var(--ink); font-weight:500; display:flex}
   .fld .com-us input{width:16px; height:16px; margin:0; accent-color:var(--aurora)}
   /* Aba GA */
-  .ga-anos{display:flex; align-items:center; gap:10px; margin:6px 0 14px}
+  .ga-anos{display:flex; align-items:center; gap:10px; margin:6px 0 14px; flex-wrap:wrap}
+  .ga-anos .sel{height:32px; padding:4px 30px 4px 12px; font-size:12px; font-weight:600}
+  .ga-anos .sel.on{border-color:var(--aurora); font-weight:700}
   .tb-g.ga th.ga-ano{text-align:center; color:var(--ink); font-weight:700; border-bottom:1px solid var(--nevoa)}
   .tb-g.ga th.ga-ini,.tb-g.ga td.ga-ini{border-left:1px solid var(--line)}
   .tb-g.ga tr.c td:first-child .ccn{cursor:pointer}
@@ -1062,38 +1064,39 @@ function prepararGA() {
     const d = nk(String(desc || t).replace(RE_CC, ''));
     return nomes[d] || c || '~';
   };
-  S.gaNome = {}; S.uNome = {};
+  S.gaNome = {}; S.gaUNome = {};
   const nomeG = (g, txt) => { if (ccTab[g]) S.gaNome[g] = ccTab[g].replace(/\s+/g, ' '); else if (!S.gaNome[g]) S.gaNome[g] = String(txt || '(sem centro de custo)').replace(/\s+/g, ' '); };
-  const nomeU = (u, txt) => { if (!S.uNome[u]) S.uNome[u] = usTab[u] ? usTab[u].replace(/\s+/g, ' ') : String(txt || '(sem usina)').replace(/\s+/g, ' '); };
+  const nomeU = (u, txt) => { if (!S.gaUNome[u]) S.gaUNome[u] = usTab[u] ? usTab[u].replace(/\s+/g, ' ') : String(txt || '(sem usina)').replace(/\s+/g, ' '); };
   const orc = S.rows.orc.filter((r) => nk(r.setor) === nk(st.orcSetorExato));
   const real = S.rows.real.filter((r) => { const g = grupo(r.cc, r.ccDesc); return g in ccTab; });
   orc.forEach((r) => { r._g = grupo(r.cc); r._u = codUsina(r.projeto) || '~'; r._d = r.venc; r._ano = String(r.venc || '').slice(0, 4); nomeG(r._g, r.cc); nomeU(r._u, r.projeto); });
   real.forEach((r) => { r._g = grupo(r.cc, r.ccDesc); r._u = codUsina(r.projeto) || '~'; r._d = r.pagto; r._ano = String(r.pagto || '').slice(0, 4); r._sem = nk(r.tipo) === 'semanal'; nomeG(r._g, r.ccDesc || r.cc); nomeU(r._u, r.projeto); });
   S.GA = { orc, real };
-  // Anos analisados: do primeiro ano com realizado até o ano atual (o orçamento de anos futuros fica de fora).
-  const hoje = String(new Date().getFullYear()), anos = new Set([hoje]);
-  real.forEach((r) => { if (/^\d{4}$/.test(r._ano) && r._ano <= hoje) anos.add(r._ano); });
-  S.gaAnosLista = Array.from(anos).sort();
+  // "Total" = todos os anos. Botões para os anos com realizado até o ano atual; os demais anos (orçamento futuro) ficam na lista "Outros anos".
+  const hoje = String(new Date().getFullYear()), ehAno = (a) => /^\d{4}$/.test(a), botoes = new Set([hoje]);
+  real.forEach((r) => { if (ehAno(r._ano) && r._ano <= hoje) botoes.add(r._ano); });
+  S.gaAnosBotao = Array.from(botoes).sort();
+  S.gaAnosLista = Array.from(new Set(orc.concat(real).map((r) => r._ano).filter(ehAno).concat(S.gaAnosBotao))).sort();
   if (S.gaAno !== 'tot' && S.gaAno !== 'cmp' && S.gaAnosLista.indexOf(S.gaAno) === -1) S.gaAno = 'tot';
   $('#avisos').innerHTML = DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '';
 }
 /** Soma por grupo (centro de custo) e usina: orçado e realizado de cada ano e o total. */
 function agregarGA() {
-  const G = new Map(), novo = () => ({ orc: {}, real: {}, rs: 0 });
+  const G = new Map(), novo = () => ({ orc: {}, real: {}, rs: {} });
   const add = (r, tipo) => {
     let g = G.get(r._g); if (!g) { g = { k: r._g, nome: S.gaNome[r._g], us: new Map(), m: novo() }; G.set(r._g, g); }
-    let u = g.us.get(r._u); if (!u) { u = { k: r._u, nome: S.uNome[r._u], m: novo() }; g.us.set(r._u, u); }
+    let u = g.us.get(r._u); if (!u) { u = { k: r._u, nome: S.gaUNome[r._u], m: novo() }; g.us.set(r._u, u); }
     const v = r.valor || 0, a = r._ano || '?';
-    [g.m, u.m].forEach((m) => { m[tipo][a] = (m[tipo][a] || 0) + v; m[tipo].tot = (m[tipo].tot || 0) + v; if (tipo === 'real' && r._sem) m.rs += v; });
+    [g.m, u.m].forEach((m) => { m[tipo][a] = (m[tipo][a] || 0) + v; m[tipo].tot = (m[tipo].tot || 0) + v;
+      if (tipo === 'real' && r._sem) { m.rs[a] = (m.rs[a] || 0) + v; m.rs.tot = (m.rs.tot || 0) + v; } });
   };
-  const ok = (r) => S.gaAnosLista.indexOf(r._ano) !== -1;
-  S.GA.orc.forEach((r) => { if (ok(r)) add(r, 'orc'); });
-  S.GA.real.forEach((r) => { if (ok(r)) add(r, 'real'); });
+  S.GA.orc.forEach((r) => add(r, 'orc'));
+  S.GA.real.forEach((r) => add(r, 'real'));
   const ordem = (g) => { const n = nk(g.nome), i = GA_ORDEM.findIndex((p) => n.indexOf(p) !== -1); return i === -1 ? 99 : i; };
   const grupos = Array.from(G.values()).sort((a, b) => ordem(a) - ordem(b) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
   grupos.forEach((g) => { g.lista = Array.from(g.us.values()).sort((a, b) => (b.m.orc.tot || 0) + (b.m.real.tot || 0) - (a.m.orc.tot || 0) - (a.m.real.tot || 0)); });
   const tot = novo();
-  grupos.forEach((g) => { ['orc', 'real'].forEach((t) => Object.keys(g.m[t]).forEach((a) => { tot[t][a] = (tot[t][a] || 0) + g.m[t][a]; })); tot.rs += g.m.rs; });
+  grupos.forEach((g) => { ['orc', 'real', 'rs'].forEach((t) => Object.keys(g.m[t]).forEach((a) => { tot[t][a] = (tot[t][a] || 0) + g.m[t][a]; })); });
   return { grupos, tot };
 }
 const vAno = (m, t, a) => m[t][a] || 0;
@@ -1101,26 +1104,30 @@ function renderGA() {
   const st = S.setor;
   $('#filtros').hidden = true; $('#obra').hidden = true; $('#pick').hidden = true; $('#resumoBody').hidden = true; $('#gaBody').hidden = false;
   S.GAA = agregarGA();
-  const anos = S.gaAnosLista, a = S.gaAno;
+  const anos = S.gaAnosBotao, a = S.gaAno, outros = S.gaAnosLista.filter((y) => anos.indexOf(y) === -1);
   $('#gaAnos').innerHTML = '<span class="lbl">Ano</span><div class="segm">' + [['tot', 'Total']].concat(anos.map((y) => [y, y]), [['cmp', 'Comparar anos']])
-    .map(([k, t]) => '<button type="button" data-gano="' + k + '"' + (a === k ? ' class="on"' : '') + '>' + t + '</button>').join('') + '</div>';
+    .map(([k, t]) => '<button type="button" data-gano="' + k + '"' + (a === k ? ' class="on"' : '') + '>' + t + '</button>').join('') + '</div>' +
+    (outros.length ? '<select class="sel' + (outros.indexOf(a) !== -1 ? ' on' : '') + '" id="gaAnoSel" aria-label="Outros anos"><option value="">Outros anos</option>' +
+      outros.map((y) => '<option' + (a === y ? ' selected' : '') + '>' + y + '</option>').join('') + '</select>' : '');
+  const sel = $('#gaAnoSel'); if (sel) sel.onchange = () => { if (sel.value) { S.gaAno = sel.value; renderGA(); } };
   // Resumo do ano escolhido (em "Comparar anos", o total).
   const ar = a === 'cmp' ? 'tot' : a, T = S.GAA.tot;
   const m = { orc: vAno(T, 'orc', ar), real: vAno(T, 'real', ar), pt: 0 }, saldo = m.orc - m.real;
+  const rotAno = ar === 'tot' ? 'Todos os anos' : 'Ano ' + ar;
   const item = (rot, v, cls) => '<div class="ri"><span class="ri-l">' + rot + '</span><b class="ri-v tnum' + (cls || '') + '">' + brl2(v) + '</b></div>';
   $('#gaResumo').innerHTML = '<div class="mg">' + gaugeSvg(m, 'do orçado realizado') + '</div>' +
-    '<div class="ri"><span class="ri-l">' + (ar === 'tot' ? S.gaAnosLista.join(' + ') : 'Ano ' + ar) + '</span><b class="ri-v">' + esc(st.nome) + '</b></div>' +
-    item('Orçado', m.orc) + item('Realizado acumulado', m.real) + item('Realizado semanal', T.rs) +
+    '<div class="ri"><span class="ri-l">' + rotAno + '</span><b class="ri-v">' + esc(st.nome) + '</b></div>' +
+    item('Orçado', m.orc) + item('Realizado acumulado', m.real) + item('Realizado semanal', vAno(T, 'rs', ar)) +
     item(saldo >= 0 ? 'Saldo' : 'Estouro', Math.abs(saldo), saldo >= 0 ? ' ok' : ' neg');
   renderTabelaGA();
 }
 function renderTabelaGA() {
-  const a = S.gaAno, cmp = a === 'cmp', anos = cmp ? S.gaAnosLista.concat(['tot']) : [a];
-  const rotA = (y) => (y === 'tot' ? 'Total ' + S.gaAnosLista.join(' + ') : y);
+  const a = S.gaAno, cmp = a === 'cmp', anos = cmp ? S.gaAnosBotao.concat(['tot']) : [a];
+  const rotA = (y) => (y === 'tot' ? 'Total (todos os anos)' : y);
   const bar = (m, y) => { const o = vAno(m, 'orc', y), r = vAno(m, 'real', y);
     return '<span class="cons"><span class="bul-bar">' + segmentos({ orc: o, real: r, pt: 0 }) + '</span><span class="muted">' + (o > 0.005 ? Math.round((r / o) * 100) + '%' : '—') + '</span></span>'; };
   const cels = (m) => anos.map((y) => { const o = vAno(m, 'orc', y), r = vAno(m, 'real', y), d = o - r;
-    return '<td class="n' + (cmp ? ' ga-ini' : '') + '">' + num(o) + '</td><td class="n">' + (cmp ? num(r) : duplo(num(r), '(semanal ' + num(m.rs) + ')')) + '</td>' +
+    return '<td class="n' + (cmp ? ' ga-ini' : '') + '">' + num(o) + '</td><td class="n">' + (cmp ? num(r) : duplo(num(r), '(semanal ' + num(vAno(m, 'rs', y)) + ')')) + '</td>' +
       '<td class="n"><span class="' + numCls(d).trim() + '">' + num(d) + '</span></td>' + (cmp ? '' : '<td>' + bar(m, y) + '</td>'); }).join('');
   let h = '<table class="tb-c tb-g ga"><thead>';
   if (cmp) h += '<tr><th></th>' + anos.map((y) => '<th colspan="3" class="ga-ano">' + rotA(y) + '</th>').join('') + '</tr>';
@@ -1147,10 +1154,10 @@ function abrirGA(g, u) {
 }
 function renderDrawerGA(novo) {
   const { g, u } = S.drawer.ga, a = S.gaAno === 'cmp' ? 'tot' : S.gaAno;
-  const noAno = (r) => r._g === g && r._u === u && (a === 'tot' ? S.gaAnosLista.indexOf(r._ano) !== -1 : r._ano === a);
+  const noAno = (r) => r._g === g && r._u === u && (a === 'tot' || r._ano === a);
   const orc = S.GA.orc.filter(noAno), real = S.GA.real.filter(noAno), rs = real.filter((r) => r._sem);
-  $('#dwT').textContent = S.uNome[u] || u;
-  $('#dwS').textContent = (S.gaNome[g] || '') + ' · ' + (a === 'tot' ? S.gaAnosLista.join(' + ') : 'ano ' + a);
+  $('#dwT').textContent = S.gaUNome[u] || u;
+  $('#dwS').textContent = (S.gaNome[g] || '') + ' · ' + (a === 'tot' ? 'todos os anos' : 'ano ' + a);
   const so = orc.reduce((x, r) => x + (r.valor || 0), 0), sr = real.reduce((x, r) => x + (r.valor || 0), 0);
   let h = '<div class="kpis k4">' + kpi('Orçado', so) + kpi('Realizado acumulado', sr) + kpi('Realizado semanal', rs.reduce((x, r) => x + (r.valor || 0), 0)) + kpiDelta(dh('(Orçado − Realizado)'), so - sr) + '</div>';
   [['orc', 'orc', orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'], ['real', 'real', real, 'Realizado acumulado', S.d.abas.real.aba, 'background:var(--aurora)'],
