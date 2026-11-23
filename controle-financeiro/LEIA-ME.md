@@ -59,16 +59,17 @@ Enquanto a aba **Acessos** não existir, todos veem todas as abas e só o dono e
 No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projetos ainda em construção).
 
 **EP** (igual ao Supply, com uma projeção só)
-1. Escolha as usinas na lista (os nomes aparecem só com a descrição, sem o código).
-2. Faixa de resumo: velocímetro, **Orçado**, **Projeção**, **Realizado semanal**, **Realizado acumulado** e **Saldo** (ou Estouro previsto).
-3. Tabela com os centros de custo de EP: Orçado · Projeção (com o balão de comentário) · Realizado semanal (acumulado embaixo) ·
+1. Escolha as usinas na lista (os nomes aparecem só com a descrição, sem o código). Na lista só entram as usinas com algum
+   lançamento de EP (orçado, projeção ou realizado).
+2. Faixa de resumo: velocímetro, **Orçado**, **Projeção**, **Realizado acumulado** e **Saldo** (ou Estouro previsto). No EP não há Realizado semanal.
+3. Tabela com os centros de custo de EP: Orçado · Projeção (com o balão de comentário) · Realizado acumulado ·
    **Δ Orçado − (Projeção + Realizado)** · **Δ Orçado − Realizado** · Aderência orçamentária. Clique num centro de custo para ver os lançamentos.
 4. Regras:
    - **Projeção** = aba **Projeções - Engenharia**, só as linhas com **Setor = EP** (se "Setor Corrigido" estiver preenchido, vale ele;
      se "Centro de Custo Corrijido" estiver preenchido, vale ele). Não há "Data do Fluxo", então não há comparação de semanas.
    - **Orçado** e **Realizado** = linhas cujo centro de custo é de EP na aba **Setores / CCs** (956 a 971).
    - Comentários funcionam como no Supply, mas sem separação por semana.
-5. **Lançamentos do centro de custo:** o Realizado acumulado e o semanal mostram também a coluna **Consolidado**.
+5. **Lançamentos do centro de custo:** Projeção, Orçado e Realizado acumulado (com a coluna **Consolidado**).
 6. **Editar a Projeção pelo painel** (só no EP e só para quem tem **Sim** na coluna Edita da aba Acessos, no setor EP ou TODOS):
    - **lápis**: altera só o **Valor** e a **Data programada de pgto** daquela linha;
    - **lixeira vermelha**: apaga a linha da aba Projeções - Engenharia;

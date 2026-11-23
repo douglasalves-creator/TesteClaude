@@ -745,7 +745,7 @@ function prepararSetor() {
   S.uNome = {}; S.ccNome = {}; S.uTxt = {}; S.ccTxt = {};
   const nome = (mapa, k, txt, padrao) => { txt = txt.replace(/\s+/g, ' '); if (padrao) mapa[k] = padrao; else if (!mapa[k] || txt.length > mapa[k].length) mapa[k] = txt; };
   const tag = (r, d, proj) => {
-    const p = String(r.projeto || '').trim(), c = String(r._cct || '').trim();
+    const p = String(r._projAlt || r.projeto || '').trim(), c = String(r._cct || '').trim();
     r._u = codUsina(p) || '~'; nome(S.uNome, r._u, p || '(sem usina)', usTab[r._u] && usTab[r._u].replace(/\s+/g, ' '));
     const branco = ccVazio(c);
     r._ck = branco ? '~' : codCC(c); nome(S.ccNome, r._ck, branco ? '(em branco)' : c, ccTab[r._ck] && ccTab[r._ck].replace(/\s+/g, ' '));
@@ -754,14 +754,20 @@ function prepararSetor() {
   };
   S.L.orc.forEach((r) => tag(r, r.venc));
   S.L.real.forEach((r) => { r._sem = nk(r.tipo) === 'semanal'; });
+  // EP: no Realizado, quando "Cod. Projeto" não é um código de usina (ex.: ENG), liga pela descrição (coluna Projeto).
+  if (st.semFluxo) S.L.real.forEach((r) => { if (r.projDesc && !/^\s*[A-Za-z]\d{3,}-\d+/.test(String(r.projeto || ''))) r._projAlt = r.projDesc; });
   S.L.real.forEach((r) => tag(r, r.pagto));
   S.L.proj.forEach((r) => tag(r, r.dataProg, true));
   S.L.projFora.forEach((r) => { r._u = codUsina(r.projeto); r._ck = ''; });
   // Lista suspensa = coluna PROJETO / UFV da aba Usinas (se a aba estiver vazia, as usinas que aparecem nos dados).
   Object.keys(usTab).forEach((k) => { S.uNome[k] = usTab[k].replace(/\s+/g, ' '); });
+  // EP: usina que só tem código (fora da aba Usinas) recebe o nome da coluna Projeto do Realizado.
+  if (st.semFluxo) S.L.real.forEach((r) => { if (!usTab[r._u] && r.projDesc && /^[A-Z]\d{3,}-\d+$/.test(S.uNome[r._u] || '')) S.uNome[r._u] = String(r.projDesc).replace(/\s+/g, ' '); });
   // EP: nome da usina só com a descrição, sem o código (padrão do Orçamento).
   if (st.semFluxo) Object.keys(S.uNome).forEach((k) => { S.uNome[k] = S.uNome[k].replace(RE_USINA, '').trim() || S.uNome[k]; });
-  const lista = Object.keys(usTab).length ? Object.keys(usTab) : Object.keys(S.uNome).filter((k) => k !== '~');
+  let lista = Object.keys(usTab).length ? Object.keys(usTab) : Object.keys(S.uNome).filter((k) => k !== '~');
+  // EP: na lista só entram as usinas com algum lançamento de EP (orçado, projeção ou realizado).
+  if (st.semFluxo) { const tem = new Set(); [S.L.orc, S.L.proj, S.L.real].forEach((rs) => rs.forEach((r) => { if (r._u !== '~') tem.add(r._u); })); lista = Array.from(tem); }
   S.uLista = lista.sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
   S.f.us.forEach((k) => { if (S.uLista.indexOf(k) === -1) S.f.us.delete(k); });
 
@@ -924,7 +930,7 @@ function colunasSemFluxo() {
   return [
     { k: 'nome', t: 'Centro de custo' }, { k: 'orc', t: 'Orçado', n: 1 },
     { k: 'pt', t: 'Projeção', n: 1, c: 'sem', f: (m, k) => (k ? '<span class="pt-cel">' + num(m.pt) + balao(k) + '</span>' : num(m.pt)) },
-    { k: 'rs', t: th3('Realizado semanal', '(acumulado)'), n: 1, f: (m) => duplo(num(m.rs), '(' + num(m.real) + ')') },
+    { k: 'real', t: 'Realizado acumulado', n: 1 },
     { k: 'd1', t: th3('Δ', 'Orçado − (Projeção + Realizado)'), n: 1, f: (m) => '<span class="' + numCls(m.d1).trim() + '">' + num(m.d1) + '</span>' },
     { k: 'd2', t: th3('Δ', 'Orçado − Realizado'), n: 1, f: (m) => '<span class="' + numCls(m.d2).trim() + '">' + num(m.d2) + '</span>' },
     { k: 'cons', t: 'Aderência orçamentária', f: (m) => '<span class="cons"><span class="bul-bar">' + segmentos(m) + '</span><span class="muted">' + (m.orc > 0.005 ? Math.round(((m.real + m.pt) / m.orc) * 100) + '%' : '—') + '</span></span>' }
@@ -1080,7 +1086,7 @@ function renderResumo() {
     '<span class="sm-l dif"><span>Diferença</span><b class="tnum">' + brl2(dif) + '</b></span></div>';
   if (S.setor.semFluxo) {
     $('#resumo').innerHTML = '<div class="mg">' + gaugeSvg(m) + '</div>' +
-      item('Orçado', o) + item('Projeção', m.pt) + item('Realizado semanal', m.rs) + item('Realizado acumulado', m.real) +
+      item('Orçado', o) + item('Projeção', m.pt) + item('Realizado acumulado', m.real) +
       item(saldo >= 0 ? 'Saldo' : 'Estouro previsto', Math.abs(saldo), saldo >= 0 ? ' ok' : ' neg');
     return;
   }
@@ -1382,7 +1388,7 @@ function renderDrawer(novo) {
   $('#dwS').textContent = st.nome + ' · ' + selNome();
   const sf = !!st.semFluxo;
   const k = kpisHtml(m);
-  let h = sf ? '<div class="kpis k4">' + kpi('Orçado', m.orc) + kpi('Projeção', m.pt) + kpi('Realizado acumulado', m.real) + kpi('Realizado semanal', m.rs) + '</div>' +
+  let h = sf ? '<div class="kpis k3">' + kpi('Orçado', m.orc) + kpi('Projeção', m.pt) + kpi('Realizado acumulado', m.real) + '</div>' +
       '<div class="kpis k4">' + kpiDelta(DH.d1.replace('Projeção atual', 'Projeção'), m.d1) + kpiDelta(DH.d2, m.d2) + '</div>'
     : '<div class="kpis k5">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
   h += sf ? '<div class="h3">Comentários<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
@@ -1393,8 +1399,7 @@ function renderDrawer(novo) {
   const blocos = sf ? [
     ['pt', st.id, Fx.pt, 'Projeção', proj + ' · Setor ' + st.nome, 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
     ['orc', 'orc', Fx.orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'],
-    ['real', 'real', Fx.real, 'Realizado acumulado', S.d.abas.real.aba, 'background:var(--aurora)'],
-    ['rs', 'real', Fx.rs, 'Realizado semanal', S.d.abas.real.aba + ' · só as linhas marcadas como Semanal', 'background:var(--aurora)']
+    ['real', 'real', Fx.real, 'Realizado acumulado', S.d.abas.real.aba, 'background:var(--aurora)']
   ] : [
     ['pt', st.id, Fx.pt, 'Projeção atual', proj + ' · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—'), 'background:repeating-linear-gradient(90deg,var(--aurora) 0 5px,transparent 5px 8px)'],
     ['pa', st.id, Fx.pa, 'Projeção anterior', proj + ' · fluxo de ' + (S.f.ant ? dt(S.f.ant) : '—'), 'background:repeating-linear-gradient(90deg,#9AA0A6 0 5px,transparent 5px 8px)'],
