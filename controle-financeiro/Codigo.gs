@@ -91,8 +91,9 @@ const CAMPOS = {
   real: [
     { k: 'pagto', nome: 'Pagto.', tipo: 'data', alias: ['Pagto', 'Data Pagto', 'Data de Pagamento'] },
     { k: 'valor', nome: 'Pagamentos', tipo: 'valor' },
-    // Há duas colunas "Projeto": a primeira (código da usina) é a usada.
-    { k: 'projeto', nome: 'Projeto', tipo: 'texto', dic: true },
+    // Código da usina: coluna "Cod. Projeto" (a coluna "Projeto" é a descrição).
+    // Se "Cod. Projeto" não existir (base antiga), usa a primeira coluna "Projeto".
+    { k: 'projeto', nome: 'Cod. Projeto', tipo: 'texto', dic: true, alias: ['Cód. Projeto', 'Cod Projeto', 'Código Projeto', 'Projeto'] },
     { k: 'cc', nome: 'C. Custo', tipo: 'texto', dic: true, alias: ['Cod. Custo', 'C.Custo'] },
     { k: 'ccDesc', nome: 'Centro de Custo', tipo: 'texto', dic: true, opcional: true },
     { k: 'tipo', nome: 'Semanal / Acumulado', tipo: 'texto', dic: true, opcional: true, alias: ['Semanal/Acumulado'] },

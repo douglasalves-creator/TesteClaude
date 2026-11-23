@@ -9,7 +9,7 @@ Toda alteração fica registrada na aba **Auditoria**.
   - Orçamento (cabeçalho na linha 1): PROJETO, CENTRO DE CUSTO, VALOR A PAGAR, DATA DE VENCIMENTO
   - Projeções - Supply (cabeçalho na linha 1): Projeto Padrão, Centro de Custo Padrão, Valor, Data programada de pgto,
     Data do Fluxo (Fornecedor e Comentário aparecem no Detalhar, se existirem)
-  - Realizado Controladoria (cabeçalho na linha 1): Projeto (código da usina), C. Custo (código), Pagamentos, Pagto.
+  - Realizado Controladoria (cabeçalho na linha 1): Cod. Projeto (código da usina), C. Custo (código), Pagamentos, Pagto.
     (Favorecido, Documento e Consolidado aparecem no Detalhar)
 - Usinas e centros de custo são ligados pelo **código** (usina "A0162-4", centro de custo "801"), não pela descrição.
   Os nomes mostrados vêm das abas **Usinas** e **Setores / CCs**.
