@@ -71,6 +71,10 @@ const CONFIG = {
   // (e desinverte ao gravar).
   AJUSTAR_SINAL: true,
 
+  // Únicos e-mails que podem ALTERAR algo pelo painel (projeções do EP e comentários). Eles também veem todas as abas.
+  // Todos os demais só visualizam, mesmo com "Sim" na coluna Edita da aba Acessos (inclusive o dono do script).
+  EDITORES: ['douglas.alves@solargrid.com.br'],
+
   // Controle de acesso (ver explicação no topo do arquivo).
   ABA_ACESSOS: 'Acessos',
   ABA_SETORES: 'Setores / CCs',
@@ -551,9 +555,11 @@ function ehTotal_(s) { return nk_(s) === nk_(CONFIG.SETOR_TOTAL); }
 function acesso_(ss, email) {
   const todos = {};
   CONFIG.SETORES.forEach(function (s) { todos[nk_(s.nome)] = true; });
-  const eu = String(email || '').toLowerCase();
+  const eu = String(email || '').trim().toLowerCase();
+  // Editor (CONFIG.EDITORES): vê e altera tudo. Ninguém mais altera nada.
+  if (ehEditor_(eu)) return { tudo: true, ver: todos, edita: todos };
   const dono = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
-  if (eu && eu === dono) return { tudo: true, ver: todos, edita: todos };
+  if (eu && eu === dono) return { tudo: true, ver: todos, edita: {} };
   const acessos = lerTabela_(ss, CONFIG.ABA_ACESSOS);
   if (acessos === null) return { tudo: true, ver: todos, edita: {} };
   const minhas = eu ? acessos.filter(function (l) { return l[0].toLowerCase() === eu; }) : [];
@@ -564,11 +570,16 @@ function acesso_(ss, email) {
     if (ehTotal_(l[1])) tudo = true;
     alvos.forEach(function (k) {
       if (!todos[k]) return;
-      ver[k] = true;
-      if (ehSim_(l[2])) edita[k] = true;
+      ver[k] = true; // a coluna "Edita" não libera mais edição: só os e-mails de CONFIG.EDITORES editam
     });
   });
   return { tudo: tudo, ver: ver, edita: edita };
+}
+
+/** O e-mail está na lista de quem pode alterar pelo painel? */
+function ehEditor_(email) {
+  const eu = String(email || '').trim().toLowerCase();
+  return !!eu && (CONFIG.EDITORES || []).some(function (e) { return String(e).trim().toLowerCase() === eu; });
 }
 
 /**
@@ -814,8 +825,7 @@ function prepararGravacao_(id) {
   const ss = getSS_();
   const email = Session.getActiveUser().getEmail() || '';
   if (!acesso_(ss, email).edita[nk_(def.setor)]) {
-    throw new Error('O seu e-mail não tem permissão para editar as projeções de ' + def.setor +
-      '. Peça a liberação (coluna "Edita" da aba Acessos).');
+    throw new Error('O seu e-mail só tem acesso de consulta: o painel não permite alterações para ele.');
   }
   const sheet = getAba_(ss, def.nome, true);
   const mapa = mapear_(sheet, def);
@@ -957,7 +967,7 @@ function salvarComentario(p) {
   const texto = String(p.texto || '').trim();
   if (!texto) throw new Error('Escreva o comentário.');
   if (texto.length > 2000) throw new Error('Comentário muito longo (máximo de 2000 caracteres).');
-  if (!acesso_(ss, email).ver[nk_(p.setor)]) throw new Error('O seu e-mail não tem acesso ao setor ' + p.setor + '.');
+  if (!acesso_(ss, email).edita[nk_(p.setor)]) throw new Error('O seu e-mail só tem acesso de consulta: não pode comentar pelo painel.');
   const itens = (p.itens || []).slice(0, 200);
   if (!itens.length) throw new Error('Escolha pelo menos uma usina.');
   const lock = LockService.getScriptLock();

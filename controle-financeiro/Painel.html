@@ -1391,9 +1391,9 @@ function renderDrawer(novo) {
   let h = sf ? '<div class="kpis k3">' + kpi('Orçado', m.orc) + kpi('Projeção', m.pt) + kpi('Realizado acumulado', m.real) + '</div>' +
       '<div class="kpis k4">' + kpiDelta(DH.d1.replace('Projeção atual', 'Projeção'), m.d1) + kpiDelta(DH.d2, m.d2) + '</div>'
     : '<div class="kpis k5">' + k[0] + '</div><div class="kpis k4">' + k[1] + '</div>';
-  h += sf ? '<div class="h3">Comentários<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
+  h += sf ? '<div class="h3">Comentários<span class="r">' + (S.setor.edita ? '<button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button>' : '') + '</span></div>' +
     '<div class="card" style="padding:12px 16px">' + blocoComentarios(ck) + '</div>' : '';
-  if (!sf) h += '<div class="h3">Comentários da semana · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + '<span class="r"><button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button></span></div>' +
+  if (!sf) h += '<div class="h3">Comentários da semana · fluxo de ' + (S.f.atu ? dt(S.f.atu) : '—') + '<span class="r">' + (S.setor.edita ? '<button type="button" class="btn btn-sm" data-com="' + esc(ck) + '">+ Comentar</button>' : '') + '</span></div>' +
     '<div class="card" style="padding:12px 16px">' + blocoComentarios(ck) + '</div>';
   const proj = S.d.abas[st.id] ? S.d.abas[st.id].aba : 'Projeções';
   const blocos = sf ? [
@@ -1471,8 +1471,10 @@ function unicos(l) { const v = new Set(); return l.filter((c) => { const k = c.q
 /** Balão: só acende (laranja, com número) quando há comentário da semana em análise. */
 function balao(ck) {
   const { semana: s0, antigos: a0 } = comentariosDe(ck), semana = unicos(s0), antigos = unicos(a0);
+  // Quem só consulta não comenta: sem nenhum comentário, não há balão.
+  if (!S.setor.edita && !semana.length && !antigos.length) return '';
   // Com comentário, o texto aparece ao passar o mouse (caixinha própria); sem comentário, só a dica de como comentar.
-  const dica = semana.length ? '' : S.setor.semFluxo ? ' title="Sem comentário · clique para comentar"' : ' title="' + esc('Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar') + '"';
+  const dica = semana.length ? '' : !S.setor.edita ? ' title="' + esc(antigos.length + ' comentário(s) de semanas anteriores') + '"' : S.setor.semFluxo ? ' title="Sem comentário · clique para comentar"' : ' title="' + esc('Sem comentário nesta semana' + (antigos.length ? ' · ' + antigos.length + ' de semanas anteriores' : '') + ' · clique para comentar') + '"';
   return '<button type="button" class="com' + (semana.length ? ' sem' : '') + '" data-com="' + esc(ck) + '"' + dica + ' aria-label="Comentários">' +
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>' + (semana.length ? '<span>' + semana.length + '</span>' : '') + '</button>';
 }
@@ -1499,6 +1501,10 @@ function valoresUsinaCC(u, ck) {
 }
 function abrirComentarios(ck) {
   const us = Array.from(S.f.us);
+  if (!S.setor.edita) { // só consulta: mostra os comentários, sem campo para escrever
+    abrirModal('Comentários · ' + (S.ccNome[ck] || ''), blocoComentarios(ck), 'Fechar', () => { fecharModal(); });
+    return;
+  }
   const h = blocoComentarios(ck, 'semana') +
     '<div class="fld" style="margin-top:12px"><textarea id="comTxt" maxlength="2000" placeholder="Escreva o comentário" aria-label="Comentário"></textarea></div>' +
     blocoComentarios(ck, 'antigos');

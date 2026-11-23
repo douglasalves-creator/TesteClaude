@@ -48,11 +48,13 @@ Cada pessoa vê só as abas de setor liberadas para ela. O que ela não pode ver
      **Orçamento**, das **Projeções** e do **Realizado Controladoria** entram em cada aba do painel.
      (Se um setor não tiver nenhum centro de custo aqui, o painel usa os que aparecem na aba de Projeções dele.)
    - **Acessos**: uma linha por pessoa e setor → `E-mail | Setor | Edita`. O setor **TODOS** libera todas as abas.
-     Na coluna **Edita**, **Sim** = pode editar as Projeções daquele setor; em branco = só consulta.
-     O dono do script sempre vê e edita tudo.
+     A coluna **Edita** não libera mais edição: a aba Acessos só define **quem vê** cada setor.
+   - **Quem pode alterar algo pelo painel** (projeções do EP e comentários): só os e-mails de `CONFIG.EDITORES` no `Codigo.gs`
+     (hoje: **douglas.alves@solargrid.com.br**, que também vê todas as abas). Todos os demais, inclusive o dono do script, só visualizam:
+     não aparecem lápis, lixeira, "+ Nova projeção" nem "+ Comentar", e o servidor recusa qualquer gravação.
 2. **Importante:** quem só pode ver o próprio setor **não pode ter acesso à planilha**. A pessoa usa só o link do painel.
 
-Enquanto a aba **Acessos** não existir, todos veem todas as abas e só o dono edita.
+Enquanto a aba **Acessos** não existir, todos veem todas as abas e só os e-mails de `CONFIG.EDITORES` editam.
 
 ## 4. O que o painel faz
 
@@ -70,7 +72,7 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projet
    - **Orçado** e **Realizado** = linhas cujo centro de custo é de EP na aba **Setores / CCs** (956 a 971).
    - Comentários funcionam como no Supply, mas sem separação por semana.
 5. **Lançamentos do centro de custo:** Projeção, Orçado e Realizado acumulado (com a coluna **Consolidado**).
-6. **Editar a Projeção pelo painel** (só no EP e só para quem tem **Sim** na coluna Edita da aba Acessos, no setor EP ou TODOS):
+6. **Editar a Projeção pelo painel** (só no EP e só para os e-mails de `CONFIG.EDITORES`):
    - **lápis**: altera só o **Valor** e a **Data programada de pgto** daquela linha;
    - **lixeira vermelha**: apaga a linha da aba Projeções - Engenharia;
    - **+ Nova projeção**: inclui uma linha no centro de custo aberto (escolha a usina, o valor e a data).
@@ -123,7 +125,7 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projet
 - Tudo fica salvo na aba **Comentários** (o cabeçalho é criado sozinho): Data do comentário · E-mail · Setor · Código e nome da usina ·
   Código e nome do centro de custo · Data do Fluxo atual e anterior · Comentário · e os valores do momento (Orçado, Projeção anterior,
   Projeção atual, Δ semana, Realizado semanal e acumulado) · Usinas na análise.
-- Todos que acessam o setor veem os comentários. Quem não tem acesso ao setor não vê nem comenta.
+- Todos que acessam o setor veem os comentários (passando o mouse ou clicando no balão). Só os e-mails de `CONFIG.EDITORES` escrevem comentários.
 
 **Regras usadas:**
 - **Orçado** = VALOR A PAGAR, pelo mês da DATA DE VENCIMENTO.
