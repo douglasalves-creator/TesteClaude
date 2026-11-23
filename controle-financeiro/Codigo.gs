@@ -45,7 +45,10 @@ const CONFIG = {
     // EP (Engenharia do Proprietário): igual ao Supply, mas com uma projeção só (a aba não tem "Data do Fluxo").
     //  - Projeções: aba "Projeções - Engenharia", só as linhas com Setor = EP (Setor Corrigido, se preenchido, vale mais);
     //  - Orçamento e Realizado: pelos centros de custo de EP da aba Setores / CCs.
-    { nome: 'EP', projecoes: 'Projeções - Engenharia', editavel: false, semFluxo: true, campos: 'projEng', filtroSetor: 'EP' },
+    //  - Edição pelo painel (quem tem "Edita" no setor EP): só Valor e Data programada de pgto; excluir; incluir nova projeção
+    //    (Setor = EP e Situação = Em Aberto são gravados sozinhos). Nada de outro setor da aba pode ser alterado.
+    { nome: 'EP', projecoes: 'Projeções - Engenharia', editavel: true, semFluxo: true, campos: 'projEng', filtroSetor: 'EP',
+      edicao: { campos: ['valor', 'dataProg'], novos: ['projeto', 'cc', 'valor', 'dataProg', 'fornecedor'], fixos: { setorProj: 'EP', situacao: 'Em Aberto' } } },
     // GA (Gestão de Ativo): só Orçado × Realizado, sem projeção.
     //  - Orçamento: só as linhas com SETOR igual a orcSetorExato;
     //  - Realizado: centros de custo de GA da aba Setores / CCs (pelo código ou pela descrição da coluna Centro de Custo).
@@ -123,6 +126,7 @@ const CAMPOS = {
     { k: 'dataProg', nome: 'Data programada de pgto', tipo: 'data', alias: ['Data programada de pagamento', 'Data programada'] },
     { k: 'fornecedor', nome: 'Fornecedor', tipo: 'texto', dic: true, opcional: true },
     { k: 'coment', nome: 'Comentário', tipo: 'texto', opcional: true, alias: ['Comentarios', 'Comentários'] },
+    { k: 'situacao', nome: 'Situação', tipo: 'texto', dic: true, opcional: true, alias: ['Situacao'] },
     { k: 'setorProj', nome: 'Setor', tipo: 'texto', dic: true },
     { k: 'setorCorr', nome: 'Setor Corrigido', tipo: 'texto', dic: true, opcional: true },
     { k: 'ccCorr', nome: 'Centro de Custo Corrijido', tipo: 'texto', dic: true, opcional: true, alias: ['Centro de Custo Corrigido'] }
@@ -287,7 +291,7 @@ function defAba_(id) {
   if (id === 'real') return { id: id, nome: CONFIG.ABA_REALIZADO, campos: CAMPOS.real, editavel: false };
   const st = CONFIG.SETORES.filter(function (s) { return s.projecoes && idProj_(s.nome) === id; })[0];
   if (!st) return null;
-  return { id: id, nome: st.projecoes, campos: CAMPOS[st.campos || 'proj'], editavel: st.editavel !== false, setor: st.nome, filtroSetor: st.filtroSetor || '' };
+  return { id: id, nome: st.projecoes, campos: CAMPOS[st.campos || 'proj'], editavel: st.editavel !== false, setor: st.nome, filtroSetor: st.filtroSetor || '', edicao: st.edicao || null };
 }
 
 /** Todas as abas que o painel lê. */
@@ -845,7 +849,15 @@ function lerLinha_(ctx, linha, sinal) {
     const col = ctx.mapa.col[c.k];
     out[c.k] = col ? normalizar_(l[col - ctx.c0], c.tipo, ctx.tz, sinal) : (c.tipo === 'valor' ? null : '');
   });
+  if (ctx.def.filtroSetor && out.ccCorr) out.cc = out.ccCorr; // igual à leitura (lerAba_)
   return out;
+}
+
+/** Em aba com vários setores (Projeções - Engenharia), só mexe em linha do próprio setor. */
+function conferirSetorLinha_(ctx, v) {
+  if (ctx.def.filtroSetor && nk_(v.setorCorr || v.setorProj) !== nk_(ctx.def.filtroSetor)) {
+    throw new Error('Essa linha não é do setor ' + ctx.def.filtroSetor + ' e não pode ser alterada por esta aba do painel.');
+  }
 }
 
 /** Confere se a linha ainda é a mesma que o painel mostrou. Devolve os valores atuais. */
@@ -986,6 +998,11 @@ function salvarLinha(p) {
     const ctx = prepararGravacao_(p.aba);
     const sinal = sinalValido_(p.sinal), linha = Number(p.linha), depois = p.depois || {};
     const atual = conferirLinha_(ctx, linha, p.antes || {}, sinal);
+    conferirSetorLinha_(ctx, atual);
+    const permitidos = ctx.def.edicao ? ctx.def.edicao.campos : null;
+    Object.keys(depois).forEach(function (k) {
+      if (permitidos && permitidos.indexOf(k) === -1) throw new Error('Pelo painel só podem ser alterados: Valor e Data programada de pgto.');
+    });
     const mudancas = [];
     ctx.def.campos.forEach(function (c) {
       if (!(c.k in depois)) return;
@@ -1013,7 +1030,18 @@ function novaLinha(p) {
   lock.waitLock(20000);
   try {
     const ctx = prepararGravacao_(p.aba);
-    const sinal = sinalValido_(p.sinal), valores = p.valores || {};
+    const sinal = sinalValido_(p.sinal);
+    let valores = p.valores || {};
+    if (ctx.def.edicao) {
+      // Só os campos liberados; Setor e Situação são gravados sozinhos.
+      const ed = ctx.def.edicao, v = {};
+      ed.novos.forEach(function (k) { if (k in valores) v[k] = valores[k]; });
+      if (!v.projeto || !v.cc || v.valor === null || v.valor === undefined || v.valor === '' || !v.dataProg) {
+        throw new Error('Informe usina, centro de custo, valor e data programada de pgto.');
+      }
+      Object.keys(ed.fixos || {}).forEach(function (k) { v[k] = ed.fixos[k]; });
+      valores = v;
+    }
     // Última linha com dado nas colunas do painel (ignora fórmulas "arrastadas" em outras colunas).
     const bl = bloco_(ctx.sheet, ctx.def);
     let ultima = ctx.mapa.linhaCab;
@@ -1056,6 +1084,7 @@ function excluirLinha(p) {
     const ctx = prepararGravacao_(p.aba);
     const linha = Number(p.linha);
     const atual = conferirLinha_(ctx, linha, p.antes || {}, sinalValido_(p.sinal));
+    conferirSetorLinha_(ctx, atual);
     ctx.sheet.deleteRow(linha);
     auditar_(ctx, linha, 'Exclusão', ctx.def.campos.filter(function (c) { return ctx.mapa.col[c.k] && atual[c.k] !== '' && atual[c.k] !== null; })
       .map(function (c) { return { campo: c.nome, tipo: c.tipo, antes: atual[c.k], depois: '' }; }));

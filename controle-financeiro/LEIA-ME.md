@@ -68,6 +68,14 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projet
      se "Centro de Custo Corrijido" estiver preenchido, vale ele). Não há "Data do Fluxo", então não há comparação de semanas.
    - **Orçado** e **Realizado** = linhas cujo centro de custo é de EP na aba **Setores / CCs** (956 a 971).
    - Comentários funcionam como no Supply, mas sem separação por semana.
+5. **Lançamentos do centro de custo:** o Realizado acumulado e o semanal mostram também a coluna **Consolidado**.
+6. **Editar a Projeção pelo painel** (só no EP e só para quem tem **Sim** na coluna Edita da aba Acessos, no setor EP ou TODOS):
+   - **lápis**: altera só o **Valor** e a **Data programada de pgto** daquela linha;
+   - **lixeira vermelha**: apaga a linha da aba Projeções - Engenharia;
+   - **+ Nova projeção**: inclui uma linha no centro de custo aberto (escolha a usina, o valor e a data).
+     Setor = EP, Situação = Em Aberto e Fornecedor = A DEFINIR são preenchidos sozinhos.
+   - O painel só mexe em linhas com Setor = EP; Orçamento, Realizado e as linhas de Projetos não podem ser alterados.
+   - Toda alteração fica registrada na aba **Auditoria** (data, e-mail, linha, campo, antes e depois).
 
 **GA** (só Orçado × Realizado; GA não tem projeção)
 1. Não tem filtro: a tabela mostra direto os 5 centros de custo de GA (CPX Manutenção Geral, GPX Manutenção Inversor,

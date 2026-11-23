@@ -331,6 +331,9 @@
   .blk > .card{border:1px solid var(--line); border-top:0; border-radius:0 0 12px 12px}
   .ib{border:0; background:transparent; border-radius:6px; padding:4px 5px; color:var(--ink-3); vertical-align:middle}
   .ib:hover{background:var(--sirius); color:var(--aurora)}
+  .ib[data-del]{color:#C0392B}
+  .ib[data-del]:hover{background:#FDECEA; color:#A93226}
+  .form .ro{padding:9px 12px; border:1px solid var(--nevoa); border-radius:10px; background:var(--sirius); font-size:13px}
   .ib svg{width:15px; height:15px; display:block}
   .btn{border:1px solid var(--nevoa); background:var(--branco); border-radius:999px; padding:7px 16px; font-weight:600; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; text-transform:none; letter-spacing:0}
   .btn:hover{border-color:var(--ink-3)}
@@ -616,8 +619,8 @@ const DEMO_API = DEMO ? (function () {
       usinas: Object.fromEntries(usinas.map((u) => [cod(u), u])),
       setores: [{ nome: 'Supply', id: 'p_supply', pronto: true, ccs: ccSupply.map(cod), ccNomes: Object.fromEntries(ccSupply.map((c) => [cod(c), c])), origemCC: 'setores', edita: true,
         outros: ccOutros.concat(ccGA, ccEP).map(cod), palavras: ['BOP', 'CURVA A', 'SUPPLY', 'SUP', 'LOG', 'LOGISTICA', 'COMPRAS'], orcSetor: ['BOP', 'CURVA A', 'LOGISTICA'] },
-        { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: 'p_ep', pronto: true, semFluxo: true, ccs: ccEP.map(cod), ccNomes: Object.fromEntries(ccEP.map((c) => [cod(c), c])), edita: false }, { nome: 'GA', id: '', pronto: true, modo: 'ga', orcSetorExato: 'GE - ENG - GESTÃO DE ATIVO', ccs: ccGA.map(cod), ccNomes: Object.fromEntries(ccGA.map((c) => [cod(c), c])), edita: false }],
-      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', false, 'Supply'), p_ep: aba('p_ep', 'Projeções - Engenharia', false, 'EP') },
+        { nome: 'Projetos', id: '', pronto: false, ccs: [], edita: false }, { nome: 'EP', id: 'p_ep', pronto: true, semFluxo: true, ccs: ccEP.map(cod), ccNomes: Object.fromEntries(ccEP.map((c) => [cod(c), c])), edita: true }, { nome: 'GA', id: '', pronto: true, modo: 'ga', orcSetorExato: 'GE - ENG - GESTÃO DE ATIVO', ccs: ccGA.map(cod), ccNomes: Object.fromEntries(ccGA.map((c) => [cod(c), c])), edita: false }],
+      abas: { orc: aba('orc', 'Orçamento', false), real: aba('real', 'Realizado Controladoria', false), p_supply: aba('p_supply', 'Projeções - Supply', false, 'Supply'), p_ep: aba('p_ep', 'Projeções - Engenharia', true, 'EP') },
       comentarios: COMENT
     }),
     salvarLinha: (p) => { const l = L[p.aba][idx(p.aba, p.linha)]; C[p.aba].forEach((c, j) => { if (c[0] in p.depois) l[j + 1] = p.depois[c[0]]; }); return obj(p.aba, l); },
@@ -1270,9 +1273,11 @@ const COLS_LANC = {
   proj: [['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor'], ['valor', 'Valor', 'valor'], ['dataFluxo', 'Data do Fluxo', 'data']],
   real: [['pagto', 'Pagto.', 'data'], ['favorecido', 'Favorecido'], ['valor', 'Pagamentos', 'valor'], ['doc', 'Documento']],
   // Projeções - Engenharia (EP): sem "Data do Fluxo".
-  projEng: [['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor'], ['valor', 'Valor', 'valor'], ['coment', 'Comentário']]
+  projEng: [['projeto', 'Usina', 'usina'], ['dataProg', 'Data programada de pgto', 'data'], ['fornecedor', 'Fornecedor'], ['valor', 'Valor', 'valor'], ['coment', 'Comentário']],
+  // EP: o Realizado mostra também a coluna Consolidado.
+  realEP: [['pagto', 'Pagto.', 'data'], ['favorecido', 'Favorecido'], ['valor', 'Pagamentos', 'valor'], ['doc', 'Documento'], ['obs', 'Consolidado']]
 };
-function tipoLanc(aba) { return aba === 'orc' || aba === 'real' ? aba : S.setor.semFluxo ? 'projEng' : 'proj'; }
+function tipoLanc(aba) { return aba === 'orc' ? aba : aba === 'real' ? (S.setor.semFluxo ? 'realEP' : 'real') : S.setor.semFluxo ? 'projEng' : 'proj'; }
 function celula(r, col) {
   const k = col[0], tp = col[2];
   if (tp === 'linha') return '<td class="muted" style="white-space:nowrap">' + r._r + '</td>';
@@ -1401,7 +1406,7 @@ function renderDrawer(novo) {
     h += '<details class="blk" data-blk="' + blk + '"' + (S.dwAbertos.has(blk) ? ' open' : '') + '><summary>' +
       '<span class="chev">▶</span><span class="sw" style="' + sw + '"></span><span class="t">' + t + '</span>' +
       '<span class="src">' + esc(fonte) + ' · ' + rows.length + ' lançamento' + (rows.length === 1 ? '' : 's') + '</span>' +
-      (blk === 'pt' && podeEditar(aba) ? '<button type="button" class="btn btn-sm" data-novo="' + aba + '">+ Novo</button>' : '') +
+      (blk === 'pt' && podeEditar(aba) ? '<button type="button" class="btn btn-sm" data-novo="' + aba + '">' + (sf ? '+ Nova projeção' : '+ Novo') + '</button>' : '') +
       '<span class="tt">' + brl2(rows.reduce((s, r) => s + (r.valor || 0), 0)) + '</span></summary>' +
       '<div class="card">' + tabelaLanc(aba, rows) + '</div></details>';
   });
@@ -1507,6 +1512,7 @@ function abrirComentarios(ck) {
 function depoisDeGravar() { prepararSetor(); render(); }
 
 function abrirEditor(aba, row, preset) {
+  if (S.setor.semFluxo) { abrirEditorEP(aba, row); return; }
   const def = S.d.abas[aba];
   const aus = new Set(def.ausentes || []);
   const campos = def.campos.filter((c) => !aus.has(c.k));
@@ -1557,14 +1563,56 @@ function abrirEditor(aba, row, preset) {
     });
   });
 }
+/**
+ * EP: editar só Valor e Data programada de pgto; incluir nova projeção (usina, valor e data) no centro de custo aberto.
+ * Setor = EP, Situação = Em Aberto e Fornecedor = A DEFINIR são gravados sozinhos.
+ */
+function abrirEditorEP(aba, row) {
+  const def = S.d.abas[aba], ck = S.drawer && S.drawer.ck;
+  const us = Array.from(S.f.us).sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
+  const vValor = row && row.valor !== null && row.valor !== undefined ? _n2.format(row.valor) : '';
+  let h = '<div class="form">';
+  if (row) {
+    h += '<div class="fld full"><label>Usina · Centro de custo</label><div class="ro">' + esc(S.uNome[row._u] || row.projeto) + ' · ' + esc(S.ccNome[row._ck] || row.cc) + '</div></div>';
+  } else {
+    h += '<div class="fld full"><label for="e_us">Usina</label>' + (us.length === 1 ? '<div class="ro">' + esc(S.uNome[us[0]]) + '</div><input type="hidden" id="e_us" value="' + esc(us[0]) + '">'
+      : '<select id="e_us"><option value="">Escolha a usina</option>' + us.map((u) => '<option value="' + esc(u) + '">' + esc(S.uNome[u]) + '</option>').join('') + '</select>') + '</div>' +
+      '<div class="fld full"><label>Centro de custo</label><div class="ro">' + esc(S.ccNome[ck] || '') + '</div></div>';
+  }
+  h += '<div class="fld"><label for="e_valor">Valor</label><input id="e_valor" inputmode="decimal" placeholder="0,00" value="' + vValor + '"></div>' +
+    '<div class="fld"><label for="e_dataProg">Data programada de pgto</label><input type="date" id="e_dataProg" value="' + esc((row && row.dataProg) || '') + '"></div></div>' +
+    '<p style="font-size:12px;color:var(--ink-3);margin:12px 0 0">Grava na aba ' + esc(def.aba) + (row ? ', linha ' + row._r : ', na primeira linha livre (Setor EP)') + '. Fica registrado na aba Auditoria.</p>';
+  abrirModal((row ? 'Editar projeção' : 'Nova projeção') + ' · ' + (S.ccNome[row ? row._ck : ck] || ''), h, row ? 'Salvar' : 'Incluir', () => {
+    const v = parseBR($('#e_valor').value), d = $('#e_dataProg').value;
+    if (v === null) return 'Informe o valor.';
+    if (!d) return 'Informe a data programada de pgto.';
+    const valor = Math.round(v * 100) / 100;
+    if (row) {
+      const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
+      const depois = {};
+      if (row.valor === null || row.valor === undefined || Math.abs(row.valor - valor) >= 0.005) depois.valor = valor;
+      if (String(row.dataProg || '') !== d) depois.dataProg = d;
+      if (!Object.keys(depois).length) { fecharModal(); return; }
+      return run('salvarLinha', { aba, linha: row._r, sinal: def.sinal, antes, depois }).then((r) => {
+        Object.assign(row, r); depoisDeGravar(); fecharModal(); toast('Projeção salva (linha ' + row._r + ').');
+      });
+    }
+    const u = $('#e_us').value;
+    if (!u) return 'Escolha a usina.';
+    const novo = { projeto: S.uTxt[u] || (S.d.usinas || {})[u] || S.uNome[u], cc: S.ccTxt[ck] || (S.setor.ccNomes || {})[ck] || S.ccNome[ck], valor, dataProg: d, fornecedor: 'A DEFINIR' };
+    return run('novaLinha', { aba, sinal: def.sinal, valores: novo }).then((r) => {
+      linhasDaAba(aba).push(r); depoisDeGravar(); fecharModal(); toast('Projeção incluída na linha ' + r._r + '.');
+    });
+  });
+}
 function excluir(aba, row) {
   const def = S.d.abas[aba];
   const antes = {}; def.campos.forEach((c) => { antes[c.k] = row[c.k]; });
-  const resumo = [['dataFluxo', 'Data do fluxo', 'data']].concat(COLS_LANC.proj).map((c) => {
-    const v = row[c[0]];
+  const resumo = (S.setor.semFluxo ? COLS_LANC.projEng : [['dataFluxo', 'Data do fluxo', 'data']].concat(COLS_LANC.proj)).map((c) => {
+    const v = c[0] === 'projeto' && S.setor.semFluxo ? S.uNome[row._u] || row.projeto : row[c[0]];
     return v === '' || v === null || v === undefined ? '' : '<div><span style="color:var(--ink-3)">' + c[1] + ':</span> ' + esc(c[2] === 'data' ? dt(v) : c[2] === 'valor' ? brl2(v) : v) + '</div>';
   }).join('');
-  abrirModal('Excluir lançamento', '<p style="margin-top:0">A linha ' + row._r + ' será apagada da aba ' + esc(def.aba) + '. A exclusão fica registrada na aba Auditoria.</p>' +
+  abrirModal(S.setor.semFluxo ? 'Excluir projeção' : 'Excluir lançamento', '<p style="margin-top:0">A linha ' + row._r + ' será apagada da aba ' + esc(def.aba) + '. A exclusão fica registrada na aba Auditoria.</p>' +
     '<div class="card" style="background:var(--sirius);padding:12px 14px">' + resumo + '</div>', 'Excluir',
     () => run('excluirLinha', { aba, linha: row._r, sinal: def.sinal, antes }).then(() => { fecharModal(); toast('Excluído.'); return atualizar(true, true); }), true);
 }
