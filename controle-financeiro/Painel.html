@@ -233,6 +233,10 @@
   .fld .com-us input{width:16px; height:16px; margin:0; accent-color:var(--aurora)}
   /* Aba GA */
   .ga-anos{display:flex; align-items:center; gap:10px; margin:6px 0 14px; flex-wrap:wrap}
+  .ga-anos-in{display:contents}
+  .ga-busca{display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 12px; border:1px solid var(--nevoa); border-radius:999px; background:var(--branco); color:var(--ink-3); min-width:300px}
+  .ga-busca:focus-within{border-color:var(--aurora)}
+  .ga-busca input{border:0; outline:0; background:none; font:inherit; font-size:12px; color:var(--ink); flex:1; min-width:0}
   .ga-anos .sel{height:32px; padding:4px 30px 4px 12px; font-size:12px; font-weight:600}
   .ga-anos .sel.on{border-color:var(--aurora); font-weight:700}
   .tb-g.ga th.ga-ano{text-align:center; color:var(--ink); font-weight:700; border-bottom:1px solid var(--nevoa)}
@@ -473,7 +477,9 @@
 
   <!-- Aba GA: Orçado × Realizado por centro de custo de GA, com as usinas dentro -->
   <div id="gaBody" hidden>
-    <div class="ga-anos" id="gaAnos"></div>
+    <div class="ga-anos"><span class="ga-anos-in" id="gaAnos"></span>
+      <label class="ga-busca"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="gaBusca" placeholder="Buscar usina, fornecedor, documento, valor…" aria-label="Buscar na aba GA" autocomplete="off"></label></div>
     <div class="card res" id="gaResumo"></div>
     <div class="card mt"><div id="gaTree"></div></div>
   </div>
@@ -1084,7 +1090,7 @@ function prepararGA() {
   $('#avisos').innerHTML = DEMO ? '<div class="demo"><b>Modo demonstração</b> Dados fictícios para testar. Dentro da planilha, o painel mostra os dados reais.</div>' : '';
 }
 /** Soma por grupo (centro de custo) e usina: orçado e realizado de cada ano e o total. */
-function agregarGA() {
+function agregarGA(orcRows, realRows) {
   const G = new Map(), novo = () => ({ orc: {}, real: {}, rs: {} });
   const add = (r, tipo) => {
     let g = G.get(r._g); if (!g) { g = { k: r._g, nome: S.gaNome[r._g], us: new Map(), m: novo() }; G.set(r._g, g); }
@@ -1093,8 +1099,8 @@ function agregarGA() {
     [g.m, u.m].forEach((m) => { m[tipo][a] = (m[tipo][a] || 0) + v; m[tipo].tot = (m[tipo].tot || 0) + v;
       if (tipo === 'real' && r._sem) { m.rs[a] = (m.rs[a] || 0) + v; m.rs.tot = (m.rs.tot || 0) + v; } });
   };
-  S.GA.orc.forEach((r) => add(r, 'orc'));
-  S.GA.real.forEach((r) => add(r, 'real'));
+  orcRows.forEach((r) => add(r, 'orc'));
+  realRows.forEach((r) => add(r, 'real'));
   const ordem = (g) => { const n = nk(g.nome), i = GA_ORDEM.findIndex((p) => n.indexOf(p) !== -1); return i === -1 ? 99 : i; };
   const grupos = Array.from(G.values()).sort((a, b) => ordem(a) - ordem(b) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
   grupos.forEach((g) => { g.lista = Array.from(g.us.values()).sort((a, b) => (b.m.orc.tot || 0) + (b.m.real.tot || 0) - (a.m.orc.tot || 0) - (a.m.real.tot || 0)); });
@@ -1103,10 +1109,51 @@ function agregarGA() {
   return { grupos, tot };
 }
 const vAno = (m, t, a) => m[t][a] || 0;
+/*
+ * Busca da aba GA: uma palavra ou valor. Entra o lançamento cujo texto bate (usina, centro de custo, fornecedor,
+ * documento, setor, data, valor) e a usina ou o centro de custo inteiro cujo número na tela bate (orçado, realizado, Δ).
+ */
+function gaTermo(q) {
+  const dig = /\d/.test(q) && /^[\sR$\d.,−-]+$/.test(q) ? q.replace(/\D/g, '') : '';
+  return { txt: nk(q), dig };
+}
+function gaBate(T, s) {
+  if (s === null || s === undefined || s === '') return false;
+  return (!!T.txt && nk(s).indexOf(T.txt) !== -1) || (!!T.dig && String(s).replace(/\D/g, '').indexOf(T.dig) !== -1);
+}
+const dataBR = (d) => (/^\d{4}-\d{2}-\d{2}/.test(String(d || '')) ? String(d).slice(8, 10) + '/' + String(d).slice(5, 7) + '/' + String(d).slice(0, 4) : String(d || ''));
+function gaTextoLinha(r) {
+  if (r._txt === undefined) r._txt = [S.gaNome[r._g], S.gaUNome[r._u], r.projeto, r.projDesc, r.cc, r.ccDesc, r.setor, r.favorecido, r.doc, r.obs, r.tipo, dataBR(r._d), num(r.valor)]
+    .filter((x) => x !== null && x !== undefined && x !== '').join(' | ');
+  return r._txt;
+}
+function filtrarGA(anos) {
+  const q = (S.gaQ || '').trim();
+  if (!q) return { orc: S.GA.orc, real: S.GA.real };
+  const T = gaTermo(q), full = agregarGA(S.GA.orc, S.GA.real), keepG = new Set(), keepU = new Set();
+  const bateM = (m) => anos.some((y) => { const o = vAno(m, 'orc', y), r = vAno(m, 'real', y); return [o, r, vAno(m, 'rs', y), o - r].some((v) => v && gaBate(T, num(v))); });
+  full.grupos.forEach((g) => { if (bateM(g.m)) keepG.add(g.k); g.lista.forEach((u) => { if (bateM(u.m)) keepU.add(g.k + '|' + u.k); }); });
+  const ok = (r) => keepG.has(r._g) || keepU.has(r._g + '|' + r._u) || gaBate(T, gaTextoLinha(r));
+  return { orc: S.GA.orc.filter(ok), real: S.GA.real.filter(ok) };
+}
+function ligarBuscaGA() {
+  const inp = $('#gaBusca'); if (!inp || inp.dataset.ok) return;
+  inp.dataset.ok = '1';
+  let t = 0;
+  const aplicar = () => {
+    S.gaQ = inp.value.trim();
+    renderGA();
+    if (S.gaQ) S.GAA.grupos.forEach((g) => S.gaAbertos.add(g.k)), renderTabelaGA();
+  };
+  inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(aplicar, 250); });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Escape' && inp.value) { e.stopPropagation(); inp.value = ''; aplicar(); } });
+}
 function renderGA() {
   const st = S.setor;
   $('#filtros').hidden = true; $('#obra').hidden = true; $('#pick').hidden = true; $('#resumoBody').hidden = true; $('#gaBody').hidden = false;
-  S.GAA = agregarGA();
+  ligarBuscaGA();
+  S.GAF = filtrarGA(S.gaAno === 'cmp' ? S.gaAnosBotao.concat(['tot']) : [S.gaAno]);
+  S.GAA = agregarGA(S.GAF.orc, S.GAF.real);
   const anos = S.gaAnosBotao, a = S.gaAno, outros = S.gaAnosLista.filter((y) => anos.indexOf(y) === -1);
   $('#gaAnos').innerHTML = '<span class="lbl">Ano</span><div class="segm">' + [['tot', 'Total']].concat(anos.map((y) => [y, y]), [['cmp', 'Comparar anos']])
     .map(([k, t]) => '<button type="button" data-gano="' + k + '"' + (a === k ? ' class="on"' : '') + '>' + t + '</button>').join('') + '</div>' +
@@ -1116,7 +1163,7 @@ function renderGA() {
   // Resumo do ano escolhido (em "Comparar anos", o total).
   const ar = a === 'cmp' ? 'tot' : a, T = S.GAA.tot;
   const m = { orc: vAno(T, 'orc', ar), real: vAno(T, 'real', ar), pt: 0 }, saldo = m.orc - m.real;
-  const rotAno = ar === 'tot' ? 'Todos os anos' : 'Ano ' + ar;
+  const rotAno = (ar === 'tot' ? 'Todos os anos' : 'Ano ' + ar) + (S.gaQ ? ' · com busca' : '');
   const item = (rot, v, cls) => '<div class="ri"><span class="ri-l">' + rot + '</span><b class="ri-v tnum' + (cls || '') + '">' + brl2(v) + '</b></div>';
   $('#gaResumo').innerHTML = '<div class="mg">' + gaugeSvg(m, 'do orçado realizado') + '</div>' +
     '<div class="ri"><span class="ri-l">' + rotAno + '</span><b class="ri-v">' + esc(st.nome) + '</b></div>' +
@@ -1136,7 +1183,7 @@ function renderTabelaGA() {
   if (cmp) h += '<tr><th></th>' + anos.map((y) => '<th colspan="3" class="ga-ano">' + rotA(y) + '</th>').join('') + '</tr>';
   h += '<tr><th>Centro de custo / Usina</th>' + anos.map(() => '<th class="n' + (cmp ? ' ga-ini' : '') + '">Orçado</th><th class="n">' + (cmp ? 'Realizado' : th3('Realizado', '(semanal)')) + '</th><th class="n">' + th3('Δ', 'Orçado − Realizado') + '</th>' + (cmp ? '' : '<th>Aderência orçamentária</th>')).join('') + '</tr></thead><tbody>';
   const G = S.GAA.grupos;
-  if (!G.length) h += '<tr><td colspan="9" class="empty">Nenhum lançamento de GA.</td></tr>';
+  if (!G.length) h += '<tr><td colspan="10" class="empty">' + (S.gaQ ? 'Nada encontrado para “' + esc(S.gaQ) + '”.' : 'Nenhum lançamento de GA.') + '</td></tr>';
   G.forEach((g) => {
     const aberto = S.gaAbertos.has(g.k);
     h += '<tr class="gh" data-gag="' + esc(g.k) + '" role="button" tabindex="0"><td><span class="chev">' + (aberto ? '▾' : '▸') + '</span>' + esc(g.nome) +
@@ -1158,9 +1205,9 @@ function abrirGA(g, u) {
 function renderDrawerGA(novo) {
   const { g, u } = S.drawer.ga, a = S.gaAno === 'cmp' ? 'tot' : S.gaAno;
   const noAno = (r) => r._g === g && r._u === u && (a === 'tot' || r._ano === a);
-  const orc = S.GA.orc.filter(noAno), real = S.GA.real.filter(noAno), rs = real.filter((r) => r._sem);
+  const F = S.GAF || S.GA, orc = F.orc.filter(noAno), real = F.real.filter(noAno), rs = real.filter((r) => r._sem);
   $('#dwT').textContent = S.gaUNome[u] || (u === '~' ? '(sem usina)' : u);
-  $('#dwS').textContent = (S.gaNome[g] || '') + ' · ' + (a === 'tot' ? 'todos os anos' : 'ano ' + a);
+  $('#dwS').textContent = (S.gaNome[g] || '') + ' · ' + (a === 'tot' ? 'todos os anos' : 'ano ' + a) + (S.gaQ ? ' · busca: “' + S.gaQ + '”' : '');
   const so = orc.reduce((x, r) => x + (r.valor || 0), 0), sr = real.reduce((x, r) => x + (r.valor || 0), 0);
   let h = '<div class="kpis k4">' + kpi('Orçado', so) + kpi('Realizado acumulado', sr) + kpi('Realizado semanal', rs.reduce((x, r) => x + (r.valor || 0), 0)) + kpiDelta(dh('(Orçado − Realizado)'), so - sr) + '</div>';
   [['orc', 'orc', orc, 'Orçado', S.d.abas.orc.aba, 'background:var(--cosmos)'], ['real', 'real', real, 'Realizado acumulado', S.d.abas.real.aba, 'background:var(--aurora)'],

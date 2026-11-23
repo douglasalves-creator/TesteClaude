@@ -64,6 +64,8 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projet
 2. No topo, escolha o ano: **Total** (todos os anos, inclusive o orçamento futuro), **2025**, **2026**, os demais anos na lista
    **Outros anos**, ou **Comparar anos** (Orçado, Realizado e Δ de 2025, 2026 e do total, lado a lado).
    Os valores do resumo (velocímetro, Orçado, Realizado acumulado e semanal, Saldo) e da tabela seguem o ano escolhido.
+   Ao lado, a **busca**: digite uma palavra ou valor (usina, centro de custo, fornecedor, documento, data ou valor) e a aba inteira
+   (resumo, tabela e lançamentos) passa a mostrar só o que bate. Para limpar, apague o texto ou aperte Esc.
 3. Colunas: Orçado · Realizado (com o semanal embaixo) · **Δ (Orçado − Realizado)** · Aderência orçamentária.
 4. Clique numa usina para ver os lançamentos de Orçado, Realizado acumulado e Realizado semanal.
 5. Regras:
