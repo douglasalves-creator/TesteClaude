@@ -12,6 +12,8 @@ Toda alteração fica registrada na aba **Auditoria**.
   - Realizado Controladoria (cabeçalho na linha 1): Cod. Projeto (código da usina), C. Custo (código), Pagamentos, Pagto.
     (Favorecido, Documento e Consolidado aparecem no Detalhar)
 - Usinas e centros de custo são ligados pelo **código** (usina "A0162-4", centro de custo "801"), não pela descrição.
+  Quando uma aba traz a usina só com a descrição, o painel acha o código pela aba **Usinas** ou por outra aba onde a mesma
+  descrição aparece com código (se houver conflito, vale a aba Usinas).
   Os nomes mostrados vêm das abas **Usinas** e **Setores / CCs**.
 
 ## 1. Colar os arquivos
@@ -101,7 +103,10 @@ No topo há uma aba por setor: **Supply**, **Projetos**, **EP** e **GA** (Projet
      A ligação entre as abas continua pelo código (coluna **Cod. Projeto** no Realizado) ou, sem código, pela descrição igual à da aba Usinas.
 
 **Supply**
-1. **Escolha as usinas** na lista suspensa (dá para digitar e marcar várias). Sem usina marcada, o painel pede uma.
+1. **Escolha as usinas** na lista suspensa (dá para digitar o nome ou o código e marcar várias). Sem usina marcada, o painel pede uma.
+   A lista traz toda usina que aparece em algum lançamento do Supply no **Orçamento** (PROJETO), nas **Projeções - Supply**
+   (Projeto) ou no **Realizado Controladoria** (Projeto), mesmo que esteja em uma só dessas abas, além das da aba **Usinas**.
+   Os nomes aparecem sempre **sem o código**.
 2. **Projeção anterior** e **Projeção atual**: datas da coluna "Data do Fluxo" de Projeções - Supply.
    A anterior já vem com a **menor** data e a atual com a **maior**. Ao trocar, a tabela muda na hora.
 3. No topo, uma **faixa de resumo**: velocímetro (% do orçado comprometido), **Orçado**, **Projeção atual**, **Realizado acumulado**,

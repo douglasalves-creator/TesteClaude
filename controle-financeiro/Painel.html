@@ -669,7 +669,14 @@ function receber(d) {
   S.d = d;
   S.coment = d.comentarios || [];
   DESC.u = {}; DESC.cc = {};
-  DESC.u = mapaDesc(Object.values(d.usinas || {}), codUsina, RE_USINA);
+  // Usinas: descrição → código aprendida da aba Usinas e também dos próprios dados (Orçamento, Projeções e Realizado),
+  // para que uma usina escrita só com a descrição numa aba se junte à mesma usina com código nas outras.
+  // Se houver conflito, vale a aba Usinas.
+  const txtUs = new Set();
+  (d.abas.orc.dic.projeto || []).forEach((t) => txtUs.add(t));
+  d.setores.forEach((s) => { const a = s.id && d.abas[s.id]; if (a && a.dic.projeto) a.dic.projeto.forEach((t) => txtUs.add(t)); });
+  decodificar(d.abas.real).forEach((r) => { if (r.projDesc && /^\s*[A-Za-z]\d{3,}-\d+\s*$/.test(String(r.projeto || ''))) txtUs.add(String(r.projeto).trim() + ' - ' + r.projDesc); });
+  DESC.u = Object.assign(mapaDesc(Array.from(txtUs), codUsina, RE_USINA), mapaDesc(Object.values(d.usinas || {}), codUsina, RE_USINA));
   DESC.cc = mapaDesc([].concat(...d.setores.map((s) => Object.values(s.ccNomes || {}))), codCC, RE_CC);
   S.rows = { orc: decodificar(d.abas.orc), real: decodificar(d.abas.real) };
   S.proj = {};
@@ -754,20 +761,22 @@ function prepararSetor() {
   };
   S.L.orc.forEach((r) => tag(r, r.venc));
   S.L.real.forEach((r) => { r._sem = nk(r.tipo) === 'semanal'; });
-  // EP: no Realizado, quando "Cod. Projeto" não é um código de usina (ex.: ENG), liga pela descrição (coluna Projeto).
-  if (st.semFluxo) S.L.real.forEach((r) => { if (r.projDesc && !/^\s*[A-Za-z]\d{3,}-\d+/.test(String(r.projeto || ''))) r._projAlt = r.projDesc; });
+  // No Realizado, quando "Cod. Projeto" não é um código de usina (ex.: ENG), liga pela descrição (coluna Projeto).
+  S.L.real.forEach((r) => { if (r.projDesc && !/^\s*[A-Za-z]\d{3,}-\d+/.test(String(r.projeto || ''))) r._projAlt = r.projDesc; });
   S.L.real.forEach((r) => tag(r, r.pagto));
   S.L.proj.forEach((r) => tag(r, r.dataProg, true));
   S.L.projFora.forEach((r) => { r._u = codUsina(r.projeto); r._ck = ''; });
-  // Lista suspensa = coluna PROJETO / UFV da aba Usinas (se a aba estiver vazia, as usinas que aparecem nos dados).
+  // Nomes: os da aba Usinas valem mais que os textos encontrados nos dados.
   Object.keys(usTab).forEach((k) => { S.uNome[k] = usTab[k].replace(/\s+/g, ' '); });
-  // EP: usina que só tem código (fora da aba Usinas) recebe o nome da coluna Projeto do Realizado.
-  if (st.semFluxo) S.L.real.forEach((r) => { if (!usTab[r._u] && r.projDesc && /^[A-Z]\d{3,}-\d+$/.test(S.uNome[r._u] || '')) S.uNome[r._u] = String(r.projDesc).replace(/\s+/g, ' '); });
-  // EP: nome da usina só com a descrição, sem o código (padrão do Orçamento).
-  if (st.semFluxo) Object.keys(S.uNome).forEach((k) => { S.uNome[k] = S.uNome[k].replace(RE_USINA, '').trim() || S.uNome[k]; });
-  let lista = Object.keys(usTab).length ? Object.keys(usTab) : Object.keys(S.uNome).filter((k) => k !== '~');
-  // EP: na lista só entram as usinas com algum lançamento de EP (orçado, projeção ou realizado).
-  if (st.semFluxo) { const tem = new Set(); [S.L.orc, S.L.proj, S.L.real].forEach((rs) => rs.forEach((r) => { if (r._u !== '~') tem.add(r._u); })); lista = Array.from(tem); }
+  // Usina que só tem código (fora da aba Usinas) recebe o nome da coluna Projeto do Realizado.
+  S.L.real.forEach((r) => { if (!usTab[r._u] && r.projDesc && /^[A-Z]\d{3,}-\d+$/.test(S.uNome[r._u] || '')) S.uNome[r._u] = String(r.projDesc).replace(/\s+/g, ' '); });
+  // Padrão: nome da usina só com a descrição, sem o código (como no Orçamento).
+  Object.keys(S.uNome).forEach((k) => { S.uNome[k] = S.uNome[k].replace(RE_USINA, '').trim() || S.uNome[k]; });
+  // Lista suspensa: toda usina que aparece em algum lançamento do setor (Orçamento, Projeções ou Realizado),
+  // mesmo que esteja em uma só dessas abas. No Supply, também as da aba Usinas; no EP, só as que têm lançamento.
+  const tem = new Set(); [S.L.orc, S.L.proj, S.L.real].forEach((rs) => rs.forEach((r) => { if (r._u !== '~') tem.add(r._u); }));
+  if (!st.semFluxo) Object.keys(usTab).forEach((k) => tem.add(k));
+  const lista = Array.from(tem);
   S.uLista = lista.sort((a, b) => S.uNome[a].localeCompare(S.uNome[b], 'pt-BR', { numeric: true }));
   S.f.us.forEach((k) => { if (S.uLista.indexOf(k) === -1) S.f.us.delete(k); });
 
@@ -802,7 +811,7 @@ function guardarSnaps() { S.snapSetor[S.setor.nome] = { ant: S.f.ant, atu: S.f.a
 /* Lista suspensa de usinas                                             */
 /* =================================================================== */
 function selNome() { return Array.from(S.f.us).map((k) => S.uNome[k]).sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })).join(' + '); }
-function usVisiveis() { const q = nk(S.qUs); return S.uLista.filter((k) => !q || nk(S.uNome[k]).indexOf(q) !== -1); }
+function usVisiveis() { const q = nk(S.qUs); return S.uLista.filter((k) => !q || nk(S.uNome[k]).indexOf(q) !== -1 || nk(k).indexOf(q) !== -1); } // busca pelo nome ou pelo código
 function renderUList() {
   const vis = usVisiveis();
   $('#msList').innerHTML = vis.length
