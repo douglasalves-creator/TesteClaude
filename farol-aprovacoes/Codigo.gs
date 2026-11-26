@@ -1,8 +1,9 @@
 /**
  * FAROL DE APROVAÇÕES — requisições do MXM (Pagamentos e Adiantamentos)
  *
- * Fontes (uma aba por tipo, ver CONFIG.RELATORIOS), com o export do MXM colado
- * como veio (linha 1 com "Data: dd/mm/aaaa Hora: hh:mm:ss", cabeçalho logo abaixo).
+ * Fonte: os .xlsx baixados do MXM, numa pasta do Drive (CONFIG.PASTA_ID), sem
+ * renomear. Em cada tipo vale o arquivo mais recente. Sem arquivo na pasta, lê
+ * a aba antiga da planilha (CONFIG.RELATORIOS[tipo].aba).
  *
  * Como o painel decide "com quem está":
  *   - Cada requisição tem uma linha por nível de aprovação (e por rateio).
@@ -21,12 +22,24 @@
  */
 
 const CONFIG = {
-  // Uma aba por tipo de requisição. "ordem" define como achar com quem está:
+  // Pasta do Drive onde ficam os relatórios baixados do MXM (.xlsx, sem renomear).
+  // O farol lê SÓ esta pasta: em cada tipo, o .xlsx mais recente cujo nome
+  // contém "arquivoContem" e cuja linha 1 contém "linha1".
+  PASTA_ID: '137QcCNTkfHTpxvJU-ZHY69tiHM07Dk8N',
+
+  // "ordem" define como achar com quem está:
   //   'historico' = ordem aprendida das aprovações já feitas no próprio relatório;
   //   'relatorio' = ordem das linhas do relatório.
+  // "aba" é a alternativa antiga: se não houver arquivo na pasta, lê a aba.
   RELATORIOS: {
-    pagamentos: { aba: 'Relatório de Aprovações - Pagamentos', ordem: 'historico' },
-    adiantamentos: { aba: 'Relatório de Aprovações - Adiantamentos', ordem: 'historico' }
+    pagamentos: {
+      arquivoContem: 'pagamento', linha1: 'Requisições Pagamento Status',
+      aba: 'Relatório de Aprovações - Pagamentos', ordem: 'historico'
+    },
+    adiantamentos: {
+      arquivoContem: 'adiantamento', linha1: 'Requisição de Adiantamento',
+      aba: 'Relatório de Aprovações - Adiantamentos', ordem: 'historico'
+    }
   },
   FERIADOS_SHEET: 'Feriados',
   HTML_FILE: 'Farol',
@@ -83,14 +96,13 @@ function buildTemplate_() {
   t.logoUrl = CONFIG.LOGO_URL;
   // O que já estiver em cache vai junto com a página (abre sem esperar).
   const iniciais = [];
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    Object.keys(CONFIG.RELATORIOS).forEach(function (tipo) {
-      const sheet = getSheet_(ss, CONFIG.RELATORIOS[tipo].aba);
-      const json = sheet ? lerCache_(chaveCache_(sheet, tipo)) : null;
+  Object.keys(CONFIG.RELATORIOS).forEach(function (tipo) {
+    try {
+      const f = fonte_(tipo);
+      const json = f ? lerCache_(f.chave) : null;
       if (json) iniciais.push(JSON.stringify(tipo) + ':' + json);
-    });
-  } catch (e) { iniciais.length = 0; }
+    } catch (e) { /* carrega quando a aba do farol abrir */ }
+  });
   t.dadosJson = ('{' + iniciais.join(',') + '}').replace(/</g, '\\u003c');
   return t;
 }
@@ -104,26 +116,106 @@ function getFarol(tipo, forcar) {
 function getFarolJson_(tipo, forcar) {
   const rel = CONFIG.RELATORIOS[tipo];
   if (!rel) throw new Error('Tipo de relatório desconhecido: ' + tipo);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = getSheet_(ss, rel.aba);
-  if (!sheet) {
-    throw new Error('Não encontrei a aba "' + rel.aba + '". Abas disponíveis: ' +
-      ss.getSheets().map(function (s) { return s.getName(); }).join(' | '));
+  const f = fonte_(tipo);
+  if (!f) {
+    return JSON.stringify({
+      vazio: true, aba: rel.aba, hoje: hojeSP_(),
+      mensagem: 'Nenhum relatório de ' + tipo + ' na pasta do Drive. Coloque lá o .xlsx baixado do MXM (o nome deve conter "' +
+        rel.arquivoContem + '") e clique em Atualizar.'
+    });
   }
-  if (sheet.getLastRow() < 2) {
-    return JSON.stringify({ vazio: true, aba: rel.aba, hoje: hojeSP_() });
-  }
-  const chave = chaveCache_(sheet, tipo);
   if (!forcar) {
-    const emCache = lerCache_(chave);
+    const emCache = lerCache_(f.chave);
     if (emCache) return emCache;
   }
-  FUSO_PLANILHA_ = ss.getSpreadsheetTimeZone();
-  const data = sheet.getDataRange().getValues();
-  const feriados = lerFeriadosExtras_(ss);
-  const json = JSON.stringify(processarRelatorio_(data, hojeSP_(), feriados, { ordem: rel.ordem, aba: rel.aba, layout: tipo }));
-  gravarCache_(chave, json);
+  const lido = f.ler();
+  if (rel.linha1 && norm_(lido.data.length ? lido.data[0].join(' ') : '').indexOf(norm_(rel.linha1)) === -1) {
+    throw new Error('O arquivo "' + f.nome + '" não parece o relatório "' + rel.linha1 + '" do MXM (confira a linha 1).');
+  }
+  FUSO_PLANILHA_ = lido.fuso;
+  const feriados = lerFeriadosExtras_(SpreadsheetApp.getActiveSpreadsheet());
+  const res = processarRelatorio_(lido.data, hojeSP_(), feriados, { ordem: rel.ordem, aba: f.nome, layout: tipo });
+  res.fonte = f.nome;
+  const json = JSON.stringify(res);
+  gravarCache_(f.chave, json);
   return json;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fonte dos dados: arquivo na pasta do Drive (ou aba antiga)           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * De onde vem o relatório de um tipo. Prioridade: o .xlsx mais recente da
+ * pasta; se não houver, a aba antiga da planilha (se tiver dados).
+ * Devolve { nome, chave, ler() } ou null.
+ */
+function fonte_(tipo) {
+  const rel = CONFIG.RELATORIOS[tipo];
+  const arq = arquivoMaisRecente_(rel.arquivoContem);
+  if (arq) {
+    return {
+      nome: arq.getName(),
+      chave: chaveCache_([tipo, rel.ordem, 'arquivo', arq.getId(), arq.getLastUpdated().getTime(), arq.getSize()]),
+      ler: function () { return lerXlsx_(arq); }
+    };
+  }
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = getSheet_(ss, rel.aba);
+  if (!sheet || sheet.getLastRow() < 2) return null;
+  return {
+    nome: rel.aba,
+    chave: chaveCache_([tipo, rel.ordem, 'aba', sheet.getLastRow(), sheet.getLastColumn(),
+      txt_(sheet.getRange(1, 1).getDisplayValue())]),
+    ler: function () { return { data: sheet.getDataRange().getValues(), fuso: ss.getSpreadsheetTimeZone() }; }
+  };
+}
+
+/** O .xlsx mais recente da pasta cujo nome contém o trecho (sem acento/maiúsculas). */
+function arquivoMaisRecente_(trecho) {
+  if (!CONFIG.PASTA_ID) return null;
+  const alvo = norm_(trecho);
+  const it = DriveApp.getFolderById(CONFIG.PASTA_ID).getFiles();
+  let melhor = null;
+  while (it.hasNext()) {
+    const f = it.next();
+    const nome = f.getName();
+    const ehXlsx = f.getMimeType() === MimeType.MICROSOFT_EXCEL || /\.xlsx$/i.test(nome);
+    if (!ehXlsx || norm_(nome).indexOf(alvo) === -1) continue;
+    if (!melhor || f.getLastUpdated() > melhor.getLastUpdated()) melhor = f;
+  }
+  return melhor;
+}
+
+/**
+ * Lê um .xlsx do Drive: cria uma cópia temporária em formato Planilhas Google
+ * (é como o Google lê .xlsx), pega os valores e apaga a cópia na hora.
+ * A cópia é lida pela API do Sheets, que só enxerga arquivos criados pelo
+ * próprio app; assim o farol não precisa de acesso às outras planilhas.
+ * Precisa dos serviços avançados "Drive API" e "Google Sheets API".
+ */
+function lerXlsx_(arquivo) {
+  const temp = Drive.Files.create(
+    { name: '_farol_temporario_' + arquivo.getName(), mimeType: MimeType.GOOGLE_SHEETS },
+    arquivo.getBlob()
+  );
+  try {
+    const data = [];
+    const BLOCO = 10000;
+    for (let ini = 1; ; ini += BLOCO) {
+      const resp = Sheets.Spreadsheets.Values.get(temp.id, 'A' + ini + ':ZZ' + (ini + BLOCO - 1), {
+        valueRenderOption: 'UNFORMATTED_VALUE',
+        dateTimeRenderOption: 'SERIAL_NUMBER'
+      });
+      const vals = resp.values || [];
+      vals.forEach(function (l) { data.push(l); });
+      if (vals.length < BLOCO) break;
+    }
+    // Datas chegam como número de série; parseData_ converte (fuso não se aplica).
+    return { data: data, fuso: '' };
+  } finally {
+    try { Drive.Files.remove(temp.id); } catch (e) { /* se falhar, a cópia fica no Meu Drive e pode ser apagada à mão */ }
+  }
 }
 
 function tipoDaAba_(nome) {
@@ -147,17 +239,16 @@ function onEdit(e) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const CACHE_VERSAO = 'v8';
+const CACHE_VERSAO = 'v9';
 
 // Fuso da planilha; definido antes de processar (vazio nos testes fora do Apps Script).
 let FUSO_PLANILHA_ = '';
 const CACHE_TTL = 21600;       // 6 h (máximo do CacheService)
 const CACHE_PEDACO = 30000;    // caracteres por chave (limite de 100 KB por valor)
 
-/** Muda quando o relatório muda (linha 1 do MXM, tamanho da aba) ou o dia vira. */
-function chaveCache_(sheet, tipo) {
-  const a1 = txt_(sheet.getRange(1, 1).getDisplayValue());
-  const assinatura = [CACHE_VERSAO, tipo, CONFIG.RELATORIOS[tipo].ordem, hojeSP_(), sheet.getLastRow(), sheet.getLastColumn(), a1].join('|');
+/** Muda quando o relatório muda (outro arquivo, arquivo alterado, aba alterada) ou o dia vira. */
+function chaveCache_(partes) {
+  const assinatura = [CACHE_VERSAO, hojeSP_()].concat(partes).join('|');
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, assinatura, Utilities.Charset.UTF_8);
   return 'farol_' + bytes.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
 }
@@ -197,7 +288,8 @@ function diagnosticar() {
 
 function diagnosticarTipo_(tipo) {
   const r = getFarol(tipo, true);
-  if (r.vazio) { Logger.log('Aba vazia.'); return; }
+  if (r.vazio) { Logger.log(r.mensagem || 'Sem relatório.'); return; }
+  Logger.log('Fonte: ' + r.fonte);
   Logger.log('Atualização do relatório: ' + (r.atualizacao || '(não encontrada na linha 1)'));
   Logger.log('Linhas lidas: ' + r.diag.linhas + ' | requisições: ' + r.diag.requisicoes);
   Logger.log('Status encontrados: ' + JSON.stringify(r.diag.status));
@@ -251,7 +343,11 @@ function parseData_(v) {
     if (!FUSO_PLANILHA_) return v;
     v = Utilities.formatDate(v, FUSO_PLANILHA_, 'yyyy-MM-dd HH:mm:ss');
   }
-  if (typeof v === 'number') return new Date(Math.round((v - 25569) * 86400000) + new Date(0).getTimezoneOffset() * 60000);
+  if (typeof v === 'number') {
+    // Número de série de data (planilha): mesmo dia/hora, no fuso do script.
+    const utc = Math.round((v - 25569) * 86400000);
+    return new Date(utc + new Date(utc).getTimezoneOffset() * 60000);
+  }
   const s = txt_(v);
   let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
   if (m) {

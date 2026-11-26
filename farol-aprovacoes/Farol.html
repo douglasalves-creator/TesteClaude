@@ -539,10 +539,10 @@
       carregado = true;
       if (d.vazio) {
         D = null; REQS = [];
-        meta = 'Aba <b>' + esc(d.aba) + '</b> vazia';
+        meta = 'Sem relatório de ' + esc(rotulo);
         atualizarMeta();
         $('kpis').innerHTML = ''; $('rank').innerHTML = ''; $('infoTabela').innerHTML = '';
-        $('areaTabela').innerHTML = '<div class="estado"><h3>Nenhum relatório colado ainda</h3>Cole o relatório do MXM na aba <b>' + esc(d.aba) + '</b> e clique em Atualizar.</div>';
+        $('areaTabela').innerHTML = '<div class="estado"><h3>Nenhum relatório encontrado</h3>' + esc(d.mensagem || ('Cole o relatório do MXM na aba ' + d.aba + ' e clique em Atualizar.')) + '</div>';
         return;
       }
       D = d;

@@ -104,3 +104,39 @@ Custo, Código Projeto, Doc. Antecipação, Número Requisição, Vlr Grp.
 Antecipação, Valor Adiantamento, Descrição Setor, Data Prog. Pag., Aprovador
 Alocado, Fornecedor e Justificativa. Para mudar, edite `arquivo` em
 `LAYOUTS.adiantamentos`.
+
+## 8. Relatórios pela pasta do Drive (rotina atual)
+
+O farol lê os relatórios direto da pasta do Drive configurada em
+`CONFIG.PASTA_ID`. Não é preciso importar nem renomear abas.
+
+**Rotina:** baixe os dois relatórios do MXM e coloque os .xlsx na pasta, sem
+renomear. Em cada tipo vale o arquivo mais recente (o nome deve conter
+"pagamento" ou "adiantamento"; a linha 1 é conferida). Arquivos antigos podem
+ficar ou ser apagados.
+
+**Instalação (uma vez):**
+1. Apps Script → Configurações do projeto (engrenagem) → marque
+   "Mostrar arquivo de manifesto appsscript.json no editor".
+2. No editor, abra `appsscript.json` e substitua todo o conteúdo pelo deste
+   pacote. Ele já ativa os serviços Drive API e Google Sheets API e trava as
+   permissões.
+3. Substitua `Código.gs` e `Farol`, salve, execute `diagnosticar` e autorize.
+4. Se usa o link do App da Web: Implantar → Gerenciar implantações → editar →
+   Nova versão.
+
+**Segurança (permissões pedidas):**
+| Permissão | Para quê |
+|---|---|
+| Ver arquivos do Drive (só leitura) | listar a pasta e abrir os .xlsx |
+| Arquivos criados pelo próprio app | criar e apagar a cópia temporária usada para ler o .xlsx |
+| Só esta planilha | aba Feriados (opcional) e abas antigas |
+| Janelas na planilha | menu e janela do farol |
+
+O app não edita nem apaga nada no Drive além da própria cópia temporária, e
+só lê a pasta configurada. Pelo link do App da Web, o farol roda com a conta
+de quem implantou: quem abre vê só o painel, sem acesso à pasta. Pelo menu da
+planilha, roda com a conta de quem clicou, que precisa ter acesso à pasta.
+
+Se não houver relatório na pasta, o farol usa a aba antiga
+(`Relatório de Aprovações - ...`), se existir.
